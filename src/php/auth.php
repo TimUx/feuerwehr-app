@@ -8,8 +8,14 @@ require_once __DIR__ . '/encryption.php';
 class Auth {
     private static $config;
     private static $dataDir;
+    private static $initialized = false;
 
     public static function init() {
+        // Only initialize once to avoid reloading config and resetting session settings
+        if (self::$initialized) {
+            return;
+        }
+        
         self::$config = require __DIR__ . '/../../config/config.php';
         self::$dataDir = self::$config['data_dir'];
         
@@ -25,6 +31,8 @@ class Auth {
             ini_set('session.use_strict_mode', 1);
             session_start();
         }
+        
+        self::$initialized = true;
     }
 
     /**
@@ -53,7 +61,15 @@ class Auth {
      * Logout user
      */
     public static function logout() {
+        // Clear session data
+        session_unset();
         session_destroy();
+        
+        // Clear the session cookie
+        if (isset($_COOKIE[session_name()])) {
+            setcookie(session_name(), '', time() - 3600, '/');
+        }
+        
         return true;
     }
 

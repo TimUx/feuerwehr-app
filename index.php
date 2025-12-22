@@ -34,7 +34,7 @@ if (!$isAuthenticated && $page !== 'login') {
 
 // Handle login form submission
 if ($page === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
+    $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     
     if (Auth::login($username, $password)) {

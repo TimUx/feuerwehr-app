@@ -286,6 +286,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (session_status() === PHP_SESSION_ACTIVE) {
                         session_unset();
                         session_destroy();
+                        // Clear the session cookie to ensure a fresh session on next request
+                        if (isset($_COOKIE[session_name()])) {
+                            setcookie(session_name(), '', time() - 3600, '/');
+                        }
                     }
                     
                     $success = true;
