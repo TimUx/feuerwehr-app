@@ -271,21 +271,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Encrypt users data manually (matching Encryption class format)
                 // Convert hex key to binary for AES-256 (64-char hex -> 32 bytes)
                 $encryption_key_binary = hex2bin($encryption_key);
-                $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-                $encrypted = openssl_encrypt($usersData, 'aes-256-cbc', $encryption_key_binary, 0, $iv);
-                $encryptedUsers = base64_encode($iv . '::' . $encrypted);
-                
-                file_put_contents($dataDir . '/users.json', $encryptedUsers);
-                chmod($dataDir . '/users.json', 0600);
-                
-                // Clear session data properly
-                if (session_status() === PHP_SESSION_ACTIVE) {
-                    session_unset();
-                    session_destroy();
+                if ($encryption_key_binary === false) {
+                    $errors[] = 'Fehler bei der Konvertierung des Verschlüsselungsschlüssels.';
+                    $step = 3; // Stay on step 3
+                } else {
+                    $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+                    $encrypted = openssl_encrypt($usersData, 'aes-256-cbc', $encryption_key_binary, 0, $iv);
+                    $encryptedUsers = base64_encode($iv . '::' . $encrypted);
+                    
+                    file_put_contents($dataDir . '/users.json', $encryptedUsers);
+                    chmod($dataDir . '/users.json', 0600);
+                    
+                    // Clear session data properly
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        session_unset();
+                        session_destroy();
+                    }
+                    
+                    $success = true;
+                    $step = 4;
                 }
-                
-                $success = true;
-                $step = 4;
             } else {
                 $errors[] = 'Fehler beim Schreiben der Konfigurationsdatei. Prüfen Sie die Dateiberechtigungen.';
             }
