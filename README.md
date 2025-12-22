@@ -137,7 +137,50 @@ Alle Screenshots in iPhone 13 Pro Auflösung (390x844px):
 - **Apache** oder anderer PHP-kompatibler Webserver
 - **Git** (für Installation via Repository)
 
-### Schritt-für-Schritt Anleitung
+### Installation mit Web-Installer (Empfohlen)
+
+Der Web-Installer ist die einfachste Methode und erfordert **keinen Zugriff auf die Kommandozeile**.
+
+#### 1. Repository klonen oder hochladen
+```bash
+git clone https://github.com/TimUx/feuerwehr-app.git
+cd feuerwehr-app
+```
+
+Alternativ: Laden Sie die Dateien per FTP auf Ihren Webserver hoch.
+
+#### 2. Installations-Wizard öffnen
+Navigieren Sie zu Ihrer Domain im Browser:
+```
+http://ihre-domain.de/install.php
+```
+
+#### 3. Installations-Schritte durchlaufen
+Der Wizard führt Sie durch folgende Schritte:
+
+1. **Willkommen**: Übersicht der Einrichtung
+2. **Administrator-Benutzer**: Erstellen Sie den ersten Admin-Benutzer
+   - Benutzername (min. 3 Zeichen)
+   - Passwort (min. 6 Zeichen)
+3. **E-Mail-Einstellungen**: Konfigurieren Sie SMTP und Absender-Informationen
+   - Absender E-Mail-Adresse und Name
+   - SMTP Server-Einstellungen (Host, Port, Verschlüsselung)
+   - Optional: SMTP-Authentifizierung
+4. **Fertig**: Installation abgeschlossen!
+
+Der Verschlüsselungsschlüssel wird automatisch generiert - keine Kommandozeile erforderlich!
+
+#### 4. Logo hochladen (optional)
+Platzieren Sie Ihr Feuerwehr-Logo als `public/assets/logo.png`. Dieses wird in E-Mails und PDFs verwendet.
+
+#### 5. Anmeldung
+Nach erfolgreicher Installation können Sie sich mit Ihrem erstellten Administrator-Benutzer anmelden.
+
+---
+
+### Manuelle Installation (Alternativ)
+
+Wenn Sie Zugriff auf die Kommandozeile haben, können Sie die App auch manuell einrichten:
 
 #### 1. Repository klonen
 ```bash
@@ -173,18 +216,12 @@ chmod 700 data
 chmod 600 config/config.php
 ```
 
-#### 6. Logo hochladen (optional)
-Platzieren Sie Ihr Feuerwehr-Logo als `public/assets/logo.png`. Dieses wird in E-Mails und PDFs verwendet.
+#### 6. Anwendung öffnen
+Navigieren Sie zu Ihrer Domain im Browser und melden Sie sich an.
 
-#### 7. Anwendung öffnen
-Navigieren Sie zu Ihrer Domain im Browser:
-```
-http://ihre-domain.de
-```
-
-#### 8. Erstanmeldung
-- **Benutzername**: `admin`
-- **Passwort**: `admin123`
+**Standard-Zugangsdaten:**
+- Benutzername: `admin`
+- Passwort: `admin123`
 
 ⚠️ **WICHTIG**: Ändern Sie das Passwort sofort nach dem ersten Login!
 

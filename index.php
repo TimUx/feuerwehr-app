@@ -11,7 +11,8 @@ Auth::init();
 
 // Check if configuration exists
 if (!file_exists(__DIR__ . '/config/config.php')) {
-    die('Configuration file not found. Please copy config.example.php to config.php and update with your settings.');
+    header('Location: /install.php');
+    exit;
 }
 
 // Handle logout
