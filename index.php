@@ -8,7 +8,7 @@ require_once __DIR__ . '/src/php/encryption.php';
 
 // Check if configuration exists
 if (!file_exists(__DIR__ . '/config/config.php')) {
-    header('Location: /install.php');
+    header('Location: install.php');
     exit;
 }
 

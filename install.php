@@ -4,21 +4,143 @@
  * This wizard helps set up the application without requiring command-line access
  */
 
+// Start session at the beginning
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Security: Prevent running if already installed
 $configFile = __DIR__ . '/config/config.php';
 if (file_exists($configFile)) {
     die('Installation already completed. Delete config/config.php to run this wizard again.');
 }
 
+// System Requirements Check Function
+function checkSystemRequirements() {
+    $checks = [];
+    $allPassed = true;
+    
+    // Check PHP Version (7.4+)
+    $phpVersion = PHP_VERSION;
+    $phpVersionOk = version_compare($phpVersion, '7.4.0', '>=');
+    $checks[] = [
+        'name' => 'PHP Version',
+        'required' => '7.4.0 oder höher',
+        'actual' => $phpVersion,
+        'status' => $phpVersionOk,
+        'critical' => true
+    ];
+    if (!$phpVersionOk) $allPassed = false;
+    
+    // Check required PHP extensions
+    $requiredExtensions = [
+        'openssl' => 'Für Verschlüsselung (AES-256-CBC)',
+        'mbstring' => 'Für Multibyte-String-Unterstützung',
+        'json' => 'Für JSON-Datenspeicherung',
+        'session' => 'Für Session-Management'
+    ];
+    
+    foreach ($requiredExtensions as $ext => $description) {
+        $loaded = extension_loaded($ext);
+        $checks[] = [
+            'name' => "PHP Extension: $ext",
+            'required' => $description,
+            'actual' => $loaded ? 'Installiert' : 'Nicht gefunden',
+            'status' => $loaded,
+            'critical' => true
+        ];
+        if (!$loaded) $allPassed = false;
+    }
+    
+    // Check recommended extensions
+    $recommendedExtensions = [
+        'curl' => 'Für externe API-Aufrufe',
+        'gd' => 'Für Bildverarbeitung',
+        'zip' => 'Für Archivierung'
+    ];
+    
+    foreach ($recommendedExtensions as $ext => $description) {
+        $loaded = extension_loaded($ext);
+        $checks[] = [
+            'name' => "PHP Extension: $ext",
+            'required' => $description,
+            'actual' => $loaded ? 'Installiert' : 'Nicht gefunden',
+            'status' => $loaded,
+            'critical' => false
+        ];
+    }
+    
+    // Check directory permissions
+    $configDir = __DIR__ . '/config';
+    $configDirWritable = is_writable($configDir) || (!file_exists($configDir) && is_writable(__DIR__));
+    $checks[] = [
+        'name' => 'config/ Verzeichnis',
+        'required' => 'Schreibrechte erforderlich',
+        'actual' => $configDirWritable ? 'Beschreibbar' : 'Nicht beschreibbar',
+        'status' => $configDirWritable,
+        'critical' => true
+    ];
+    if (!$configDirWritable) $allPassed = false;
+    
+    $dataDir = __DIR__ . '/data';
+    $dataDirWritable = is_writable($dataDir) || (!file_exists($dataDir) && is_writable(__DIR__));
+    $checks[] = [
+        'name' => 'data/ Verzeichnis',
+        'required' => 'Schreibrechte erforderlich',
+        'actual' => $dataDirWritable ? 'Beschreibbar' : 'Nicht beschreibbar',
+        'status' => $dataDirWritable,
+        'critical' => true
+    ];
+    if (!$dataDirWritable) $allPassed = false;
+    
+    // Check PHP configuration
+    $uploadMaxFilesize = ini_get('upload_max_filesize');
+    $postMaxSize = ini_get('post_max_size');
+    $checks[] = [
+        'name' => 'upload_max_filesize',
+        'required' => 'Mindestens 2M für Datei-Uploads',
+        'actual' => $uploadMaxFilesize,
+        'status' => true,
+        'critical' => false
+    ];
+    
+    $checks[] = [
+        'name' => 'post_max_size',
+        'required' => 'Mindestens 2M für Formular-Uploads',
+        'actual' => $postMaxSize,
+        'status' => true,
+        'critical' => false
+    ];
+    
+    $memoryLimit = ini_get('memory_limit');
+    $checks[] = [
+        'name' => 'memory_limit',
+        'required' => 'Mindestens 64M empfohlen',
+        'actual' => $memoryLimit,
+        'status' => true,
+        'critical' => false
+    ];
+    
+    return ['checks' => $checks, 'allPassed' => $allPassed];
+}
+
 // Handle form submission
-$step = $_GET['step'] ?? 1;
+$step = $_GET['step'] ?? 0;
 $errors = [];
 $success = false;
 
 // Process form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($step == 1) {
-        // Step 1: Generate encryption key (done automatically, just move to step 2)
+    if ($step == 0) {
+        // Step 0: System requirements check
+        $requirements = checkSystemRequirements();
+        if ($requirements['allPassed']) {
+            $step = 1;
+        } else {
+            $errors[] = 'Nicht alle erforderlichen Voraussetzungen sind erfüllt. Bitte beheben Sie die Probleme bevor Sie fortfahren.';
+        }
+    } elseif ($step == 1) {
+        // Step 1: Welcome (just move to step 2)
         $step = 2;
     } elseif ($step == 2) {
         // Step 2: Admin user creation
@@ -44,14 +166,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (empty($errors)) {
             // Store in session and move to step 3
-            session_start();
             $_SESSION['install_admin_username'] = $username;
             $_SESSION['install_admin_password'] = $password;
             $step = 3;
         }
     } elseif ($step == 3) {
         // Step 3: Email settings
-        session_start();
         
         $from_address = trim($_POST['from_address'] ?? '');
         $from_name = trim($_POST['from_name'] ?? '');
@@ -85,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $admin_username = $_SESSION['install_admin_username'] ?? 'admin';
             $admin_password = $_SESSION['install_admin_password'] ?? 'admin123';
             
-            // Create configuration array
+            // Create configuration array (without storing password)
             $config = [
                 'app_name' => 'Feuerwehr Management',
                 'app_version' => '1.0.0',
@@ -105,8 +225,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'data_dir' => __DIR__ . '/data',
                 'backup_dir' => __DIR__ . '/data/backups',
                 'default_admin' => [
-                    'username' => $admin_username,
-                    'password' => $admin_password,
+                    'username' => 'admin',
+                    'password' => 'change_this_password', // Placeholder only, actual user created below
                 ],
             ];
             
@@ -134,8 +254,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     mkdir($dataDir, 0700, true);
                 }
                 
+                // Create admin user directly in users.json
+                require_once __DIR__ . '/src/php/encryption.php';
+                
+                $adminUser = [
+                    'id' => uniqid('user_'),
+                    'username' => $admin_username,
+                    'password' => password_hash($admin_password, PASSWORD_DEFAULT),
+                    'role' => 'admin',
+                    'created_at' => date('Y-m-d H:i:s')
+                ];
+                
+                $usersData = json_encode([$adminUser], JSON_PRETTY_PRINT);
+                $encryptedUsers = Encryption::encrypt($usersData);
+                file_put_contents($dataDir . '/users.json', $encryptedUsers);
+                chmod($dataDir . '/users.json', 0600);
+                
                 // Clear session data
-                session_destroy();
+                if (session_status() === PHP_SESSION_ACTIVE) {
+                    session_unset();
+                    $_SESSION = [];
+                }
                 
                 $success = true;
                 $step = 4;
@@ -144,11 +283,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-}
-
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
 }
 ?>
 <!DOCTYPE html>
@@ -429,6 +563,44 @@ if (session_status() === PHP_SESSION_NONE) {
             font-size: 72px;
         }
         
+        .requirements-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .requirements-table th,
+        .requirements-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .requirements-table th {
+            background: #f5f5f5;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .status-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+        }
+        
+        .status-pass {
+            color: #4caf50;
+        }
+        
+        .status-fail {
+            color: #f44336;
+        }
+        
+        .status-warning {
+            color: #ff9800;
+        }
+        
         .row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -443,6 +615,15 @@ if (session_status() === PHP_SESSION_NONE) {
             .step-label {
                 display: none;
             }
+            
+            .requirements-table {
+                font-size: 14px;
+            }
+            
+            .requirements-table th,
+            .requirements-table td {
+                padding: 8px;
+            }
         }
     </style>
 </head>
@@ -454,20 +635,24 @@ if (session_status() === PHP_SESSION_NONE) {
         </div>
         
         <div class="step-indicator">
-            <div class="step <?php echo $step >= 1 ? ($step == 1 ? 'active' : 'completed') : ''; ?>">
+            <div class="step <?php echo $step >= 0 ? ($step == 0 ? 'active' : 'completed') : ''; ?>">
                 <div class="step-number">1</div>
+                <div class="step-label">Prüfung</div>
+            </div>
+            <div class="step <?php echo $step >= 1 ? ($step == 1 ? 'active' : 'completed') : ''; ?>">
+                <div class="step-number">2</div>
                 <div class="step-label">Start</div>
             </div>
             <div class="step <?php echo $step >= 2 ? ($step == 2 ? 'active' : 'completed') : ''; ?>">
-                <div class="step-number">2</div>
-                <div class="step-label">Admin-User</div>
+                <div class="step-number">3</div>
+                <div class="step-label">Admin</div>
             </div>
             <div class="step <?php echo $step >= 3 ? ($step == 3 ? 'active' : 'completed') : ''; ?>">
-                <div class="step-number">3</div>
+                <div class="step-number">4</div>
                 <div class="step-label">E-Mail</div>
             </div>
             <div class="step <?php echo $step >= 4 ? 'active' : ''; ?>">
-                <div class="step-number">4</div>
+                <div class="step-number">5</div>
                 <div class="step-label">Fertig</div>
             </div>
         </div>
@@ -484,7 +669,94 @@ if (session_status() === PHP_SESSION_NONE) {
                 </div>
             <?php endif; ?>
             
-            <?php if ($step == 1): ?>
+            <?php if ($step == 0): ?>
+                <!-- Step 0: System Requirements Check -->
+                <?php $requirements = checkSystemRequirements(); ?>
+                
+                <h2 class="section-title">System-Voraussetzungen prüfen</h2>
+                <p class="section-description">
+                    Bevor wir mit der Installation beginnen, prüfen wir, ob alle erforderlichen
+                    Voraussetzungen auf Ihrem Server erfüllt sind.
+                </p>
+                
+                <table class="requirements-table">
+                    <thead>
+                        <tr>
+                            <th>Komponente</th>
+                            <th>Erforderlich</th>
+                            <th>Tatsächlich</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($requirements['checks'] as $check): ?>
+                            <tr>
+                                <td><strong><?php echo htmlspecialchars($check['name']); ?></strong></td>
+                                <td><?php echo htmlspecialchars($check['required']); ?></td>
+                                <td><?php echo htmlspecialchars($check['actual']); ?></td>
+                                <td>
+                                    <?php if ($check['status']): ?>
+                                        <span class="status-icon status-pass">
+                                            <span class="material-icons" style="font-size: 20px;">check_circle</span>
+                                            OK
+                                        </span>
+                                    <?php elseif ($check['critical']): ?>
+                                        <span class="status-icon status-fail">
+                                            <span class="material-icons" style="font-size: 20px;">error</span>
+                                            Fehler
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="status-icon status-warning">
+                                            <span class="material-icons" style="font-size: 20px;">warning</span>
+                                            Warnung
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                
+                <?php if ($requirements['allPassed']): ?>
+                    <div class="alert alert-success">
+                        <strong>Alle erforderlichen Voraussetzungen sind erfüllt!</strong><br>
+                        Sie können mit der Installation fortfahren.
+                    </div>
+                    
+                    <form method="POST" action="?step=0">
+                        <div class="button-group">
+                            <button type="submit" class="btn btn-primary">
+                                <span class="material-icons">arrow_forward</span>
+                                Installation starten
+                            </button>
+                        </div>
+                    </form>
+                <?php else: ?>
+                    <div class="alert alert-error">
+                        <strong>Einige erforderliche Voraussetzungen sind nicht erfüllt.</strong><br>
+                        Bitte beheben Sie die rot markierten Fehler, bevor Sie mit der Installation fortfahren können.
+                    </div>
+                    
+                    <div class="info-box">
+                        <strong>Hilfe zur Fehlerbehebung:</strong>
+                        <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                            <li><strong>PHP Extensions:</strong> Installieren Sie fehlende Extensions über Ihren Server-Administrator oder Hosting-Provider</li>
+                            <li><strong>Berechtigungen:</strong> Setzen Sie Schreibrechte für die Verzeichnisse: <code>chmod 755 config data</code></li>
+                            <li><strong>PHP Version:</strong> Aktualisieren Sie PHP auf Version 7.4 oder höher</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="GET" action="?step=0">
+                        <div class="button-group">
+                            <button type="submit" class="btn btn-secondary">
+                                <span class="material-icons">refresh</span>
+                                Erneut prüfen
+                            </button>
+                        </div>
+                    </form>
+                <?php endif; ?>
+                
+            <?php elseif ($step == 1): ?>
                 <!-- Step 1: Welcome -->
                 <h2 class="section-title">Willkommen zum Installations-Assistenten</h2>
                 <p class="section-description">
@@ -670,7 +942,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 </div>
                 
                 <div class="button-group" style="justify-content: center;">
-                    <a href="/index.php" class="btn btn-primary">
+                    <a href="index.php" class="btn btn-primary">
                         <span class="material-icons">login</span>
                         Zur Anmeldung
                     </a>
