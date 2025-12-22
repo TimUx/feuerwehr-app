@@ -1,9 +1,9 @@
 <?php
+require_once __DIR__ . '/encryption.php';
+
 /**
  * Authentication and Session Management
  */
-
-require_once __DIR__ . '/encryption.php';
 
 class Auth {
     private static $config;
