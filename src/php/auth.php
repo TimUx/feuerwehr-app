@@ -61,11 +61,23 @@ class Auth {
      * Logout user
      */
     public static function logout() {
-        // Clear session data
-        session_unset();
-        session_destroy();
+        // Only destroy session if one is active
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            // Clear session data
+            session_unset();
+            session_destroy();
+            
+            // Clear the session cookie using proper parameters
+            self::clearSessionCookie();
+        }
         
-        // Clear the session cookie using proper parameters
+        return true;
+    }
+    
+    /**
+     * Clear the session cookie from the browser
+     */
+    private static function clearSessionCookie() {
         if (isset($_COOKIE[session_name()])) {
             $params = session_get_cookie_params();
             setcookie(
@@ -78,8 +90,6 @@ class Auth {
                 $params['httponly']
             );
         }
-        
-        return true;
     }
 
     /**
