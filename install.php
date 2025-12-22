@@ -283,8 +283,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     chmod($dataDir . '/users.json', 0600);
                     
                     // Clear session data properly
-                    // Note: This code is duplicated from Auth::clearSessionCookie() because
-                    // we cannot use the Auth class during installation (it doesn't exist yet)
+                    // Note: This code is duplicated from Auth::clearSessionCookie() to avoid
+                    // circular dependencies (Auth class requires config.php which we're creating here)
                     if (session_status() === PHP_SESSION_ACTIVE) {
                         session_unset();
                         session_destroy();
@@ -294,7 +294,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             setcookie(
                                 session_name(),
                                 '',
-                                time() - 3600,
+                                time() - 3600, // Same as Auth::COOKIE_EXPIRY_OFFSET
                                 $params['path'],
                                 $params['domain'],
                                 $params['secure'],

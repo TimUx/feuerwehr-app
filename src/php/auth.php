@@ -9,6 +9,9 @@ class Auth {
     private static $config;
     private static $dataDir;
     private static $initialized = false;
+    
+    // Cookie expiration offset for clearing session cookies (1 hour in the past)
+    private const COOKIE_EXPIRY_OFFSET = 3600;
 
     public static function init() {
         // Only initialize once to avoid reloading config and resetting session settings
@@ -83,7 +86,7 @@ class Auth {
             setcookie(
                 session_name(),
                 '',
-                time() - 3600,
+                time() - self::COOKIE_EXPIRY_OFFSET,
                 $params['path'],
                 $params['domain'],
                 $params['secure'],
