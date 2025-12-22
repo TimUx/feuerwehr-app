@@ -286,6 +286,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Note: This code is duplicated from Auth::clearSessionCookie() to avoid
                     // circular dependencies (Auth class requires config.php which we're creating here)
                     if (session_status() === PHP_SESSION_ACTIVE) {
+                        // Cookie expiry offset constant (matches Auth::COOKIE_EXPIRY_OFFSET)
+                        $cookieExpiryOffset = 3600; // 1 hour in the past
+                        
                         session_unset();
                         session_destroy();
                         // Clear the session cookie using proper parameters
@@ -294,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             setcookie(
                                 session_name(),
                                 '',
-                                time() - 3600, // Same as Auth::COOKIE_EXPIRY_OFFSET
+                                time() - $cookieExpiryOffset,
                                 $params['path'],
                                 $params['domain'],
                                 $params['secure'],
