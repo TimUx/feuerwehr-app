@@ -20,6 +20,12 @@ class Encryption {
         
         $key = self::$config['encryption_key'];
         
+        // Convert hex key to binary for AES-256
+        // The key is stored as 64-char hex string, but AES-256 needs 32 bytes
+        if (ctype_xdigit($key) && strlen($key) === 64) {
+            $key = hex2bin($key);
+        }
+        
         // Generate initialization vector
         $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
         
@@ -37,6 +43,12 @@ class Encryption {
         self::init();
         
         $key = self::$config['encryption_key'];
+        
+        // Convert hex key to binary for AES-256
+        // The key is stored as 64-char hex string, but AES-256 needs 32 bytes
+        if (ctype_xdigit($key) && strlen($key) === 64) {
+            $key = hex2bin($key);
+        }
         
         // Decode the data
         $decoded = base64_decode($encryptedData);

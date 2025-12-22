@@ -269,8 +269,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $usersData = json_encode([$adminUser], JSON_PRETTY_PRINT);
                 
                 // Encrypt users data manually (matching Encryption class format)
+                // Convert hex key to binary for AES-256 (64-char hex -> 32 bytes)
+                $encryption_key_binary = hex2bin($encryption_key);
                 $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-                $encrypted = openssl_encrypt($usersData, 'aes-256-cbc', $encryption_key, 0, $iv);
+                $encrypted = openssl_encrypt($usersData, 'aes-256-cbc', $encryption_key_binary, 0, $iv);
                 $encryptedUsers = base64_encode($iv . '::' . $encrypted);
                 
                 file_put_contents($dataDir . '/users.json', $encryptedUsers);
