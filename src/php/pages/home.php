@@ -33,12 +33,6 @@ $isAdmin = Auth::isAdmin();
             <span class="menu-button-text">Statistiken</span>
         </button>
         
-        <!-- Fahrzeuge -->
-        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('vehicles')">
-            <span class="material-icons">local_shipping</span>
-            <span class="menu-button-text">Fahrzeuge</span>
-        </button>
-        
         <!-- Future: Telefonnummern -->
         <button class="menu-button menu-button-disabled" disabled title="Demnächst verfügbar">
             <span class="material-icons">phone</span>
@@ -96,86 +90,3 @@ $isAdmin = Auth::isAdmin();
     </div>
     <?php endif; ?>
 </div>
-
-<style>
-.menu-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1.5rem;
-}
-
-.menu-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 1.5rem;
-}
-
-@media (max-width: 768px) {
-    .menu-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
-}
-
-.menu-button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 2rem 1rem;
-    background: var(--bg-card);
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    min-height: 140px;
-}
-
-.menu-button:hover:not(:disabled) {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(220, 38, 38, 0.2);
-    border-color: var(--primary-color);
-}
-
-.menu-button:active:not(:disabled) {
-    transform: translateY(-2px);
-}
-
-.menu-button .material-icons {
-    font-size: 48px;
-    color: var(--primary-color);
-}
-
-.menu-button-text {
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    text-align: center;
-    line-height: 1.3;
-}
-
-.menu-button-admin {
-    border-color: var(--info-color);
-}
-
-.menu-button-admin .material-icons {
-    color: var(--info-color);
-}
-
-.menu-button-admin:hover:not(:disabled) {
-    border-color: var(--info-color);
-    box-shadow: 0 6px 12px rgba(59, 130, 246, 0.2);
-}
-
-.menu-button-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.menu-button-disabled .material-icons,
-.menu-button-disabled .menu-button-text {
-    color: var(--text-secondary);
-}
-</style>
