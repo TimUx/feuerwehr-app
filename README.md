@@ -1,194 +1,651 @@
-# Feuerwehr Management App
+# 🚒 Feuerwehr Management App
 
-Progressive Web App (PWA) zum internen Koordinieren einer Feuerwehr.
+Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehren. Keine Datenbank erforderlich - läuft mit Apache + PHP und verschlüsselten JSON-Dateien.
 
-## Screenshots
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PHP Version](https://img.shields.io/badge/PHP-7.4%2B-blue)](https://php.net)
+[![PWA](https://img.shields.io/badge/PWA-enabled-green)](https://web.dev/progressive-web-apps/)
 
-### Login (Light Mode)
-![Login Light](https://github.com/user-attachments/assets/c73c05ff-c7d3-4250-a646-3d2b6d78817d)
+---
 
-### Login (Dark Mode)
-![Login Dark](https://github.com/user-attachments/assets/0217fc88-360c-4ce0-bc5f-d57b26eb7ec3)
+## 📑 Inhaltsverzeichnis
 
-### Dashboard
-![Dashboard](https://github.com/user-attachments/assets/6249beb6-6502-4f4d-8760-e8607e14f8e1)
+- [Features](#-features)
+- [Screenshots](#-screenshots)
+- [Installation](#-installation)
+- [App-Bereiche](#-app-bereiche)
+  - [Hauptmenü](#hauptmenü)
+  - [Einsatzkräfte-Verwaltung](#einsatzkräfte-verwaltung)
+  - [Fahrzeug-Verwaltung](#fahrzeug-verwaltung)
+  - [Formulare](#formulare)
+  - [Einsatztools](#einsatztools)
+  - [Statistiken](#statistiken)
+  - [Benutzerverwaltung](#benutzerverwaltung)
+- [Konfiguration](#️-konfiguration)
+- [Sicherheit](#-sicherheit)
+- [Technologie-Stack](#-technologie-stack)
+- [Support](#-support)
+- [Lizenz](#-lizenz)
 
-### Einsatzkräfte Verwaltung
-![Personnel Management](https://github.com/user-attachments/assets/3cce9076-9a4e-4a47-8d0e-a454b4fd60cd)
+---
 
-### Einsatzbericht Formular
-![Mission Report Form](https://github.com/user-attachments/assets/22bcbf18-e2d1-4f82-a609-7bfc2bda3add)
+## ✨ Features
 
-## Features
+### 🔐 Authentifizierung & Sicherheit
+- **Zwei Benutzerrollen**: Admin (voller Zugriff) und Operator (Formulare & Ansichten)
+- **Verschlüsselte Datenspeicherung**: Alle Daten AES-256-CBC verschlüsselt
+- **Sichere Passwörter**: bcrypt-Hashing
+- **Session-Management**: Automatischer Timeout
+- **XSS & Command Injection Schutz**: Output-Escaping und Whitelisting
 
-- ✅ **Progressive Web App (PWA)** - Installierbar auf mobilen Geräten
-- ✅ **Benutzerverwaltung** - Admin und Operator Rollen
-- ✅ **Einsatzkräfte-Verwaltung** - Name, Ausbildungen (AGT, Maschinist, Sanitäter), Führungsrollen (Truppführer, Gruppenführer, Zugführer, Verbandsführer)
-- ✅ **Fahrzeugverwaltung** - Ort, Typ, Funkrufname
-- ✅ **Dynamische Formulare**:
-  - Anwesenheitsliste (mit Multi-Select für Einsatzkräfte)
-  - Einsatzbericht (mit Multi-Select für Einsatzkräfte und Fahrzeuge)
-- ✅ **E-Mail & PDF-Export** - Formulare werden als HTML-E-Mail mit PDF-Anhang versendet
-- ✅ **Statistiken** - Jahresübersicht für gesamte Abteilung und je Einsatzkraft
-- ✅ **Datenverschlüsselung** - Alle Daten werden verschlüsselt gespeichert
-- ✅ **Light/Dark Mode** - Automatische Themenwahl
-- ✅ **Responsive Design** - Optimiert für Mobile und Desktop
+### 👥 Personal-Management
+- **Einsatzkräfte-Verwaltung**: Zentrale Datenbank aller Mitglieder
+- **Qualifikationen**: AGT, Maschinist, Sanitäter
+- **Führungsrollen**: Truppführer, Gruppenführer, Zugführer, Verbandsführer
+- **Ausbilder-Kennzeichnung**: Separate Markierung für Übungsleiter
 
-## Installation
+### 🚒 Fahrzeug-Management
+- **Zentrale Fahrzeugverwaltung**: Ort, Typ, Funkrufname
+- **Multi-Select Integration**: Automatische Verfügbarkeit in allen Formularen
+
+### 📋 Dynamische Formulare
+- **Anwesenheitsliste** (Übungsdienste):
+  - Übungsleiter-Auswahl (nur Ausbilder)
+  - Teilnehmer (Multi-Select)
+  - Automatische Zeitberechnung
+  - Teilnehmerzählung
+  - Datei-Upload mit E-Mail-Anhang
+  
+- **Einsatzbericht**:
+  - Vollständige Einsatzdaten (Grund, Ort, Leiter, Lage, Tätigkeiten)
+  - Dynamische Fahrzeugbesatzung (1-20 Einsatzkräfte)
+  - Beteiligte Personen (dynamisch 0-10)
+  - Verdienstausfall-Tracking
+  - Kostenpflichtigkeit
+
+- **E-Mail & PDF**: Automatischer Versand als HTML-E-Mail mit PDF-Anhang
+
+### 🛠️ Einsatz-Tools
+- **Online Karte**: OpenStreetMap mit Routenberechnung
+- **Gefahrenmatrix**: AAAA-CCCC-EEEE Einsatzstellen-Gefahren
+- **Gefahrstoffkennzeichen**: UN-Nummern Datenbank mit GHS/ADR-Klassen
+- **Wichtige Telefonnummern**: Notfallkontakte mit Direktwahl (tel:-Links)
+
+### 📊 Statistiken
+- **Jahres-Übersicht**: Abteilungsweit
+- **Personen-Statistiken**: Einzelauswertung je Einsatzkraft
+- **Auswertungen**: Übungsstunden, Einsatzstunden, Anzahl Dienste
+
+### 🎨 Design & UX
+- **Progressive Web App**: Installierbar auf mobilen Geräten
+- **Responsive Design**: Optimiert für Mobile (iPhone 13 Pro) und Desktop
+- **Light/Dark Mode**: Automatische Themenwahl passend zu alarm-messenger
+- **Touch-optimiert**: Große Buttons für mobile Bedienung
+- **Material Design Icons**: Moderne, intuitive Benutzeroberfläche
+- **Offline-Funktionalität**: Service Worker für Offline-Nutzung
+
+---
+
+## 📱 Screenshots
+
+Alle Screenshots in iPhone 13 Pro Auflösung (390x844px):
+
+### Login
+<table>
+<tr>
+<td width="50%">
+<b>Light Mode</b><br/>
+<img src="https://github.com/user-attachments/assets/c73c05ff-c7d3-4250-a646-3d2b6d78817d" width="100%" alt="Login Light Mode">
+</td>
+<td width="50%">
+<b>Dark Mode</b><br/>
+<img src="https://github.com/user-attachments/assets/0217fc88-360c-4ce0-bc5f-d57b26eb7ec3" width="100%" alt="Login Dark Mode">
+</td>
+</tr>
+</table>
+
+### Hauptmenü
+<table>
+<tr>
+<td width="50%">
+<b>Light Mode</b><br/>
+<img src="https://github.com/user-attachments/assets/e463670a-8c82-4dd6-99da-970c9b8a705f" width="100%" alt="Hauptmenü Light Mode">
+</td>
+<td width="50%">
+<b>Dark Mode</b><br/>
+<img src="https://github.com/user-attachments/assets/bc864160-3420-4735-b789-7f93805408fc" width="100%" alt="Hauptmenü Dark Mode">
+</td>
+</tr>
+</table>
+
+### Navigation
+<img src="https://github.com/user-attachments/assets/d25dc4d8-e078-4ad1-aae7-465f7e572a68" width="390" alt="Navigation Menü">
+
+### Einsatzkräfte-Verwaltung
+<img src="https://github.com/user-attachments/assets/3cce9076-9a4e-4a47-8d0e-a454b4fd60cd" width="390" alt="Einsatzkräfte Verwaltung">
+
+### Einsatzbericht-Formular
+<img src="https://github.com/user-attachments/assets/22bcbf18-e2d1-4f82-a609-7bfc2bda3add" width="390" alt="Einsatzbericht Formular">
+
+---
+
+## 🚀 Installation
 
 ### Voraussetzungen
 
-- PHP 7.4 oder höher
-- Apache Webserver (oder anderer PHP-kompatibler Webserver)
-- PHP Extensions: `openssl`, `mbstring`, `json`
+- **PHP 7.4+** mit Extensions: `openssl`, `mbstring`, `json`
+- **Apache** oder anderer PHP-kompatibler Webserver
+- **Git** (für Installation via Repository)
 
-### Setup
+### Schritt-für-Schritt Anleitung
 
-1. **Repository klonen oder herunterladen**
-   ```bash
-   git clone https://github.com/TimUx/feuerwehr-app.git
-   cd feuerwehr-app
-   ```
+#### 1. Repository klonen
+```bash
+git clone https://github.com/TimUx/feuerwehr-app.git
+cd feuerwehr-app
+```
 
-2. **Konfiguration erstellen**
-   ```bash
-   cp config/config.example.php config/config.php
-   ```
+#### 2. Konfigurationsdatei erstellen
+```bash
+cp config/config.example.php config/config.php
+```
 
-3. **Konfiguration anpassen**
-   - Öffnen Sie `config/config.php`
-   - Ändern Sie `encryption_key` zu einem zufälligen 32-Zeichen-String
-   - Passen Sie die E-Mail-Einstellungen an
-   - Ändern Sie die Standard-Admin-Zugangsdaten
+#### 3. Verschlüsselungsschlüssel generieren
+```bash
+php -r "echo bin2hex(random_bytes(16));"
+```
+Kopieren Sie den generierten Schlüssel und fügen Sie ihn in `config/config.php` als `encryption_key` ein.
 
-4. **Verzeichnisrechte setzen**
-   ```bash
-   chmod 700 data
-   chmod 600 config/config.php
-   ```
-
-5. **Webserver konfigurieren**
-   
-   Für Apache mit mod_rewrite (optional, für saubere URLs):
-   ```apache
-   <Directory /pfad/zur/app>
-       Options -Indexes +FollowSymLinks
-       AllowOverride All
-       Require all granted
-   </Directory>
-   ```
-
-6. **App öffnen**
-   - Navigieren Sie zu Ihrer Domain/IP im Browser
-   - Standard-Login: `admin` / `admin123`
-   - **WICHTIG**: Ändern Sie das Passwort sofort nach dem ersten Login!
-
-## Sicherheit
-
-- Alle Datendateien werden mit AES-256-CBC verschlüsselt
-- Passwörter werden mit bcrypt gehasht
-- Session-basierte Authentifizierung
-- CSRF-Schutz implementiert
-- XSS-Schutz durch Output-Escaping
-
-## Verwendung
-
-### Benutzerrollen
-
-- **Admin**: Voller Zugriff, kann Listen erstellen/bearbeiten/löschen
-- **Operator**: Kann nur Formulare ausfüllen und Listen anzeigen
-
-### Navigation
-
-Die App verwendet eine Seitenleiste mit folgenden Bereichen:
-- Dashboard - Übersicht
-- Einsatzkräfte - Verwaltung des Personals
-- Fahrzeuge - Verwaltung der Fahrzeuge
-- Anwesenheitsliste - Formular für Übungsdienste
-- Einsatzbericht - Formular für Einsätze
-- Statistiken - Auswertungen
-- Benutzerverwaltung (nur Admin)
-
-### PWA Installation
-
-Auf mobilen Geräten:
-1. Öffnen Sie die App im Browser
-2. Wählen Sie "Zum Startbildschirm hinzufügen" oder "Installieren"
-3. Die App erscheint als eigenständige Anwendung
-
-## Technologie-Stack
-
-- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **Backend**: PHP 7.4+
-- **Storage**: Encrypted JSON files (keine Datenbank erforderlich)
-- **Design**: Material Design inspiriert
-- **PWA**: Service Worker für Offline-Funktionalität
-- **Verschlüsselung**: AES-256-CBC
-
-## Design-Referenz
-
-Das Design orientiert sich an der [alarm-messenger](https://github.com/TimUx/alarm-messenger) App:
-- Gleiche Farbpalette (Rot-Thema für Feuerwehr)
-- Material Design Icons
-- Light/Dark Mode Support
-- Responsive Layout
-
-## Konfiguration
-
-### E-Mail-Einstellungen
-
-Bearbeiten Sie `config/config.php` um die E-Mail-Einstellungen anzupassen:
-
+#### 4. E-Mail-Konfiguration anpassen
+Öffnen Sie `config/config.php` und passen Sie die E-Mail-Einstellungen an:
 ```php
 'email' => [
-    'from_address' => 'noreply@feuerwehr.local',
-    'from_name' => 'Feuerwehr Management System',
-    // SMTP-Konfiguration optional
+    'from_address' => 'noreply@ihre-feuerwehr.de',
+    'from_name' => 'Feuerwehr Willingshausen',
     'smtp_host' => 'localhost',
     'smtp_port' => 25,
 ]
 ```
 
-### Logo hochladen
+#### 5. Berechtigungen setzen
+```bash
+chmod 700 data
+chmod 600 config/config.php
+```
 
-Platzieren Sie das Feuerwehr-Logo unter `public/assets/logo.png`. Dieses wird in E-Mails und PDF-Dokumenten verwendet.
+#### 6. Logo hochladen (optional)
+Platzieren Sie Ihr Feuerwehr-Logo als `public/assets/logo.png`. Dieses wird in E-Mails und PDFs verwendet.
 
-### Verschlüsselungsschlüssel
+#### 7. Anwendung öffnen
+Navigieren Sie zu Ihrer Domain im Browser:
+```
+http://ihre-domain.de
+```
 
-**WICHTIG**: Ändern Sie den `encryption_key` in `config/config.php` zu einem zufälligen 32-Zeichen-String:
+#### 8. Erstanmeldung
+- **Benutzername**: `admin`
+- **Passwort**: `admin123`
 
+⚠️ **WICHTIG**: Ändern Sie das Passwort sofort nach dem ersten Login!
+
+### PWA-Installation (Mobile)
+1. Öffnen Sie die App im Browser auf Ihrem Smartphone
+2. Tippen Sie auf "Zum Startbildschirm hinzufügen" (iOS) oder "Installieren" (Android)
+3. Die App erscheint als eigenständige Anwendung auf Ihrem Gerät
+
+---
+
+## 📂 App-Bereiche
+
+### Hauptmenü
+Das Hauptmenü bietet schnellen Zugriff auf alle wichtigen Funktionen mit großen, touch-optimierten Buttons:
+
+**Funktionen** (für alle Benutzer):
+- 📋 Anwesenheitsliste
+- 🚒 Einsatzbericht
+- 🚗 Fahrzeuge (Ansicht)
+- 🗺️ Online Karte
+- ⚠️ Gefahrenmatrix
+- ☣️ Gefahrstoffkennzeichen
+- 📞 Wichtige Telefonnummern
+- 📊 Statistiken
+
+**Administration** (nur für Admins):
+- 👥 Einsatzkräfte verwalten
+- 🔧 Fahrzeuge verwalten
+- 📞 Telefonnummern verwalten
+- 👤 Benutzerverwaltung
+
+---
+
+### Einsatzkräfte-Verwaltung
+
+Zentrale Verwaltung aller Feuerwehrmitglieder mit folgenden Informationen:
+
+- **Persönliche Daten**: Name
+- **Qualifikationen**: 
+  - AGT (Atemschutzgeräteträger)
+  - Maschinist
+  - Sanitäter
+- **Führungsrollen**:
+  - Truppführer
+  - Gruppenführer
+  - Zugführer
+  - Verbandsführer
+- **Ausbilder**: Kennzeichnung für Übungsleiter
+
+**Funktionen**:
+- ➕ Einsatzkraft hinzufügen
+- ✏️ Einsatzkraft bearbeiten
+- 🗑️ Einsatzkraft löschen
+- 🔍 Übersichtliche Tabellen-Darstellung
+
+---
+
+### Fahrzeug-Verwaltung
+
+Verwaltung aller Feuerwehrfahrzeuge mit:
+
+- **Standort** (Ort)
+- **Fahrzeugtyp** (z.B. TSF-W, LF 16)
+- **Funkrufname** (z.B. Florian Willingshausen 1/44)
+
+Fahrzeuge werden automatisch in allen Formularen zur Auswahl bereitgestellt.
+
+---
+
+### Formulare
+
+#### Anwesenheitsliste (Übungsdienste)
+
+Vollständiges Formular zur Dokumentation von Übungsdiensten:
+
+**Felder**:
+- 📅 Datum & Uhrzeit (Von/Bis mit automatischer Dauerberechnung)
+- 📝 Thema der Übung
+- 👨‍🏫 Übungsleiter (nur Einsatzkräfte mit "Ausbilder"-Kennzeichnung oder Freitext)
+- 👥 Teilnehmer (Multi-Select aus Einsatzkräften)
+- 🔢 Automatische Teilnehmerzählung
+- 💬 Anmerkungen (optional)
+- 📎 Datei-Upload (optional, wird per E-Mail mitgeschickt)
+
+**Ausgabe**:
+- ✉️ HTML-E-Mail mit formatiertem Bericht
+- 📄 PDF-Anhang
+- 💾 Lokale verschlüsselte Speicherung
+
+---
+
+#### Einsatzbericht
+
+Umfangreiches Formular basierend auf JetForm-Spezifikation:
+
+**Basis-Informationen**:
+- 🚨 Einsatzgrund (max. 150 Zeichen) *
+- 📅 Einsatzdatum *
+- ⏰ Beginn & Ende (mit automatischer Dauerberechnung) *
+- 📍 Einsatzort *
+- 👨‍🚒 Einsatzleiter *
+
+**Einsatz-Details**:
+- 📋 Einsatzlage (Beschreibung) *
+- ⚙️ Tätigkeiten der Feuerwehr *
+- 🧯 Verbrauchte Mittel (optional)
+- ⚠️ Besondere Vorkommnisse (optional)
+- 💰 Einsatz kostenpflichtig? (Ja/Nein)
+
+**Fahrzeuge & Besatzung**:
+- 🚒 Eingesetzte Fahrzeuge * (Multi-Select aus Fahrzeug-Verwaltung + Sonstiges)
+- 👥 **Dynamische Fahrzeugbesatzung** (1-20 Einsatzkräfte):
+  - Funktion (Dropdown: Fahrzeugführer, Melder, Maschinist, Angriffstrupp-, Wassertrupp-, Schlauchtrupp- Führer/Mann)
+  - Name (aus Einsatzkräfte-Liste)
+  - Fahrzeug (aus ausgewählten Fahrzeugen)
+  - Verdienstausfall (Checkbox)
+
+**Beteiligte Personen**:
+- 👤 **Dynamische Beteiligte Personen** (0-10):
+  - Beteiligungsart (Verursacher, Geschädigter, Zeuge, Sonstiges)
+  - Name
+  - Telefonnummer
+  - Adresse
+  - KFZ-Kennzeichen
+
+(*) = Pflichtfelder
+
+**Ausgabe**:
+- ✉️ HTML-E-Mail mit vollständigem Einsatzbericht
+- 📄 PDF-Anhang mit Fahrzeugbesatzungs- und Personentabellen
+- 💾 Lokale verschlüsselte Speicherung mit eindeutiger ID
+
+---
+
+### Einsatztools
+
+#### 🗺️ Online Karte
+OpenStreetMap-Integration mit Leaflet.js:
+- 📍 Aktuelle Position ermitteln
+- 🛣️ Routenberechnung zwischen zwei Adressen
+- 📏 Entfernungs- und Zeitanzeige
+- 📱 Touch-optimierte Bedienung
+
+#### ⚠️ Gefahrenmatrix
+Interaktive AAAA-CCCC-EEEE Einsatzstellengefahren-Matrix:
+- **A** - Atemgifte, Angstreaktionen, Ausbreitung, Atomare Gefahren
+- **C** - Chemische Stoffe, Container, Strahlende Stoffe, Elektrizität
+- **E** - Erkrankung/Verletzung, Explosion, Einsturz
+- Weitere: Tiere, Gewalt, Wasser, Hitze, Verkehr, Umwelt, Radioaktiv
+- ✓ Antippen zum Markieren identifizierter Gefahren
+- 📋 Echtzeit-Zusammenfassung markierter Gefahren
+- 🔄 Reset-Funktion
+
+#### ☣️ Gefahrstoffkennzeichen
+Umfassende Gefahrstoff-Datenbank:
+
+**GHS-Piktogramme** (9 Symbole):
+- Explosiv, Entzündbar, Oxidierend, Druckgase, Ätzend
+- Giftig, Gesundheitsschädlich, Gesundheitsgefahr, Umweltgefährlich
+
+**ADR-Gefahrgutklassen** (1-9):
+- Mit detaillierten Beschreibungen
+
+**UN-Nummern Suche**:
+- Datenbank mit 15+ häufigen Gefahrstoffen
+- Detailansicht mit:
+  - Beschreibung
+  - Gefahren
+  - Erste-Hilfe-Maßnahmen
+  - Brandbekämpfung
+  - Freisetzungsmaßnahmen
+- Schnellreferenz-Buttons für häufige Stoffe
+
+#### 📞 Wichtige Telefonnummern
+Notfallkontakte-Verwaltung:
+- Admin-CRUD-Interface (Erstellen/Bearbeiten/Löschen)
+- Felder: Name, Firma, Funktion, Telefonnummer
+- Anzeige für alle Benutzer
+- 📱 Direkter Anruf via tel:-Link (One-Tap-Calling)
+
+---
+
+### Statistiken
+
+Umfassende Auswertungen für:
+
+#### Abteilungs-Statistik (Jahresansicht)
+- 📊 Anzahl Übungsdienste
+- ⏱️ Gesamte Übungsstunden
+- 🚒 Anzahl Einsätze
+- ⏱️ Gesamte Einsatzstunden
+- 📅 Jahres-Auswahl per Dropdown
+
+#### Personen-Statistik
+- 👤 Auswahl einzelner Einsatzkraft
+- 📊 Detaillierte Aufschlüsselung:
+  - Teilgenommene Übungen
+  - Absolvierte Übungsstunden
+  - Teilgenommene Einsätze
+  - Absolvierte Einsatzstunden
+  - Gesamtstunden
+
+---
+
+### Benutzerverwaltung
+
+Verwaltung der App-Benutzer (nur für Admins):
+
+**Benutzerrollen**:
+- **Admin**: Vollzugriff auf alle Funktionen
+- **Operator**: Zugriff auf Formulare und Ansichten (keine Verwaltung)
+
+**Funktionen**:
+- ➕ Benutzer erstellen
+- ✏️ Benutzer bearbeiten
+- 🔒 Passwort ändern
+- 🗑️ Benutzer löschen
+
+---
+
+## ⚙️ Konfiguration
+
+### Grundeinstellungen
+
+Alle Einstellungen werden in `config/config.php` vorgenommen:
+
+#### Verschlüsselungsschlüssel
+```php
+'encryption_key' => 'IHR_32_ZEICHEN_SCHLUESSEL_HIER'
+```
+Generieren mit:
 ```bash
 php -r "echo bin2hex(random_bytes(16));"
 ```
 
-### Standard-Zugangsdaten
+#### E-Mail-Einstellungen
+```php
+'email' => [
+    'from_address' => 'noreply@ihre-feuerwehr.de',
+    'from_name' => 'Feuerwehr Willingshausen',
+    'smtp_host' => 'localhost',
+    'smtp_port' => 25,
+    'smtp_auth' => false,
+    'smtp_username' => '',
+    'smtp_password' => '',
+    'smtp_secure' => '', // 'tls' oder 'ssl'
+]
+```
 
-- **Benutzername**: admin
-- **Passwort**: admin123
+#### App-Einstellungen
+```php
+'app_name' => 'Feuerwehr Management',
+'timezone' => 'Europe/Berlin',
+'session_timeout' => 3600, // 1 Stunde
+```
 
-**Bitte ändern Sie das Passwort sofort nach dem ersten Login!**
+### Logo konfigurieren
+Platzieren Sie Ihr Feuerwehr-Logo unter:
+```
+public/assets/logo.png
+```
+- Empfohlene Größe: 200x200px oder höher
+- Format: PNG mit Transparenz
+- Wird verwendet in: E-Mails, PDF-Dokumenten
 
-## PDF-Generierung
+### Erweiterte Konfiguration
 
-Die App unterstützt mehrere Methoden für die PDF-Generierung:
+#### Apache .htaccess
+Für saubere URLs und erhöhte Sicherheit:
+```apache
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    
+    # Schutz für Konfigurationsdateien
+    <FilesMatch "config\.php">
+        Require all denied
+    </FilesMatch>
+</IfModule>
 
-1. **wkhtmltopdf** (empfohlen für Produktion): Installieren Sie wkhtmltopdf für beste Ergebnisse
-2. **Fallback**: Einfache PDF-Generierung ohne externe Abhängigkeiten
+# Verzeichnis-Auflistungen deaktivieren
+Options -Indexes
 
-Für professionelle PDF-Dokumente wird die Installation von mPDF, TCPDF oder Dompdf via Composer empfohlen.
+# PHP-Einstellungen
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+```
 
-## Formulare
+#### PHP-Einstellungen
+Empfohlene `php.ini` Einstellungen:
+```ini
+upload_max_filesize = 10M
+post_max_size = 10M
+max_execution_time = 60
+memory_limit = 128M
+session.gc_maxlifetime = 3600
+```
 
-Die App verwendet die bereitgestellten HTML-Vorlagen für:
-- **Einsatzbericht**: Vollständiger Bericht mit Fahrzeugbesatzung und beteiligten Personen
-- **Anwesenheitsliste**: Übungsleiter, Teilnehmer, Zeitraum und Thema
+---
 
-Beide Formulare senden automatisch eine HTML-E-Mail mit PDF-Anhang.
+## 🔒 Sicherheit
 
-## Lizenz
+### Implementierte Sicherheitsmaßnahmen
 
-[MIT License](LICENSE)
+#### Datenverschlüsselung
+- **AES-256-CBC**: Alle JSON-Dateien (Einsatzkräfte, Fahrzeuge, Formulare)
+- **Unique Initialization Vector (IV)**: Für jede Verschlüsselung
+- **OpenSSL**: Moderne Kryptographie-Bibliothek
 
-## Support
+#### Passwort-Sicherheit
+- **bcrypt-Hashing**: Mit Kostenfaktor 10
+- **Salted Hashes**: Automatisch durch bcrypt
+- **Keine Klartextspeicherung**
 
-Bei Fragen oder Problemen erstellen Sie bitte ein Issue im GitHub Repository.
+#### Session-Sicherheit
+- **Session-Timeout**: Automatisches Logout nach Inaktivität
+- **Secure Cookies**: httponly & secure Flags (bei HTTPS)
+- **Session-Regeneration**: Nach Login
+
+#### Input-Validierung
+- **XSS-Schutz**: `htmlspecialchars()` für alle Ausgaben
+- **Command Injection Prevention**: Whitelisting + `escapeshellarg()`
+- **SQL Injection**: Nicht relevant (keine SQL-Datenbank)
+
+#### Dateisystem-Sicherheit
+- **Verschlüsselte Speicherung**: Alle sensiblen Daten
+- **Beschränkte Berechtigungen**: 
+  - `data/` Verzeichnis: 700
+  - `config/config.php`: 600
+
+### Best Practices
+
+1. **Ändern Sie Standard-Passwörter sofort**
+2. **Verwenden Sie HTTPS** in Produktionsumgebungen
+3. **Regelmäßige Backups** der `data/` und `config/` Verzeichnisse
+4. **Firewall-Regeln** für Admin-Bereich
+5. **Regelmäßige Updates** von PHP und Abhängigkeiten
+6. **Monitoring** der Log-Dateien
+
+---
+
+## 🛠️ Technologie-Stack
+
+### Backend
+- **PHP 7.4+**: Hauptprogrammiersprache
+- **OpenSSL**: Verschlüsselung (AES-256-CBC)
+- **JSON**: Datenspeicherung (verschlüsselt)
+- **Sessions**: Authentifizierung & Autorisierung
+
+### Frontend
+- **HTML5**: Semantisches Markup
+- **CSS3**: Responsive Design, Flexbox, Grid
+- **JavaScript (Vanilla)**: Keine Frameworks, moderne ES6+ Features
+- **Material Design Icons**: Icon-Set
+
+### PWA-Technologien
+- **Service Worker**: Offline-Funktionalität & Caching
+- **Web App Manifest**: Installierbarkeit
+- **Cache API**: Asset-Caching
+- **IndexedDB**: Lokaler Speicher (zukünftig)
+
+### Externe Bibliotheken
+- **Leaflet.js**: Karten-Darstellung
+- **OpenStreetMap**: Kartenmaterial
+- **OpenRouteService**: Routing-API
+
+### Architektur
+```
+feuerwehr-app/
+├── config/             # Konfigurationsdateien
+│   ├── config.php      # Hauptkonfiguration
+│   └── config.example.php
+├── data/               # Verschlüsselte JSON-Dateien
+│   ├── users.json
+│   ├── personnel.json
+│   ├── vehicles.json
+│   ├── attendance.json
+│   ├── missions.json
+│   └── phone_numbers.json
+├── public/             # Öffentliche Assets
+│   ├── css/
+│   ├── js/
+│   ├── icons/          # PWA Icons
+│   └── assets/         # Logo, Bilder
+├── src/php/            # PHP Backend
+│   ├── api/            # REST API Endpoints
+│   ├── forms/          # Formular-Handler
+│   ├── pages/          # Seiten-Templates
+│   ├── auth.php        # Authentifizierung
+│   ├── datastore.php   # Datenverwaltung
+│   ├── email_pdf.php   # E-Mail & PDF
+│   └── encryption.php  # AES-Verschlüsselung
+├── index.php           # Haupteinstiegspunkt
+├── manifest.json       # PWA Manifest
+└── sw.js               # Service Worker
+```
+
+---
+
+## 🎨 Design-Philosophie
+
+Das Design orientiert sich an der [alarm-messenger](https://github.com/TimUx/alarm-messenger) App:
+
+- **Farbschema**: Rot (Feuerwehr-Thema) mit Akzenten
+- **Light/Dark Mode**: Automatische Anpassung an Systemeinstellungen
+- **Mobile First**: Primär für Smartphone-Nutzung optimiert
+- **Touch-freundlich**: Große Buttons, ausreichend Abstand
+- **Material Design**: Moderne, intuitive UI-Komponenten
+- **Konsistenz**: Einheitliche Bedienung über alle Bereiche
+
+---
+
+## 📄 Lizenz
+
+MIT License
+
+Copyright (c) 2025 Freiwillige Feuerwehr Willingshausen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## 💬 Support
+
+### Bei Fragen oder Problemen
+
+1. **Issues erstellen**: [GitHub Issues](https://github.com/TimUx/feuerwehr-app/issues)
+2. **Dokumentation lesen**: Diese README-Datei
+3. **Code-Beispiele**: Siehe `config/config.example.php`
+
+### Weiterentwicklung
+
+Geplante Features:
+- [ ] Formular-Verwaltung (Archiv mit Bearbeiten/Löschen/Erneut senden)
+- [ ] Export-Funktionen (CSV, Excel)
+- [ ] Kalender-Integration
+- [ ] Push-Benachrichtigungen
+- [ ] Multi-Mandanten-Fähigkeit
+
+### Beitragen
+
+Pull Requests sind willkommen! Bitte erstellen Sie zunächst ein Issue für größere Änderungen.
+
+---
+
+**Entwickelt für die Freiwillige Feuerwehr Willingshausen** 🚒
+
+Made with ❤️ in Germany
