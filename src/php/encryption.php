@@ -6,6 +6,10 @@
 class Encryption {
     private static $config;
     
+    // AES-256-CBC key length constants
+    const HEX_KEY_LENGTH = 64;      // 64 hex characters = 32 bytes
+    const BINARY_KEY_LENGTH = 32;   // 32 bytes = 256 bits
+    
     private static function init() {
         if (!self::$config) {
             self::$config = require __DIR__ . '/../../config/config.php';
@@ -22,7 +26,7 @@ class Encryption {
         }
         
         // The key is stored as 64-char hex string, but AES-256 needs 32 bytes
-        if (ctype_xdigit($key) && strlen($key) === 64) {
+        if (ctype_xdigit($key) && strlen($key) === self::HEX_KEY_LENGTH) {
             $binary = hex2bin($key);
             if ($binary === false) {
                 throw new Exception('Failed to convert hex key to binary');
@@ -31,16 +35,16 @@ class Encryption {
         }
         
         // For backward compatibility, also accept 32-byte binary keys directly
-        if (strlen($key) === 32) {
+        if (strlen($key) === self::BINARY_KEY_LENGTH) {
             // Basic validation: check that key has some entropy (not all zeros or repeated chars)
-            if ($key === str_repeat("\0", 32) || $key === str_repeat($key[0], 32)) {
+            if ($key === str_repeat("\0", self::BINARY_KEY_LENGTH) || $key === str_repeat($key[0], self::BINARY_KEY_LENGTH)) {
                 throw new Exception('Encryption key has insufficient entropy (all zeros or repeated character)');
             }
             return $key;
         }
         
         // Invalid key format - this is a critical configuration error
-        throw new Exception('Invalid encryption key format. Expected 64-character hex string or 32-byte binary key, got ' . strlen($key) . ' characters/bytes.');
+        throw new Exception('Invalid encryption key format. Expected ' . self::HEX_KEY_LENGTH . '-character hex string or ' . self::BINARY_KEY_LENGTH . '-byte binary key, got ' . strlen($key) . ' characters/bytes.');
     }
 
     /**
