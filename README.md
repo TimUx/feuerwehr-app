@@ -2,6 +2,23 @@
 
 Progressive Web App (PWA) zum internen Koordinieren einer Feuerwehr.
 
+## Screenshots
+
+### Login (Light Mode)
+![Login Light](https://github.com/user-attachments/assets/c73c05ff-c7d3-4250-a646-3d2b6d78817d)
+
+### Login (Dark Mode)
+![Login Dark](https://github.com/user-attachments/assets/0217fc88-360c-4ce0-bc5f-d57b26eb7ec3)
+
+### Dashboard
+![Dashboard](https://github.com/user-attachments/assets/6249beb6-6502-4f4d-8760-e8607e14f8e1)
+
+### Einsatzkräfte Verwaltung
+![Personnel Management](https://github.com/user-attachments/assets/3cce9076-9a4e-4a47-8d0e-a454b4fd60cd)
+
+### Einsatzbericht Formular
+![Mission Report Form](https://github.com/user-attachments/assets/22bcbf18-e2d1-4f82-a609-7bfc2bda3add)
+
 ## Features
 
 - ✅ **Progressive Web App (PWA)** - Installierbar auf mobilen Geräten
