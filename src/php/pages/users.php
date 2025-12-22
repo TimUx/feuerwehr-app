@@ -1,0 +1,191 @@
+<?php
+/**
+ * Users Management Page (Admin only)
+ */
+
+require_once __DIR__ . '/../auth.php';
+
+Auth::requireAdmin();
+
+$users = Auth::listUsers();
+?>
+
+<div class="card">
+    <div class="card-header">
+        <span>Benutzerverwaltung</span>
+        <button class="btn btn-primary" onclick="openUserModal()">
+            <span class="material-icons">add</span>
+            Benutzer hinzufügen
+        </button>
+    </div>
+    <div class="card-content">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Benutzername</th>
+                        <th>Rolle</th>
+                        <th>Erstellt am</th>
+                        <th style="width: 120px;">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($users as $user): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($user['username']); ?></td>
+                        <td>
+                            <span class="badge badge-<?php echo $user['role'] === 'admin' ? 'primary' : 'info'; ?>">
+                                <?php echo htmlspecialchars($user['role']); ?>
+                            </span>
+                        </td>
+                        <td><?php echo htmlspecialchars($user['created_at']); ?></td>
+                        <td>
+                            <button class="icon-btn" onclick='editUser(<?php echo json_encode($user); ?>)' title="Bearbeiten">
+                                <span class="material-icons">edit</span>
+                            </button>
+                            <button class="icon-btn" onclick="deleteUser('<?php echo $user['id']; ?>', '<?php echo htmlspecialchars($user['username']); ?>')" title="Löschen">
+                                <span class="material-icons">delete</span>
+                            </button>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="margin-top: 1.5rem; padding: 1rem; background-color: rgba(255, 152, 0, 0.1); border-left: 4px solid var(--warning-color); border-radius: 4px;">
+            <strong>Sicherheitshinweis:</strong> Stellen Sie sicher, dass Sie das Standard-Admin-Passwort geändert haben!
+        </div>
+    </div>
+</div>
+
+<!-- User Modal -->
+<div id="user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modal-title">Benutzer hinzufügen</h2>
+            <button class="modal-close" onclick="closeUserModal()">&times;</button>
+        </div>
+        <form id="user-form">
+            <input type="hidden" id="user-id" name="id">
+            
+            <div class="form-group">
+                <label class="form-label" for="username">Benutzername *</label>
+                <input type="text" id="username" name="username" class="form-input" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="password">Passwort *</label>
+                <input type="password" id="password" name="password" class="form-input" required>
+                <small class="form-error" id="password-hint">Bei Bearbeitung leer lassen, um Passwort nicht zu ändern</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="role">Rolle *</label>
+                <select id="role" name="role" class="form-select" required>
+                    <option value="operator">Operator (kann nur Formulare ausfüllen)</option>
+                    <option value="admin">Administrator (voller Zugriff)</option>
+                </select>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Speichern</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openUserModal() {
+    document.getElementById('user-modal').classList.add('show');
+    document.getElementById('modal-title').textContent = 'Benutzer hinzufügen';
+    document.getElementById('user-form').reset();
+    document.getElementById('user-id').value = '';
+    document.getElementById('password').required = true;
+    document.getElementById('password-hint').style.display = 'none';
+}
+
+function closeUserModal() {
+    document.getElementById('user-modal').classList.remove('show');
+}
+
+function editUser(user) {
+    document.getElementById('user-modal').classList.add('show');
+    document.getElementById('modal-title').textContent = 'Benutzer bearbeiten';
+    document.getElementById('user-id').value = user.id;
+    document.getElementById('username').value = user.username;
+    document.getElementById('password').value = '';
+    document.getElementById('password').required = false;
+    document.getElementById('password-hint').style.display = 'block';
+    document.getElementById('role').value = user.role;
+}
+
+async function deleteUser(id, username) {
+    if (!confirm(`Möchten Sie den Benutzer "${username}" wirklich löschen?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/src/php/api/users.php', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.feuerwehrApp.showAlert('success', result.message);
+            window.feuerwehrApp.loadPage('users');
+        } else {
+            window.feuerwehrApp.showAlert('error', result.message);
+        }
+    } catch (error) {
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Löschen');
+    }
+}
+
+// Form submission
+document.getElementById('user-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        username: formData.get('username'),
+        role: formData.get('role')
+    };
+    
+    const password = formData.get('password');
+    if (password) {
+        data.password = password;
+    }
+    
+    const id = formData.get('id');
+    const method = id ? 'PUT' : 'POST';
+    
+    if (id) {
+        data.id = id;
+    }
+    
+    try {
+        const response = await fetch('/src/php/api/users.php', {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.feuerwehrApp.showAlert('success', result.message);
+            closeUserModal();
+            window.feuerwehrApp.loadPage('users');
+        } else {
+            window.feuerwehrApp.showAlert('error', result.message);
+        }
+    } catch (error) {
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Speichern');
+    }
+});
+</script>
