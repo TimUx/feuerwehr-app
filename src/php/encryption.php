@@ -20,7 +20,14 @@ class Encryption {
         if (ctype_xdigit($key) && strlen($key) === 64) {
             return hex2bin($key);
         }
-        return $key;
+        
+        // For backward compatibility, also accept 32-byte binary keys directly
+        if (strlen($key) === 32) {
+            return $key;
+        }
+        
+        // Invalid key format - this is a critical configuration error
+        throw new Exception('Invalid encryption key format. Expected 64-character hex string or 32-byte binary key, got ' . strlen($key) . ' characters/bytes.');
     }
 
     /**
