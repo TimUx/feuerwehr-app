@@ -12,7 +12,7 @@ $isAdmin = Auth::isAdmin();
 ?>
 
 <div class="menu-container">
-    <h2 style="margin-bottom: 2rem; text-align: center; color: var(--text-primary);">Hauptmenü</h2>
+    <h2 class="menu-title">Hauptmenü</h2>
     
     <div class="menu-grid">
         <!-- Anwesenheitsliste -->
@@ -31,6 +31,12 @@ $isAdmin = Auth::isAdmin();
         <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('statistics')">
             <span class="material-icons">bar_chart</span>
             <span class="menu-button-text">Statistiken</span>
+        </button>
+        
+        <!-- Fahrzeuge -->
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('vehicles')">
+            <span class="material-icons">local_shipping</span>
+            <span class="menu-button-text">Fahrzeuge</span>
         </button>
         
         <!-- Future: Telefonnummern -->
@@ -59,20 +65,14 @@ $isAdmin = Auth::isAdmin();
     </div>
     
     <?php if ($isAdmin): ?>
-    <div style="margin-top: 3rem;">
-        <h3 style="margin-bottom: 1.5rem; text-align: center; color: var(--text-primary);">Administration</h3>
+    <div class="menu-section-admin">
+        <h3 class="menu-title">Administration</h3>
         
         <div class="menu-grid">
             <!-- Einsatzkräfte verwalten -->
             <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('personnel')">
                 <span class="material-icons">people</span>
                 <span class="menu-button-text">Einsatzkräfte</span>
-            </button>
-            
-            <!-- Fahrzeuge verwalten -->
-            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('vehicles')">
-                <span class="material-icons">local_shipping</span>
-                <span class="menu-button-text">Fahrzeuge</span>
             </button>
             
             <!-- Formulardaten -->

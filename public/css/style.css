@@ -709,3 +709,13 @@ body {
 .menu-button-disabled .menu-button-text {
     color: var(--text-secondary);
 }
+
+.menu-title {
+    margin-bottom: 2rem;
+    text-align: center;
+    color: var(--text-primary);
+}
+
+.menu-section-admin {
+    margin-top: 3rem;
+}
