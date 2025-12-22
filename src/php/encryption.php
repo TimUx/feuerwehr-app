@@ -6,10 +6,45 @@
 class Encryption {
     private static $config;
     
+    // AES-256-CBC key length constants
+    const HEX_KEY_LENGTH = 64;      // 64 hex characters = 32 bytes
+    const BINARY_KEY_LENGTH = 32;   // 32 bytes = 256 bits
+    
     private static function init() {
         if (!self::$config) {
             self::$config = require __DIR__ . '/../../config/config.php';
         }
+    }
+    
+    /**
+     * Convert hex key to binary for AES-256
+     */
+    private static function convertHexKeyToBinary($key) {
+        // Type check
+        if (!is_string($key)) {
+            throw new Exception('Encryption key must be a string, got ' . gettype($key));
+        }
+        
+        // The key is stored as 64-char hex string, but AES-256 needs 32 bytes
+        if (ctype_xdigit($key) && strlen($key) === self::HEX_KEY_LENGTH) {
+            $binary = hex2bin($key);
+            if ($binary === false) {
+                throw new Exception('Failed to convert hex key to binary');
+            }
+            return $binary;
+        }
+        
+        // For backward compatibility, also accept 32-byte binary keys directly
+        if (strlen($key) === self::BINARY_KEY_LENGTH) {
+            // Basic validation: check that key has some entropy (not all zeros or repeated chars)
+            if ($key === str_repeat("\0", self::BINARY_KEY_LENGTH) || $key === str_repeat($key[0], self::BINARY_KEY_LENGTH)) {
+                throw new Exception('Encryption key has insufficient entropy (all zeros or repeated character)');
+            }
+            return $key;
+        }
+        
+        // Invalid key format - this is a critical configuration error
+        throw new Exception('Invalid encryption key format. Expected ' . self::HEX_KEY_LENGTH . '-character hex string or ' . self::BINARY_KEY_LENGTH . '-byte binary key, got ' . strlen($key) . ' characters/bytes.');
     }
 
     /**
@@ -18,7 +53,7 @@ class Encryption {
     public static function encrypt($data) {
         self::init();
         
-        $key = self::$config['encryption_key'];
+        $key = self::convertHexKeyToBinary(self::$config['encryption_key']);
         
         // Generate initialization vector
         $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
@@ -36,7 +71,7 @@ class Encryption {
     public static function decrypt($encryptedData) {
         self::init();
         
-        $key = self::$config['encryption_key'];
+        $key = self::convertHexKeyToBinary(self::$config['encryption_key']);
         
         // Decode the data
         $decoded = base64_decode($encryptedData);
