@@ -23,11 +23,19 @@ class Encryption {
         
         // The key is stored as 64-char hex string, but AES-256 needs 32 bytes
         if (ctype_xdigit($key) && strlen($key) === 64) {
-            return hex2bin($key);
+            $binary = hex2bin($key);
+            if ($binary === false) {
+                throw new Exception('Failed to convert hex key to binary');
+            }
+            return $binary;
         }
         
         // For backward compatibility, also accept 32-byte binary keys directly
         if (strlen($key) === 32) {
+            // Basic validation: check that key has some entropy (not all zeros or repeated chars)
+            if ($key === str_repeat("\0", 32) || $key === str_repeat($key[0], 32)) {
+                throw new Exception('Encryption key has insufficient entropy (all zeros or repeated character)');
+            }
             return $key;
         }
         
