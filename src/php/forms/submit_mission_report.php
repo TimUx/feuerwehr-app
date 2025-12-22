@@ -21,30 +21,49 @@ if (!Auth::isAuthenticated()) {
 try {
     // Get form data
     $data = [
-        'einsatzdatum' => $_POST['einsatzdatum'] ?? '',
         'einsatzgrund' => $_POST['einsatzgrund'] ?? '',
-        'einsatzort' => $_POST['einsatzort'] ?? '',
-        'einsatzleiter' => $_POST['einsatzleiter'] ?? '',
+        'einsatzdatum' => $_POST['einsatzdatum'] ?? '',
         'beginn' => $_POST['beginn'] ?? '',
         'ende' => $_POST['ende'] ?? '',
+        'dauer' => $_POST['dauer'] ?? 0,
+        'einsatzort' => $_POST['einsatzort'] ?? '',
+        'einsatzleiter' => $_POST['einsatzleiter'] ?? '',
         'einsatzlage' => $_POST['einsatzlage'] ?? '',
         'tatigkeiten_der_feuerwehr' => $_POST['tatigkeiten_der_feuerwehr'] ?? '',
         'verbrauchte_mittel' => $_POST['verbrauchte_mittel'] ?? '',
         'besondere_vorkommnisse' => $_POST['besondere_vorkommnisse'] ?? '',
-        'einsatz_kostenpflichtig' => $_POST['einsatz_kostenpflichtig'] ?? 'Nein',
+        'einsatz_kostenpflichtig' => $_POST['einsatz_kostenpflichtig'] ?? 'nein',
         'eingesetzte_fahrzeuge' => $_POST['eingesetzte_fahrzeuge'] ?? [],
+        'eingesetzte_fahrzeuge_custom' => $_POST['eingesetzte_fahrzeuge_custom'] ?? '',
+        'anzahl_einsatzkrafte' => $_POST['anzahl_einsatzkrafte'] ?? 1,
         'fahrzeugbesatzung' => $_POST['fahrzeugbesatzung'] ?? [],
+        'anzahl_beteiligter_personen' => $_POST['anzahl_beteiligter_personen'] ?? 0,
         'beteiligte_personen' => $_POST['beteiligte_personen'] ?? []
     ];
     
+    // Add custom vehicle to list if provided
+    if (!empty($data['eingesetzte_fahrzeuge_custom']) && is_array($data['eingesetzte_fahrzeuge'])) {
+        $data['eingesetzte_fahrzeuge'][] = $data['eingesetzte_fahrzeuge_custom'];
+    }
+    
     // Validate required fields
-    if (empty($data['einsatzdatum']) || empty($data['einsatzgrund']) || empty($data['einsatzort'])) {
+    $requiredFields = ['einsatzgrund', 'einsatzdatum', 'beginn', 'ende', 'einsatzort', 'einsatzleiter', 'einsatzlage', 'tatigkeiten_der_feuerwehr'];
+    foreach ($requiredFields as $field) {
+        if (empty($data[$field])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => "Pflichtfeld fehlt: {$field}"]);
+            exit;
+        }
+    }
+    
+    // Validate at least one vehicle
+    if (empty($data['eingesetzte_fahrzeuge']) || !is_array($data['eingesetzte_fahrzeuge']) || count($data['eingesetzte_fahrzeuge']) === 0) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Bitte füllen Sie alle Pflichtfelder aus']);
+        echo json_encode(['success' => false, 'message' => 'Bitte wählen Sie mindestens ein Fahrzeug aus']);
         exit;
     }
     
-    // Calculate duration
+    // Calculate duration in hours
     $start = strtotime($data['beginn']);
     $end = strtotime($data['ende']);
     $durationHours = ($end - $start) / 3600;
