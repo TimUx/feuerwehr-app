@@ -176,6 +176,15 @@ body {
   color: var(--primary-color);
 }
 
+.nav-section-title {
+  padding: 1.5rem 1rem 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
 /* Main Content */
 .main-content {
   flex: 1;

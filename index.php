@@ -23,7 +23,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 
 // Check authentication
 $isAuthenticated = Auth::isAuthenticated();
-$page = $_GET['page'] ?? ($isAuthenticated ? 'dashboard' : 'login');
+$page = $_GET['page'] ?? ($isAuthenticated ? 'home' : 'login');
 
 // If not authenticated and trying to access protected page, redirect to login
 if (!$isAuthenticated && $page !== 'login') {
@@ -128,20 +128,12 @@ $user = Auth::getUser();
 
             <!-- Navigation Drawer -->
             <nav id="nav-drawer" class="nav-drawer">
-                <a href="#" class="nav-item active" data-page="dashboard">
-                    <span class="material-icons">dashboard</span>
-                    <span>Dashboard</span>
+                <a href="#" class="nav-item active" data-page="home">
+                    <span class="material-icons">home</span>
+                    <span>Hauptmenü</span>
                 </a>
                 
-                <a href="#" class="nav-item" data-page="personnel">
-                    <span class="material-icons">people</span>
-                    <span>Einsatzkräfte</span>
-                </a>
-                
-                <a href="#" class="nav-item" data-page="vehicles">
-                    <span class="material-icons">local_shipping</span>
-                    <span>Fahrzeuge</span>
-                </a>
+                <div class="nav-section-title">Funktionen</div>
                 
                 <a href="#" class="nav-item" data-page="attendance">
                     <span class="material-icons">fact_check</span>
@@ -158,7 +150,19 @@ $user = Auth::getUser();
                     <span>Statistiken</span>
                 </a>
                 
+                <a href="#" class="nav-item" data-page="vehicles">
+                    <span class="material-icons">local_shipping</span>
+                    <span>Fahrzeuge</span>
+                </a>
+                
                 <?php if (Auth::isAdmin()): ?>
+                <div class="nav-section-title">Administration</div>
+                
+                <a href="#" class="nav-item" data-page="personnel">
+                    <span class="material-icons">people</span>
+                    <span>Einsatzkräfte</span>
+                </a>
+                
                 <a href="#" class="nav-item" data-page="users">
                     <span class="material-icons">admin_panel_settings</span>
                     <span>Benutzerverwaltung</span>

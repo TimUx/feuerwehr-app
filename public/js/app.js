@@ -2,7 +2,7 @@
 
 class FeuerwehrApp {
   constructor() {
-    this.currentPage = 'dashboard';
+    this.currentPage = 'home';
     this.theme = localStorage.getItem('theme') || 'light';
     this.init();
   }
