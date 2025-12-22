@@ -146,6 +146,17 @@ $isAdmin = Auth::isAdmin();
                 </div>
             </div>
             
+            <div class="form-group">
+                <label class="form-label">Ausbilder</label>
+                <div class="form-check">
+                    <input type="checkbox" id="is-instructor" name="is_instructor" value="1" class="form-check-input">
+                    <label for="is-instructor" class="form-check-label">Ist Ausbilder/Übungsleiter</label>
+                </div>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Ausbilder erscheinen in der Anwesenheitsliste zur Auswahl als Übungsleiter
+                </small>
+            </div>
+            
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closePersonnelModal()">Abbrechen</button>
                 <button type="submit" class="btn btn-primary">Speichern</button>
@@ -190,6 +201,11 @@ function editPersonnel(person) {
             if (checkbox) checkbox.checked = true;
         });
     }
+    
+    // Set instructor status
+    if (person.is_instructor) {
+        document.getElementById('is-instructor').checked = true;
+    }
 }
 
 async function deletePersonnel(id, name) {
@@ -225,7 +241,8 @@ document.getElementById('personnel-form').addEventListener('submit', async (e) =
     const data = {
         name: formData.get('name'),
         qualifications: formData.getAll('qualifications[]'),
-        leadership_roles: formData.getAll('leadership_roles[]')
+        leadership_roles: formData.getAll('leadership_roles[]'),
+        is_instructor: formData.get('is_instructor') === '1'
     };
     
     const id = formData.get('id');
