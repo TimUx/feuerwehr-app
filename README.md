@@ -102,10 +102,11 @@ Auf mobilen Geräten:
 ## Technologie-Stack
 
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **Backend**: PHP
+- **Backend**: PHP 7.4+
 - **Storage**: Encrypted JSON files (keine Datenbank erforderlich)
 - **Design**: Material Design inspiriert
 - **PWA**: Service Worker für Offline-Funktionalität
+- **Verschlüsselung**: AES-256-CBC
 
 ## Design-Referenz
 
@@ -114,6 +115,58 @@ Das Design orientiert sich an der [alarm-messenger](https://github.com/TimUx/ala
 - Material Design Icons
 - Light/Dark Mode Support
 - Responsive Layout
+
+## Konfiguration
+
+### E-Mail-Einstellungen
+
+Bearbeiten Sie `config/config.php` um die E-Mail-Einstellungen anzupassen:
+
+```php
+'email' => [
+    'from_address' => 'noreply@feuerwehr.local',
+    'from_name' => 'Feuerwehr Management System',
+    // SMTP-Konfiguration optional
+    'smtp_host' => 'localhost',
+    'smtp_port' => 25,
+]
+```
+
+### Logo hochladen
+
+Platzieren Sie das Feuerwehr-Logo unter `public/assets/logo.png`. Dieses wird in E-Mails und PDF-Dokumenten verwendet.
+
+### Verschlüsselungsschlüssel
+
+**WICHTIG**: Ändern Sie den `encryption_key` in `config/config.php` zu einem zufälligen 32-Zeichen-String:
+
+```bash
+php -r "echo bin2hex(random_bytes(16));"
+```
+
+### Standard-Zugangsdaten
+
+- **Benutzername**: admin
+- **Passwort**: admin123
+
+**Bitte ändern Sie das Passwort sofort nach dem ersten Login!**
+
+## PDF-Generierung
+
+Die App unterstützt mehrere Methoden für die PDF-Generierung:
+
+1. **wkhtmltopdf** (empfohlen für Produktion): Installieren Sie wkhtmltopdf für beste Ergebnisse
+2. **Fallback**: Einfache PDF-Generierung ohne externe Abhängigkeiten
+
+Für professionelle PDF-Dokumente wird die Installation von mPDF, TCPDF oder Dompdf via Composer empfohlen.
+
+## Formulare
+
+Die App verwendet die bereitgestellten HTML-Vorlagen für:
+- **Einsatzbericht**: Vollständiger Bericht mit Fahrzeugbesatzung und beteiligten Personen
+- **Anwesenheitsliste**: Übungsleiter, Teilnehmer, Zeitraum und Thema
+
+Beide Formulare senden automatisch eine HTML-E-Mail mit PDF-Anhang.
 
 ## Lizenz
 
