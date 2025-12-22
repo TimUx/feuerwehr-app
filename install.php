@@ -198,8 +198,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         if (empty($errors)) {
-            // Generate encryption key
-            $encryption_key = bin2hex(random_bytes(16));
+            // Generate encryption key (32 bytes = 64 hex characters for AES-256)
+            $encryption_key = bin2hex(random_bytes(32));
             
             // Get admin credentials from session
             $admin_username = $_SESSION['install_admin_username'] ?? 'admin';
@@ -226,7 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'backup_dir' => __DIR__ . '/data/backups',
                 'default_admin' => [
                     'username' => 'admin',
-                    'password' => 'change_this_password', // Placeholder only, actual user created below
+                    'password' => 'INSTALLER_DISABLED', // Disabled - admin user created during installation
                 ],
             ];
             
@@ -255,8 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 // Create admin user directly in users.json
-                require_once __DIR__ . '/src/php/encryption.php';
-                
+                // We need to encrypt manually since Encryption class would try to load the config
                 $adminUser = [
                     'id' => uniqid('user_'),
                     'username' => $admin_username,
@@ -266,14 +265,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
                 
                 $usersData = json_encode([$adminUser], JSON_PRETTY_PRINT);
-                $encryptedUsers = Encryption::encrypt($usersData);
+                
+                // Encrypt users data manually (Encryption class needs config to be loaded)
+                $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+                $encrypted = openssl_encrypt($usersData, 'aes-256-cbc', $encryption_key, 0, $iv);
+                $encryptedUsers = base64_encode($iv . '::' . $encrypted);
+                
                 file_put_contents($dataDir . '/users.json', $encryptedUsers);
                 chmod($dataDir . '/users.json', 0600);
                 
                 // Clear session data
                 if (session_status() === PHP_SESSION_ACTIVE) {
                     session_unset();
-                    $_SESSION = [];
                 }
                 
                 $success = true;

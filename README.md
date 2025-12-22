@@ -158,17 +158,52 @@ http://ihre-domain.de/install.php
 #### 3. Installations-Schritte durchlaufen
 Der Wizard führt Sie durch folgende Schritte:
 
-1. **Willkommen**: Übersicht der Einrichtung
-2. **Administrator-Benutzer**: Erstellen Sie den ersten Admin-Benutzer
-   - Benutzername (min. 3 Zeichen)
-   - Passwort (min. 6 Zeichen)
-3. **E-Mail-Einstellungen**: Konfigurieren Sie SMTP und Absender-Informationen
-   - Absender E-Mail-Adresse und Name
-   - SMTP Server-Einstellungen (Host, Port, Verschlüsselung)
-   - Optional: SMTP-Authentifizierung
-4. **Fertig**: Installation abgeschlossen!
+##### Schritt 1: System-Voraussetzungen prüfen
+<img src="https://github.com/user-attachments/assets/a8235fe8-fe93-47e2-89d8-54094c59cc45" width="600" alt="System-Voraussetzungen">
 
-Der Verschlüsselungsschlüssel wird automatisch generiert - keine Kommandozeile erforderlich!
+Der Installer prüft automatisch:
+- ✅ **PHP Version** (7.4.0 oder höher erforderlich)
+- ✅ **PHP Extensions**: 
+  - Erforderlich: `openssl`, `mbstring`, `json`, `session`
+  - Empfohlen: `curl`, `gd`, `zip`
+- ✅ **Verzeichnis-Berechtigungen** (`config/`, `data/`)
+- ✅ **PHP-Konfiguration** (`upload_max_filesize`, `post_max_size`, `memory_limit`)
+
+Sie können erst fortfahren, wenn alle **erforderlichen** Voraussetzungen erfüllt sind. Warnungen bei empfohlenen Features erlauben das Fortfahren.
+
+##### Schritt 2: Willkommen
+<img src="https://github.com/user-attachments/assets/01a9529a-c781-419d-ac0d-8a8bac1f53bc" width="600" alt="Willkommen">
+
+Übersicht über die Einrichtung und was konfiguriert wird.
+
+##### Schritt 3: Administrator-Benutzer erstellen
+<img src="https://github.com/user-attachments/assets/2626d66a-c1d9-4368-b1f1-fe023d0b07b4" width="600" alt="Admin-Benutzer">
+
+Erstellen Sie den ersten Admin-Benutzer:
+- **Benutzername** (min. 3 Zeichen)
+- **Passwort** (min. 6 Zeichen, mit Bestätigung)
+
+Das Passwort wird automatisch mit bcrypt gehashed und verschlüsselt gespeichert.
+
+##### Schritt 4: E-Mail-Einstellungen
+<img src="https://github.com/user-attachments/assets/3caa9c1a-c498-4fe8-aabe-96c688861c3a" width="600" alt="E-Mail-Einstellungen">
+
+Konfigurieren Sie E-Mail-Einstellungen für Formular-Übermittlungen:
+- **Absender E-Mail-Adresse und Name**
+- **Standard-Empfänger** (optional)
+- **SMTP Server-Einstellungen**:
+  - Host, Port, Verschlüsselung (TLS/SSL)
+  - Optional: SMTP-Authentifizierung mit Benutzername/Passwort
+
+##### Schritt 5: Installation abgeschlossen
+<img src="https://github.com/user-attachments/assets/bd483670-9d30-4b7a-a787-fff44919689e" width="600" alt="Installation abgeschlossen">
+
+✅ Verschlüsselungsschlüssel automatisch generiert (64 Zeichen, AES-256-CBC)  
+✅ Administrator-Benutzer erstellt  
+✅ E-Mail-Einstellungen konfiguriert  
+✅ Datenverzeichnis erstellt mit sicheren Berechtigungen
+
+**Wichtig:** Der Verschlüsselungsschlüssel wird automatisch generiert - keine Kommandozeile erforderlich!
 
 #### 4. Logo hochladen (optional)
 Platzieren Sie Ihr Feuerwehr-Logo als `public/assets/logo.png`. Dieses wird in E-Mails und PDFs verwendet.
