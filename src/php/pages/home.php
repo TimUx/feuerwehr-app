@@ -75,6 +75,12 @@ $isAdmin = Auth::isAdmin();
                 <span class="menu-button-text">Einsatzkräfte</span>
             </button>
             
+            <!-- Email Settings -->
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('email-settings')">
+                <span class="material-icons">email</span>
+                <span class="menu-button-text">Email Settings</span>
+            </button>
+            
             <!-- Formulardaten -->
             <button class="menu-button menu-button-admin menu-button-disabled" disabled title="Demnächst verfügbar">
                 <span class="material-icons">folder</span>

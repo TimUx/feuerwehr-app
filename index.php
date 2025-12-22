@@ -183,6 +183,11 @@ $user = Auth::getUser();
                     <span>Einsatzkräfte</span>
                 </a>
                 
+                <a href="#" class="nav-item" data-page="email-settings">
+                    <span class="material-icons">email</span>
+                    <span>Email Settings</span>
+                </a>
+                
                 <a href="#" class="nav-item" data-page="users">
                     <span class="material-icons">admin_panel_settings</span>
                     <span>Benutzerverwaltung</span>

@@ -17,6 +17,7 @@ return [
     'email' => [
         'from_address' => 'noreply@feuerwehr.local',
         'from_name' => 'Feuerwehr Management System',
+        'to_address' => '', // Default recipient for all form submissions
         'smtp_host' => 'localhost',
         'smtp_port' => 25,
         'smtp_auth' => false,
