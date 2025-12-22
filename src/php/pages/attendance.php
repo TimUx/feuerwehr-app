@@ -17,7 +17,7 @@ $personnel = DataStore::getPersonnel();
         Anwesenheitsliste
     </div>
     <div class="card-content">
-        <form id="attendance-form" method="POST" action="/src/php/forms/submit_attendance.php">
+        <form id="attendance-form" method="POST" action="/src/php/forms/submit_attendance.php" enctype="multipart/form-data">
             
             <h3 style="margin-top: 0;">Veranstaltungsdaten</h3>
             
@@ -49,52 +49,65 @@ $personnel = DataStore::getPersonnel();
             <h3>Übungsleiter</h3>
             
             <div class="form-group">
-                <label class="form-label">Wählen Sie die Übungsleiter aus *</label>
-                <?php if (empty($personnel)): ?>
-                    <p style="color: var(--text-secondary);">Keine Einsatzkräfte vorhanden. Bitte zuerst Einsatzkräfte anlegen.</p>
-                <?php else: ?>
-                    <?php foreach ($personnel as $person): ?>
-                        <?php 
-                        // Show only personnel with leadership roles
-                        $hasLeadershipRole = !empty($person['leadership_roles']);
-                        if ($hasLeadershipRole):
-                        ?>
-                        <div class="form-check">
-                            <input type="checkbox" id="leader-<?php echo $person['id']; ?>" name="uebungsleiter[]" value="<?php echo $person['id']; ?>" class="form-check-input">
-                            <label for="leader-<?php echo $person['id']; ?>" class="form-check-label">
-                                <?php echo htmlspecialchars($person['name']); ?>
-                                <?php foreach ($person['leadership_roles'] as $role): ?>
-                                    <span class="badge badge-primary" style="font-size: 0.7rem;"><?php echo htmlspecialchars($role); ?></span>
-                                <?php endforeach; ?>
-                            </label>
-                        </div>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                    
-                    <!-- Also show all personnel in case no one has leadership roles -->
+                <label class="form-label" for="uebungsleiter-select">Übungsleiter aus Liste auswählen *</label>
+                <select id="uebungsleiter-select" name="uebungsleiter_select[]" class="form-select leader-select" multiple size="5">
                     <?php 
-                    $hasAnyLeaders = false;
-                    foreach ($personnel as $person) {
+                    // Filter personnel with at least Gruppenführer role
+                    $leadershipHierarchy = ['Gruppenführer', 'Zugführer', 'Verbandsführer'];
+                    foreach ($personnel as $person): 
+                        $hasQualification = false;
                         if (!empty($person['leadership_roles'])) {
-                            $hasAnyLeaders = true;
-                            break;
+                            foreach ($person['leadership_roles'] as $role) {
+                                if (in_array($role, $leadershipHierarchy)) {
+                                    $hasQualification = true;
+                                    break;
+                                }
+                            }
                         }
-                    }
-                    
-                    if (!$hasAnyLeaders): ?>
-                        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                            <em>Hinweis: Keine Personen mit Führungsrollen gefunden. Alle Einsatzkräfte werden angezeigt.</em>
-                        </p>
-                        <?php foreach ($personnel as $person): ?>
-                        <div class="form-check">
-                            <input type="checkbox" id="leader-<?php echo $person['id']; ?>" name="uebungsleiter[]" value="<?php echo $person['id']; ?>" class="form-check-input">
-                            <label for="leader-<?php echo $person['id']; ?>" class="form-check-label">
-                                <?php echo htmlspecialchars($person['name']); ?>
-                            </label>
-                        </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                <?php endif; ?>
+                        if ($hasQualification):
+                    ?>
+                        <option value="<?php echo htmlspecialchars($person['name']); ?>">
+                            <?php echo htmlspecialchars($person['name']); ?>
+                            <?php if (!empty($person['leadership_roles'])): ?>
+                                (<?php echo implode(', ', array_map('htmlspecialchars', $person['leadership_roles'])); ?>)
+                            <?php endif; ?>
+                        </option>
+                    <?php 
+                        endif;
+                    endforeach; 
+                    ?>
+                </select>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Halten Sie Strg (Windows) oder Cmd (Mac) gedrückt, um mehrere auszuwählen
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="uebungsleiter-andere">Oder andere Übungsleiter eingeben (Freitext) *</label>
+                <input type="text" id="uebungsleiter-andere" name="uebungsleiter_andere" class="form-input leader-input" placeholder="Namen mit Komma trennen, z.B. Max Mustermann, Anna Schmidt">
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Für Übungsleiter, die nicht in der Liste sind (mindestens Dropdown ODER Freitext erforderlich)
+                </small>
+            </div>
+            
+            <h3>Dauer</h3>
+            
+            <div class="form-group">
+                <label class="form-label" for="dauer">Dauer (in Minuten) *</label>
+                <input type="number" id="dauer" name="dauer" class="form-input" readonly required>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Wird automatisch berechnet aus Von/Bis Zeit
+                </small>
+            </div>
+            
+            <h3>Dateiupload</h3>
+            
+            <div class="form-group">
+                <label class="form-label" for="datei">Dateianhang (optional)</label>
+                <input type="file" id="datei" name="datei" class="form-input" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    PDF, Bilder oder Dokumente (max. 10MB)
+                </small>
             </div>
             
             <h3>Teilnehmer</h3>
@@ -132,7 +145,10 @@ $personnel = DataStore::getPersonnel();
                     </div>
                     
                     <div style="margin-top: 1rem; padding: 0.75rem; background-color: var(--bg-secondary); border-radius: 4px;">
-                        <strong>Teilnehmeranzahl:</strong> <span id="attendee-count">0</span>
+                        <strong>Teilnehmeranzahl (Gesamt):</strong> <span id="total-count">0</span>
+                        <small style="display: block; color: var(--text-secondary); margin-top: 0.25rem;">
+                            Übungsleiter + Teilnehmer
+                        </small>
                     </div>
                 <?php endif; ?>
             </div>
@@ -155,10 +171,51 @@ $personnel = DataStore::getPersonnel();
 // Set default date to today
 document.getElementById('datum').valueAsDate = new Date();
 
-// Update attendee count
-function updateAttendeeCount() {
-    const checkboxes = document.querySelectorAll('.attendee-checkbox:checked');
-    document.getElementById('attendee-count').textContent = checkboxes.length;
+// Calculate duration automatically
+function calculateDuration() {
+    const vonInput = document.getElementById('von');
+    const bisInput = document.getElementById('bis');
+    const dauerInput = document.getElementById('dauer');
+    
+    if (vonInput.value && bisInput.value) {
+        const von = vonInput.value.split(':');
+        const bis = bisInput.value.split(':');
+        
+        const vonMinutes = parseInt(von[0]) * 60 + parseInt(von[1]);
+        const bisMinutes = parseInt(bis[0]) * 60 + parseInt(bis[1]);
+        
+        let duration = bisMinutes - vonMinutes;
+        
+        // Handle overnight events
+        if (duration < 0) {
+            duration += 24 * 60;
+        }
+        
+        dauerInput.value = duration;
+    }
+}
+
+// Add event listeners for time inputs
+document.getElementById('von').addEventListener('change', calculateDuration);
+document.getElementById('bis').addEventListener('change', calculateDuration);
+
+// Update total participant count (leaders + attendees)
+function updateTotalCount() {
+    // Count selected leaders from dropdown
+    const leaderSelect = document.getElementById('uebungsleiter-select');
+    const selectedLeaders = Array.from(leaderSelect.selectedOptions).length;
+    
+    // Count leaders from text field (split by comma)
+    const leaderText = document.getElementById('uebungsleiter-andere').value.trim();
+    const textLeaders = leaderText ? leaderText.split(',').filter(name => name.trim()).length : 0;
+    
+    // Count selected attendees
+    const attendees = document.querySelectorAll('.attendee-checkbox:checked').length;
+    
+    // Total is all unique people (leaders + attendees)
+    const total = selectedLeaders + textLeaders + attendees;
+    
+    document.getElementById('total-count').textContent = total;
 }
 
 // Select all attendees
@@ -166,7 +223,7 @@ function selectAllAttendees() {
     document.querySelectorAll('.attendee-checkbox').forEach(cb => {
         cb.checked = true;
     });
-    updateAttendeeCount();
+    updateTotalCount();
 }
 
 // Deselect all attendees
@@ -174,16 +231,18 @@ function deselectAllAttendees() {
     document.querySelectorAll('.attendee-checkbox').forEach(cb => {
         cb.checked = false;
     });
-    updateAttendeeCount();
+    updateTotalCount();
 }
 
-// Listen for checkbox changes
+// Listen for changes
+document.getElementById('uebungsleiter-select').addEventListener('change', updateTotalCount);
+document.getElementById('uebungsleiter-andere').addEventListener('input', updateTotalCount);
 document.querySelectorAll('.attendee-checkbox').forEach(cb => {
-    cb.addEventListener('change', updateAttendeeCount);
+    cb.addEventListener('change', updateTotalCount);
 });
 
 // Initialize count
-updateAttendeeCount();
+updateTotalCount();
 
 // Form submission
 document.getElementById('attendance-form').addEventListener('submit', async (e) => {
@@ -191,12 +250,13 @@ document.getElementById('attendance-form').addEventListener('submit', async (e) 
     
     const formData = new FormData(e.target);
     
-    // Validate that at least one leader and one attendee is selected
-    const leaders = formData.getAll('uebungsleiter[]');
+    // Validate that at least one leader (from select or text) and one attendee is selected
+    const leadersSelect = formData.getAll('uebungsleiter_select[]');
+    const leadersOther = formData.get('uebungsleiter_andere');
     const attendees = formData.getAll('teilnehmer[]');
     
-    if (leaders.length === 0) {
-        window.feuerwehrApp.showAlert('error', 'Bitte wählen Sie mindestens einen Übungsleiter aus');
+    if (leadersSelect.length === 0 && (!leadersOther || leadersOther.trim() === '')) {
+        window.feuerwehrApp.showAlert('error', 'Bitte wählen Sie mindestens einen Übungsleiter aus oder geben Sie einen Namen ein');
         return;
     }
     
@@ -217,7 +277,7 @@ document.getElementById('attendance-form').addEventListener('submit', async (e) 
             window.feuerwehrApp.showAlert('success', result.message);
             e.target.reset();
             document.getElementById('datum').valueAsDate = new Date();
-            updateAttendeeCount();
+            updateTotalCount();
         } else {
             window.feuerwehrApp.showAlert('error', result.message);
         }

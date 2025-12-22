@@ -19,14 +19,43 @@ if (!Auth::isAuthenticated()) {
 }
 
 try {
+    // Handle file upload
+    $uploadedFile = null;
+    if (isset($_FILES['datei']) && $_FILES['datei']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = __DIR__ . '/../../data/uploads/';
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0700, true);
+        }
+        
+        $fileName = uniqid() . '_' . basename($_FILES['datei']['name']);
+        $uploadPath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($_FILES['datei']['tmp_name'], $uploadPath)) {
+            $uploadedFile = $fileName;
+        }
+    }
+    
     // Get form data
+    $leadersSelect = $_POST['uebungsleiter_select'] ?? [];
+    $leadersOther = $_POST['uebungsleiter_andere'] ?? '';
+    
+    // Combine leaders from select and text field
+    $allLeaders = $leadersSelect;
+    if (!empty($leadersOther)) {
+        // Split by comma and trim
+        $otherLeaders = array_map('trim', explode(',', $leadersOther));
+        $allLeaders = array_merge($allLeaders, $otherLeaders);
+    }
+    
     $data = [
         'datum' => $_POST['datum'] ?? '',
         'von' => $_POST['von'] ?? '',
         'bis' => $_POST['bis'] ?? '',
+        'dauer' => $_POST['dauer'] ?? 0,
         'thema' => $_POST['thema'] ?? '',
         'anmerkungen' => $_POST['anmerkungen'] ?? '',
-        'uebungsleiter' => $_POST['uebungsleiter'] ?? [],
+        'datei' => $uploadedFile,
+        'uebungsleiter' => $allLeaders,
         'teilnehmer' => $_POST['teilnehmer'] ?? []
     ];
     
@@ -39,7 +68,7 @@ try {
     
     if (empty($data['uebungsleiter'])) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Bitte wählen Sie mindestens einen Übungsleiter aus']);
+        echo json_encode(['success' => false, 'message' => 'Bitte wählen Sie mindestens einen Übungsleiter aus oder geben Sie einen Namen ein']);
         exit;
     }
     
@@ -54,21 +83,57 @@ try {
     $bisTime = strtotime($data['datum'] . ' ' . $data['bis']);
     $durationHours = ($bisTime - $vonTime) / 3600;
     
-    // Save to datastore
+    // Calculate total participant count
+    $totalParticipants = count($data['uebungsleiter']) + count($data['teilnehmer']);
+    
+    // Save to datastore with all data including file reference
     $user = Auth::getUser();
-    $attendanceData = [
+    $attendanceData = array_merge($data, [
+        'id' => uniqid('att_', true),
         'date' => $data['datum'],
         'type' => 'training',
         'description' => $data['thema'],
         'duration_hours' => $durationHours,
         'attendees' => $data['teilnehmer'],
-        'created_by' => $user['id']
-    ];
+        'total_participants' => $totalParticipants,
+        'created_by' => $user['id'],
+        'created_at' => date('Y-m-d H:i:s')
+    ]);
     
     $attendance = DataStore::createAttendanceRecord($attendanceData);
     
     // Generate HTML for email
     $html = EmailPDF::generateAttendanceHTML($data);
+    
+    // Generate PDF
+    $pdf = EmailPDF::generatePDF($html);
+    
+    // Get configuration for email recipient
+    $config = require __DIR__ . '/../../../config/config.php';
+    $recipient = $config['email']['from_address']; // Send to configured address
+    
+    // Prepare file attachment if uploaded
+    $fileAttachment = null;
+    $fileAttachmentName = null;
+    if ($uploadedFile) {
+        $filePath = __DIR__ . '/../../data/uploads/' . $uploadedFile;
+        if (file_exists($filePath)) {
+            $fileAttachment = file_get_contents($filePath);
+            $fileAttachmentName = $uploadedFile;
+        }
+    }
+    
+    // Send email with PDF and optional file attachment
+    $subject = "Anwesenheitsliste - {$data['thema']} - {$data['datum']}";
+    $emailSent = EmailPDF::sendEmailWithAttachments(
+        $recipient,
+        $subject,
+        $html,
+        $pdf,
+        "Anwesenheitsliste_{$data['datum']}.pdf",
+        $fileAttachment,
+        $fileAttachmentName
+    );
     
     // Generate PDF
     $pdf = EmailPDF::generatePDF($html);

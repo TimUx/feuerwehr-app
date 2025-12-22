@@ -14,9 +14,9 @@ class EmailPDF {
     }
     
     /**
-     * Send email with HTML content and optional PDF attachment
+     * Send email with HTML content and multiple attachments
      */
-    public static function sendEmail($to, $subject, $htmlBody, $pdfContent = null, $pdfFilename = 'document.pdf') {
+    public static function sendEmailWithAttachments($to, $subject, $htmlBody, $pdfContent = null, $pdfFilename = 'document.pdf', $extraFileContent = null, $extraFileName = null) {
         self::init();
         
         $from = self::$config['email']['from_address'];
@@ -27,30 +27,46 @@ class EmailPDF {
         $headers[] = "MIME-Version: 1.0";
         $headers[] = "From: {$fromName} <{$from}>";
         
-        // If we have a PDF attachment, create multipart message
+        $boundary = md5(time());
+        $headers[] = "Content-Type: multipart/mixed; boundary=\"{$boundary}\"";
+        
+        $message = "--{$boundary}\r\n";
+        $message .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+        $message .= $htmlBody . "\r\n\r\n";
+        
+        // Attach PDF if provided
         if ($pdfContent) {
-            $boundary = md5(time());
-            $headers[] = "Content-Type: multipart/mixed; boundary=\"{$boundary}\"";
-            
-            $message = "--{$boundary}\r\n";
-            $message .= "Content-Type: text/html; charset=UTF-8\r\n";
-            $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-            $message .= $htmlBody . "\r\n\r\n";
-            
-            // Attach PDF
             $message .= "--{$boundary}\r\n";
             $message .= "Content-Type: application/pdf; name=\"{$pdfFilename}\"\r\n";
             $message .= "Content-Transfer-Encoding: base64\r\n";
             $message .= "Content-Disposition: attachment; filename=\"{$pdfFilename}\"\r\n\r\n";
             $message .= chunk_split(base64_encode($pdfContent)) . "\r\n";
-            $message .= "--{$boundary}--";
-        } else {
-            $headers[] = "Content-Type: text/html; charset=UTF-8";
-            $message = $htmlBody;
         }
+        
+        // Attach extra file if provided
+        if ($extraFileContent && $extraFileName) {
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->buffer($extraFileContent);
+            
+            $message .= "--{$boundary}\r\n";
+            $message .= "Content-Type: {$mimeType}; name=\"{$extraFileName}\"\r\n";
+            $message .= "Content-Transfer-Encoding: base64\r\n";
+            $message .= "Content-Disposition: attachment; filename=\"{$extraFileName}\"\r\n\r\n";
+            $message .= chunk_split(base64_encode($extraFileContent)) . "\r\n";
+        }
+        
+        $message .= "--{$boundary}--";
         
         // Send email
         return mail($to, $subject, $message, implode("\r\n", $headers));
+    }
+    
+    /**
+     * Send email with HTML content and optional PDF attachment
+     */
+    public static function sendEmail($to, $subject, $htmlBody, $pdfContent = null, $pdfFilename = 'document.pdf') {
+        return self::sendEmailWithAttachments($to, $subject, $htmlBody, $pdfContent, $pdfFilename, null, null);
     }
     
     /**
@@ -330,10 +346,30 @@ class EmailPDF {
         // Format date
         $datum = date('d.m.Y', strtotime($data['datum']));
         
-        // Get leaders and attendees names
-        $uebungsleiter = self::getPersonnelNames($data['uebungsleiter'] ?? []);
+        // Handle leaders - they might be names directly or IDs
+        $uebungsleiter = [];
+        if (isset($data['uebungsleiter']) && is_array($data['uebungsleiter'])) {
+            foreach ($data['uebungsleiter'] as $leader) {
+                // Check if it's an ID (starts with 'pers_') or a direct name
+                if (strpos($leader, 'pers_') === 0) {
+                    // It's an ID, get the name
+                    $person = DataStore::getPersonnelById($leader);
+                    if ($person) {
+                        $uebungsleiter[] = $person['name'];
+                    }
+                } else {
+                    // It's already a name (from dropdown or text field)
+                    $uebungsleiter[] = $leader;
+                }
+            }
+        }
+        
+        // Get attendees names (these are IDs)
         $teilnehmer = self::getPersonnelNames($data['teilnehmer'] ?? []);
         $anzahl = count($data['teilnehmer'] ?? []);
+        
+        // Get duration
+        $dauer = $data['dauer'] ?? 0;
         
         $html = '<!DOCTYPE html>
 <html>
@@ -422,6 +458,10 @@ class EmailPDF {
         <tr>
             <th>Zeitraum</th>
             <td>' . htmlspecialchars($data['von']) . ' - ' . htmlspecialchars($data['bis']) . '</td>
+        </tr>
+        <tr>
+            <th>Dauer</th>
+            <td>' . htmlspecialchars($dauer) . ' Minuten</td>
         </tr>
         <tr>
             <th>Thema</th>
