@@ -27,40 +27,40 @@ $isAdmin = Auth::isAdmin();
             <span class="menu-button-text">Einsatzbericht</span>
         </button>
         
-        <!-- Statistiken -->
-        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('statistics')">
-            <span class="material-icons">bar_chart</span>
-            <span class="menu-button-text">Statistiken</span>
-        </button>
-        
         <!-- Fahrzeuge -->
         <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('vehicles')">
             <span class="material-icons">local_shipping</span>
             <span class="menu-button-text">Fahrzeuge</span>
         </button>
         
-        <!-- Future: Telefonnummern -->
-        <button class="menu-button menu-button-disabled" disabled title="Demnächst verfügbar">
+        <!-- Telefonnummern -->
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('phone-numbers')">
             <span class="material-icons">phone</span>
             <span class="menu-button-text">Telefonnummern</span>
         </button>
         
-        <!-- Future: Online Karte -->
-        <button class="menu-button menu-button-disabled" disabled title="Demnächst verfügbar">
+        <!-- Online Karte -->
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('map')">
             <span class="material-icons">map</span>
             <span class="menu-button-text">Online Karte</span>
         </button>
         
-        <!-- Future: Gefahrenmatrix -->
-        <button class="menu-button menu-button-disabled" disabled title="Demnächst verfügbar">
+        <!-- Gefahrenmatrix -->
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('hazard-matrix')">
             <span class="material-icons">warning</span>
             <span class="menu-button-text">Gefahrenmatrix</span>
         </button>
         
-        <!-- Future: Gefahrstoffkennzeichen -->
-        <button class="menu-button menu-button-disabled" disabled title="Demnächst verfügbar">
+        <!-- Gefahrstoffkennzeichen -->
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('hazmat')">
             <span class="material-icons">science</span>
             <span class="menu-button-text">Gefahrstoffe</span>
+        </button>
+        
+        <!-- Statistiken (moved to end) -->
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('statistics')">
+            <span class="material-icons">bar_chart</span>
+            <span class="menu-button-text">Statistiken</span>
         </button>
     </div>
     

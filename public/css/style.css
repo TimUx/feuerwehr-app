@@ -719,3 +719,529 @@ body {
 .menu-section-admin {
     margin-top: 3rem;
 }
+
+/* ============================================================
+   MAP PAGE STYLES
+   ============================================================ */
+
+.map-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.map-view {
+    width: 100%;
+    height: 500px;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-medium);
+}
+
+.map-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.map-controls .form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.route-info {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-small);
+}
+
+.route-info h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+/* ============================================================
+   HAZARD MATRIX STYLES
+   ============================================================ */
+
+.hazard-matrix-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.hazard-info {
+    background: var(--info-color);
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.hazard-section {
+    margin-bottom: 2.5rem;
+}
+
+.hazard-section-title {
+    color: var(--text-primary);
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.hazard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .hazard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.hazard-item {
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 100px;
+}
+
+.hazard-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+    border-color: var(--primary-color);
+}
+
+.hazard-item.active {
+    background: var(--primary-color);
+    border-color: var(--primary-dark);
+    color: white;
+}
+
+.hazard-item.active .hazard-label,
+.hazard-item.active .hazard-letter {
+    color: white;
+}
+
+.hazard-letter {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.hazard-label {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.hazard-summary {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-small);
+    margin-top: 2rem;
+}
+
+.hazard-summary h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.hazard-summary-list {
+    color: var(--text-primary);
+}
+
+.hazard-summary-category {
+    margin-bottom: 1rem;
+}
+
+.hazard-summary-category ul {
+    margin-top: 0.5rem;
+    margin-left: 1.5rem;
+}
+
+/* ============================================================
+   HAZMAT (HAZARDOUS MATERIALS) STYLES
+   ============================================================ */
+
+.hazmat-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.hazmat-search-section {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-small);
+}
+
+.hazmat-search-section h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.search-form {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.search-form .form-group {
+    flex: 1;
+}
+
+.hazmat-details {
+    margin-top: 1.5rem;
+}
+
+.hazmat-detail-card {
+    background: var(--bg-card);
+    border: 2px solid var(--primary-color);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.hazmat-detail-header {
+    background: var(--primary-color);
+    color: white;
+    padding: 1.5rem;
+}
+
+.hazmat-detail-header h3 {
+    margin: 0 0 0.5rem 0;
+}
+
+.hazmat-detail-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.hazmat-detail-body {
+    padding: 1.5rem;
+}
+
+.hazmat-detail-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.hazmat-detail-section:last-child {
+    border-bottom: none;
+}
+
+.hazmat-detail-section h4 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.hazmat-detail-section p {
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.hazmat-detail-section ul {
+    margin-left: 1.5rem;
+    color: var(--text-primary);
+}
+
+.hazmat-labels {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.hazmat-label {
+    background: var(--warning-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+/* GHS Symbols Section */
+.hazmat-symbols-section {
+    margin-bottom: 3rem;
+}
+
+.hazmat-symbols-section h3 {
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+}
+
+.hazmat-symbols-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .hazmat-symbols-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.hazmat-symbol-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.hazmat-symbol {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 3px solid #000;
+    background: white;
+    transform: rotate(45deg);
+}
+
+.hazmat-symbol .symbol-text {
+    font-size: 2.5rem;
+    transform: rotate(-45deg);
+}
+
+.hazmat-symbol-card h4 {
+    color: var(--text-primary);
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.hazmat-symbol-card p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+/* ADR Classes Section */
+.hazmat-classes-section {
+    margin-bottom: 3rem;
+}
+
+.hazmat-classes-section h3 {
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+}
+
+.hazmat-classes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .hazmat-classes-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.hazmat-class-card {
+    background: var(--bg-card);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-small);
+}
+
+.class-number {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.hazmat-class-card h4 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.hazmat-class-card p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Quick Reference Section */
+.hazmat-quick-ref {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-small);
+}
+
+.hazmat-quick-ref h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.quick-ref-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+    .quick-ref-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.quick-ref-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+.quick-ref-btn:hover {
+    background: var(--primary-light);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* ============================================================
+   PHONE NUMBERS STYLES
+   ============================================================ */
+
+.phone-numbers-list {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.phone-number-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-small);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.phone-number-info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.phone-number-name {
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    margin: 0 0 0.25rem 0;
+}
+
+.phone-number-org {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin: 0 0 0.25rem 0;
+}
+
+.phone-number-role {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.phone-number-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn-call {
+    font-size: 1rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    .phone-number-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .phone-number-actions {
+        justify-content: stretch;
+    }
+    
+    .btn-call {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+/* Fix menu grid to ensure symmetry */
+.menu-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+@media (max-width: 768px) {
+    .menu-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Ensure all menu buttons have equal height */
+.menu-button {
+    min-height: 140px;
+    aspect-ratio: 1 / 1;
+}
+
+@media (min-width: 769px) {
+    .menu-button {
+        aspect-ratio: auto;
+    }
+}

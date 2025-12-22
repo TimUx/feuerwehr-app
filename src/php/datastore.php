@@ -355,4 +355,64 @@ class DataStore {
             'total_hours' => $trainingHours + $missionHours
         ];
     }
+
+    // ==================== Phone Numbers ====================
+
+    /**
+     * Get all phone numbers
+     */
+    public static function getPhoneNumbers() {
+        $numbers = self::load('phone-numbers.json');
+        // Sort by organization and name
+        usort($numbers, function($a, $b) {
+            $orgCmp = strcasecmp($a['organization'], $b['organization']);
+            if ($orgCmp !== 0) return $orgCmp;
+            return strcasecmp($a['name'], $b['name']);
+        });
+        return $numbers;
+    }
+
+    /**
+     * Add phone number
+     */
+    public static function addPhoneNumber($data) {
+        $numbers = self::getPhoneNumbers();
+        $numbers[] = $data;
+        self::save('phone-numbers.json', $numbers);
+        return $data;
+    }
+
+    /**
+     * Update phone number
+     */
+    public static function updatePhoneNumber($id, $data) {
+        $numbers = self::getPhoneNumbers();
+        
+        foreach ($numbers as &$number) {
+            if ($number['id'] === $id) {
+                $number['name'] = $data['name'];
+                $number['organization'] = $data['organization'];
+                $number['role'] = $data['role'];
+                $number['phone'] = $data['phone'];
+                $number['updated'] = date('Y-m-d H:i:s');
+                break;
+            }
+        }
+        
+        self::save('phone-numbers.json', $numbers);
+        return true;
+    }
+
+    /**
+     * Delete phone number
+     */
+    public static function deletePhoneNumber($id) {
+        $numbers = self::getPhoneNumbers();
+        $numbers = array_filter($numbers, function($number) use ($id) {
+            return $number['id'] !== $id;
+        });
+        
+        self::save('phone-numbers.json', array_values($numbers));
+        return true;
+    }
 }

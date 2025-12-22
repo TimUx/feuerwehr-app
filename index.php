@@ -145,14 +145,34 @@ $user = Auth::getUser();
                     <span>Einsatzbericht</span>
                 </a>
                 
-                <a href="#" class="nav-item" data-page="statistics">
-                    <span class="material-icons">bar_chart</span>
-                    <span>Statistiken</span>
-                </a>
-                
                 <a href="#" class="nav-item" data-page="vehicles">
                     <span class="material-icons">local_shipping</span>
                     <span>Fahrzeuge</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-page="phone-numbers">
+                    <span class="material-icons">phone</span>
+                    <span>Telefonnummern</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-page="map">
+                    <span class="material-icons">map</span>
+                    <span>Online Karte</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-page="hazard-matrix">
+                    <span class="material-icons">warning</span>
+                    <span>Gefahrenmatrix</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-page="hazmat">
+                    <span class="material-icons">science</span>
+                    <span>Gefahrstoffe</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-page="statistics">
+                    <span class="material-icons">bar_chart</span>
+                    <span>Statistiken</span>
                 </a>
                 
                 <?php if (Auth::isAdmin()): ?>
