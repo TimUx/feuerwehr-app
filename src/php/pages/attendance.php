@@ -52,24 +52,15 @@ $personnel = DataStore::getPersonnel();
                 <label class="form-label" for="uebungsleiter-select">Übungsleiter aus Liste auswählen *</label>
                 <select id="uebungsleiter-select" name="uebungsleiter_select[]" class="form-select leader-select" multiple size="5">
                     <?php 
-                    // Filter personnel with at least Gruppenführer role
-                    $leadershipHierarchy = ['Gruppenführer', 'Zugführer', 'Verbandsführer'];
+                    // Filter personnel with "Ausbilder" checkbox set
                     foreach ($personnel as $person): 
-                        $hasQualification = false;
-                        if (!empty($person['leadership_roles'])) {
-                            foreach ($person['leadership_roles'] as $role) {
-                                if (in_array($role, $leadershipHierarchy)) {
-                                    $hasQualification = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if ($hasQualification):
+                        $isInstructor = !empty($person['is_instructor']) && $person['is_instructor'];
+                        if ($isInstructor):
                     ?>
                         <option value="<?php echo htmlspecialchars($person['name']); ?>">
                             <?php echo htmlspecialchars($person['name']); ?>
-                            <?php if (!empty($person['leadership_roles'])): ?>
-                                (<?php echo implode(', ', array_map('htmlspecialchars', $person['leadership_roles'])); ?>)
+                            <?php if (!empty($person['qualifications'])): ?>
+                                (<?php echo implode(', ', array_map('htmlspecialchars', $person['qualifications'])); ?>)
                             <?php endif; ?>
                         </option>
                     <?php 

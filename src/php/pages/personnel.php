@@ -33,6 +33,7 @@ $isAdmin = Auth::isAdmin();
                             <th>Name</th>
                             <th>Ausbildungen</th>
                             <th>Führungsrollen</th>
+                            <th>Ausbilder</th>
                             <?php if ($isAdmin): ?>
                             <th style="width: 120px;">Aktionen</th>
                             <?php endif; ?>
@@ -65,6 +66,15 @@ $isAdmin = Auth::isAdmin();
                                     echo '-';
                                 }
                                 ?>
+                            </td>
+                            <td>
+                                <?php 
+                                $isInstructor = !empty($person['is_instructor']) && $person['is_instructor'];
+                                if ($isInstructor): ?>
+                                    <span class="material-icons" style="color: var(--primary); font-size: 1.5rem;" title="Ist Ausbilder">check_circle</span>
+                                <?php else: ?>
+                                    <span style="color: var(--text-secondary);">-</span>
+                                <?php endif; ?>
                             </td>
                             <?php if ($isAdmin): ?>
                             <td>
