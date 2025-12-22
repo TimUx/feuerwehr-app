@@ -224,8 +224,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ],
                 'data_dir' => __DIR__ . '/data',
                 'backup_dir' => __DIR__ . '/data/backups',
-                // Note: default_admin only used if users.json doesn't exist
-                // The installer creates users.json, so this is not used
+                // NOTE: The following default_admin credentials are NOT used after installation.
+                // These are only a fallback if the users.json file is deleted.
+                // Your actual admin credentials were encrypted and saved in data/users.json
                 'default_admin' => [
                     'username' => 'admin',
                     'password' => 'change_immediately',
