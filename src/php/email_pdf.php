@@ -77,7 +77,8 @@ class EmailPDF {
         
         file_put_contents($tmpHtml, $html);
         
-        $command = "wkhtmltopdf {$tmpHtml} {$tmpPdf} 2>&1";
+        // Use escapeshellarg for safe command execution
+        $command = 'wkhtmltopdf ' . escapeshellarg($tmpHtml) . ' ' . escapeshellarg($tmpPdf) . ' 2>&1';
         exec($command, $output, $returnVar);
         
         if ($returnVar === 0 && file_exists($tmpPdf)) {
@@ -138,7 +139,15 @@ class EmailPDF {
      * Check if a command is available
      */
     private static function isCommandAvailable($command) {
-        $result = shell_exec("which {$command}");
+        // Whitelist of allowed commands to check
+        $allowedCommands = ['wkhtmltopdf'];
+        
+        if (!in_array($command, $allowedCommands)) {
+            return false;
+        }
+        
+        // Use escapeshellarg for safe command execution
+        $result = shell_exec('which ' . escapeshellarg($command));
         return !empty($result);
     }
     

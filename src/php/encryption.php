@@ -21,7 +21,7 @@ class Encryption {
         $key = self::$config['encryption_key'];
         
         // Generate initialization vector
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+        $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
         
         // Encrypt the data
         $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, 0, $iv);

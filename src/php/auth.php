@@ -113,6 +113,17 @@ class Auth {
     }
 
     /**
+     * Require operator role or higher
+     */
+    public static function requireOperator() {
+        self::requireAuth();
+        if (!self::isOperator()) {
+            http_response_code(403);
+            die('Access denied. Operator privileges required.');
+        }
+    }
+
+    /**
      * Get current user info
      */
     public static function getUser() {
