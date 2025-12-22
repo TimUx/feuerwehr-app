@@ -224,9 +224,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ],
                 'data_dir' => __DIR__ . '/data',
                 'backup_dir' => __DIR__ . '/data/backups',
+                // Note: default_admin only used if users.json doesn't exist
+                // The installer creates users.json, so this is not used
                 'default_admin' => [
                     'username' => 'admin',
-                    'password' => 'INSTALLER_DISABLED', // Disabled - admin user created during installation
+                    'password' => 'change_immediately',
                 ],
             ];
             
@@ -255,7 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 // Create admin user directly in users.json
-                // We need to encrypt manually since Encryption class would try to load the config
+                // We need to encrypt manually to match the Encryption class pattern
                 $adminUser = [
                     'id' => uniqid('user_'),
                     'username' => $admin_username,
@@ -266,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $usersData = json_encode([$adminUser], JSON_PRETTY_PRINT);
                 
-                // Encrypt users data manually (Encryption class needs config to be loaded)
+                // Encrypt users data manually (matching Encryption class format)
                 $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
                 $encrypted = openssl_encrypt($usersData, 'aes-256-cbc', $encryption_key, 0, $iv);
                 $encryptedUsers = base64_encode($iv . '::' . $encrypted);
@@ -274,9 +276,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 file_put_contents($dataDir . '/users.json', $encryptedUsers);
                 chmod($dataDir . '/users.json', 0600);
                 
-                // Clear session data
+                // Clear session data properly
                 if (session_status() === PHP_SESSION_ACTIVE) {
                     session_unset();
+                    session_destroy();
                 }
                 
                 $success = true;
