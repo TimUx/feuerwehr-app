@@ -16,6 +16,11 @@ class Encryption {
      * Convert hex key to binary for AES-256
      */
     private static function convertHexKeyToBinary($key) {
+        // Type check
+        if (!is_string($key)) {
+            throw new Exception('Encryption key must be a string, got ' . gettype($key));
+        }
+        
         // The key is stored as 64-char hex string, but AES-256 needs 32 bytes
         if (ctype_xdigit($key) && strlen($key) === 64) {
             return hex2bin($key);
