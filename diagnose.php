@@ -146,56 +146,48 @@ function runAllTests() {
     // Test 7: Decrypt users.json
     if ($configValid && $usersReadable) {
         try {
-            $encryptedData = file_get_contents($usersFile);
-            $keyBinary = hex2bin($config['encryption_key']);
-            $decoded = base64_decode($encryptedData);
-            $parts = explode('::', $decoded, 2);
+            // Load Encryption class to use the proper decrypt method
+            $encryptionFile = __DIR__ . '/src/php/encryption.php';
+            if (!file_exists($encryptionFile)) {
+                throw new Exception('Encryption class file not found: ' . $encryptionFile);
+            }
+            require_once $encryptionFile;
             
-            if (count($parts) === 2) {
-                list($iv, $encrypted) = $parts;
-                $decrypted = openssl_decrypt($encrypted, 'aes-256-cbc', $keyBinary, OPENSSL_RAW_DATA, $iv);
+            $encryptedData = file_get_contents($usersFile);
+            
+            // Use Encryption::decrypt() which handles both old and new formats
+            $decrypted = Encryption::decrypt($encryptedData);
+            
+            if ($decrypted !== false) {
+                $users = json_decode($decrypted, true);
+                $decryptSuccess = is_array($users) && count($users) > 0;
                 
-                if ($decrypted !== false) {
-                    $users = json_decode($decrypted, true);
-                    $decryptSuccess = is_array($users) && count($users) > 0;
-                    
-                    $tests[] = [
-                        'category' => 'Verschlüsselung',
-                        'name' => 'users.json entschlüsseln',
-                        'status' => $decryptSuccess ? 'pass' : 'fail',
-                        'message' => $decryptSuccess ? count($users) . ' Benutzer gefunden' : 'JSON-Parsing fehlgeschlagen',
-                        'critical' => true
-                    ];
-                    
-                    if ($decryptSuccess) {
-                        // Check if admin user exists
-                        $adminExists = false;
-                        foreach ($users as $user) {
-                            if ($user['role'] === 'admin') {
-                                $adminExists = true;
-                                break;
-                            }
+                $tests[] = [
+                    'category' => 'Verschlüsselung',
+                    'name' => 'users.json entschlüsseln',
+                    'status' => $decryptSuccess ? 'pass' : 'fail',
+                    'message' => $decryptSuccess ? count($users) . ' Benutzer gefunden' : 'JSON-Parsing fehlgeschlagen',
+                    'critical' => true
+                ];
+                
+                if ($decryptSuccess) {
+                    // Check if admin user exists
+                    $adminExists = false;
+                    foreach ($users as $user) {
+                        if ($user['role'] === 'admin') {
+                            $adminExists = true;
+                            break;
                         }
-                        
-                        $tests[] = [
-                            'category' => 'Benutzerverwaltung',
-                            'name' => 'Administrator-Benutzer',
-                            'status' => $adminExists ? 'pass' : 'warn',
-                            'message' => $adminExists ? 'Gefunden' : 'Kein Admin-Benutzer vorhanden',
-                            'critical' => false
-                        ];
-                    } else {
-                        $criticalFailures++;
                     }
-                } else {
+                    
                     $tests[] = [
-                        'category' => 'Verschlüsselung',
-                        'name' => 'Entschlüsselung',
-                        'status' => 'fail',
-                        'message' => 'OpenSSL-Entschlüsselung fehlgeschlagen',
-                        'critical' => true,
-                        'fix' => 'Datei möglicherweise beschädigt - führen Sie install.php erneut aus'
+                        'category' => 'Benutzerverwaltung',
+                        'name' => 'Administrator-Benutzer',
+                        'status' => $adminExists ? 'pass' : 'warn',
+                        'message' => $adminExists ? 'Gefunden' : 'Kein Admin-Benutzer vorhanden',
+                        'critical' => false
                     ];
+                } else {
                     $criticalFailures++;
                 }
             } else {
@@ -203,9 +195,9 @@ function runAllTests() {
                     'category' => 'Verschlüsselung',
                     'name' => 'Entschlüsselung',
                     'status' => 'fail',
-                    'message' => 'Ungültiges Verschlüsselungsformat',
+                    'message' => 'OpenSSL-Entschlüsselung fehlgeschlagen',
                     'critical' => true,
-                    'fix' => 'Datei beschädigt - führen Sie install.php erneut aus'
+                    'fix' => 'Datei möglicherweise beschädigt - führen Sie install.php erneut aus'
                 ];
                 $criticalFailures++;
             }

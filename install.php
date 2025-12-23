@@ -430,25 +430,17 @@ function runDiagnosticTests() {
     $usersData = null;
     if ($usersReadable && $encryptionKey) {
         try {
+            // Load Encryption class to use the proper decrypt method
+            $encryptionFile = __DIR__ . '/src/php/encryption.php';
+            if (!file_exists($encryptionFile)) {
+                throw new Exception('Encryption class file not found: ' . $encryptionFile);
+            }
+            require_once $encryptionFile;
+            
             $encryptedData = file_get_contents($usersFile);
-            $keyBinary = hex2bin($encryptionKey);
             
-            if ($keyBinary === false) {
-                throw new Exception('Ungültiger Verschlüsselungsschlüssel (kein Hex)');
-            }
-            
-            $decoded = base64_decode($encryptedData);
-            if ($decoded === false) {
-                throw new Exception('Base64-Dekodierung fehlgeschlagen');
-            }
-            
-            $parts = explode('::', $decoded, 2);
-            if (count($parts) !== 2) {
-                throw new Exception('Ungültiges Verschlüsselungsformat');
-            }
-            
-            list($iv, $encrypted) = $parts;
-            $decrypted = openssl_decrypt($encrypted, 'aes-256-cbc', $keyBinary, OPENSSL_RAW_DATA, $iv);
+            // Use Encryption::decrypt() which handles both old and new formats
+            $decrypted = Encryption::decrypt($encryptedData);
             
             if ($decrypted === false) {
                 throw new Exception('Entschlüsselung fehlgeschlagen');
