@@ -61,8 +61,8 @@ if ($debugMode) {
     
     set_error_handler('debugErrorHandler');
     debugLog("Debug mode activated", 'INFO');
-    debugLog("Error reporting enabled: E_ALL", 'INFO');
-    debugLog("Display errors enabled: 1", 'INFO');
+    debugLog("Error reporting enabled: E_ALL (" . error_reporting() . ")", 'INFO');
+    debugLog("Display errors enabled: " . ini_get('display_errors'), 'INFO');
     debugLog("PHP Version: " . PHP_VERSION, 'INFO');
     debugLog("Server Software: " . ($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'), 'INFO');
     debugLog("SAPI: " . php_sapi_name(), 'INFO');
