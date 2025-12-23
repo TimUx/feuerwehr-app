@@ -153,7 +153,7 @@ function runAllTests() {
             
             if (count($parts) === 2) {
                 list($iv, $encrypted) = $parts;
-                $decrypted = openssl_decrypt($encrypted, 'aes-256-cbc', $keyBinary, 0, $iv);
+                $decrypted = openssl_decrypt($encrypted, 'aes-256-cbc', $keyBinary, OPENSSL_RAW_DATA, $iv);
                 
                 if ($decrypted !== false) {
                     $users = json_decode($decrypted, true);

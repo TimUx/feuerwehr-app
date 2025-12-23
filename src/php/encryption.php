@@ -58,8 +58,8 @@ class Encryption {
         // Generate initialization vector
         $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
         
-        // Encrypt the data
-        $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, 0, $iv);
+        // Encrypt the data (OPENSSL_RAW_DATA returns raw binary, not base64)
+        $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
         
         // Combine IV and encrypted data
         return base64_encode($iv . '::' . $encrypted);
@@ -84,8 +84,8 @@ class Encryption {
         
         list($iv, $encrypted) = $parts;
         
-        // Decrypt the data
-        return openssl_decrypt($encrypted, 'aes-256-cbc', $key, 0, $iv);
+        // Decrypt the data (OPENSSL_RAW_DATA indicates encrypted data is raw binary)
+        return openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
     }
 
     /**
