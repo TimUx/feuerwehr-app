@@ -283,9 +283,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     chmod($dataDir . '/users.json', 0600);
                     
                     // Clear session data properly
+                    // Note: This code is duplicated from Auth::clearSessionCookie() to avoid
+                    // circular dependencies (Auth class requires config.php which we're creating here)
                     if (session_status() === PHP_SESSION_ACTIVE) {
+                        // Cookie expiry offset constant (matches Auth::COOKIE_EXPIRY_OFFSET)
+                        $cookieExpiryOffset = 3600; // 1 hour in the past
+                        
                         session_unset();
                         session_destroy();
+                        // Clear the session cookie using proper parameters
+                        if (isset($_COOKIE[session_name()])) {
+                            $params = session_get_cookie_params();
+                            setcookie(
+                                session_name(),
+                                '',
+                                time() - $cookieExpiryOffset,
+                                $params['path'],
+                                $params['domain'],
+                                $params['secure'],
+                                $params['httponly']
+                            );
+                        }
                     }
                     
                     $success = true;

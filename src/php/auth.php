@@ -8,8 +8,17 @@ require_once __DIR__ . '/encryption.php';
 class Auth {
     private static $config;
     private static $dataDir;
+    private static $initialized = false;
+    
+    // Cookie expiration offset for clearing session cookies (1 hour in the past)
+    private const COOKIE_EXPIRY_OFFSET = 3600;
 
     public static function init() {
+        // Only initialize once to avoid reloading config and resetting session settings
+        if (self::$initialized) {
+            return;
+        }
+        
         self::$config = require __DIR__ . '/../../config/config.php';
         self::$dataDir = self::$config['data_dir'];
         
@@ -25,6 +34,8 @@ class Auth {
             ini_set('session.use_strict_mode', 1);
             session_start();
         }
+        
+        self::$initialized = true;
     }
 
     /**
@@ -53,8 +64,35 @@ class Auth {
      * Logout user
      */
     public static function logout() {
-        session_destroy();
+        // Only destroy session if one is active
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            // Clear session data
+            session_unset();
+            session_destroy();
+            
+            // Clear the session cookie using proper parameters
+            self::clearSessionCookie();
+        }
+        
         return true;
+    }
+    
+    /**
+     * Clear the session cookie from the browser
+     */
+    private static function clearSessionCookie() {
+        if (isset($_COOKIE[session_name()])) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - self::COOKIE_EXPIRY_OFFSET,
+                $params['path'],
+                $params['domain'],
+                $params['secure'],
+                $params['httponly']
+            );
+        }
     }
 
     /**
