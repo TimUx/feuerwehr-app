@@ -29,11 +29,20 @@ class Auth {
 
         // Start session with secure settings
         if (session_status() === PHP_SESSION_NONE) {
-            ini_set('session.cookie_httponly', 1);
             // Only set secure cookie if HTTPS is actually enabled (not just set to 'off')
             $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
                        (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-            ini_set('session.cookie_secure', $isSecure ? 1 : 0);
+            
+            // Use session_set_cookie_params() instead of ini_set() for better reliability
+            session_set_cookie_params([
+                'lifetime' => 0,  // Session cookie (expires when browser closes)
+                'path' => '/',
+                'domain' => '',
+                'secure' => $isSecure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+            
             ini_set('session.use_strict_mode', 1);
             session_start();
         }
