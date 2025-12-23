@@ -636,14 +636,20 @@ function runAllTests() {
     // Check web server user (common names)
     $webserverUsers = ['www-data', 'nginx', 'apache', 'httpd'];
     $detectedWebUser = null;
+    $detectedWebUserInfo = null;
     
-    foreach ($webserverUsers as $user) {
-        $userInfo = posix_getpwnam($user);
-        if ($userInfo !== false) {
-            $detectedWebUser = $user;
-            debugLog("Detected webserver user: $user (UID: {$userInfo['uid']})", 'INFO');
-            break;
+    if (function_exists('posix_getpwnam')) {
+        foreach ($webserverUsers as $user) {
+            $userInfo = posix_getpwnam($user);
+            if ($userInfo !== false) {
+                $detectedWebUser = $user;
+                $detectedWebUserInfo = $userInfo;
+                debugLog("Detected webserver user: $user (UID: {$userInfo['uid']})", 'INFO');
+                break;
+            }
         }
+    } else {
+        debugLog("posix_getpwnam() not available - cannot detect webserver user", 'WARN');
     }
     
     if ($configExists) {
@@ -654,11 +660,8 @@ function runAllTests() {
         debugLog("config.php owner UID: $configOwner, GID: $configGroup, perms: $configPerms", 'INFO');
         
         $webUserUid = -1;
-        if ($detectedWebUser) {
-            $webUserInfo = posix_getpwnam($detectedWebUser);
-            if ($webUserInfo !== false) {
-                $webUserUid = $webUserInfo['uid'];
-            }
+        if ($detectedWebUserInfo) {
+            $webUserUid = $detectedWebUserInfo['uid'];
         }
         $ownerMatch = ($configOwner === $currentUid || $configOwner === $webUserUid);
         
