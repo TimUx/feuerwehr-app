@@ -276,8 +276,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Test encryption capability before proceeding
                 $encryptedUsers = Encryption::encrypt($usersData);
-                if ($encryptedUsers === false) {
-                    throw new Exception('Verschlüsselung fehlgeschlagen.');
+                if ($encryptedUsers === false || empty($encryptedUsers)) {
+                    throw new Exception('Encryption test failed during installation - please check encryption key configuration and OpenSSL installation.');
                 }
                 
                 // Write encrypted users file

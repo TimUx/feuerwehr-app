@@ -61,6 +61,12 @@ class Encryption {
         // Encrypt the data (OPENSSL_RAW_DATA returns raw binary, not base64)
         $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
         
+        // Check for encryption failure
+        if ($encrypted === false) {
+            $error = openssl_error_string();
+            throw new Exception('Encryption failed: ' . ($error !== false ? $error : 'Unknown OpenSSL error'));
+        }
+        
         // Combine IV and encrypted data using base64 encoding for each part
         // This prevents the '::' separator from appearing in the binary data itself
         return base64_encode($iv) . '::' . base64_encode($encrypted);
@@ -82,9 +88,9 @@ class Encryption {
             $parts = explode('::', $encryptedData, 2);
             if (count($parts) === 2) {
                 // Check if both parts are valid base64 (new format characteristic)
-                // Base64 strings should match pattern: [A-Za-z0-9+/]+ with optional = padding
-                if (preg_match('/^[A-Za-z0-9+\/]+=*$/', $parts[0]) && 
-                    preg_match('/^[A-Za-z0-9+\/]+=*$/', $parts[1])) {
+                // Base64 strings should match pattern: [A-Za-z0-9+/]+ with 0-2 padding chars
+                if (preg_match('/^[A-Za-z0-9+\/]+={0,2}$/', $parts[0]) && 
+                    preg_match('/^[A-Za-z0-9+\/]+={0,2}$/', $parts[1])) {
                     
                     // New format: both IV and encrypted data are base64 encoded separately
                     $iv = base64_decode($parts[0]);
