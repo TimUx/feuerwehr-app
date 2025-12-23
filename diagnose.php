@@ -54,8 +54,15 @@ function debugErrorHandler($errno, $errstr, $errfile, $errline) {
 
 // Set custom error handler if debug mode is enabled
 if ($debugMode) {
+    // Enable error reporting and display
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
+    
     set_error_handler('debugErrorHandler');
     debugLog("Debug mode activated", 'INFO');
+    debugLog("Error reporting enabled: E_ALL", 'INFO');
+    debugLog("Display errors enabled: 1", 'INFO');
     debugLog("PHP Version: " . PHP_VERSION, 'INFO');
     debugLog("Server Software: " . ($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'), 'INFO');
     debugLog("SAPI: " . php_sapi_name(), 'INFO');
