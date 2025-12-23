@@ -431,7 +431,11 @@ function runDiagnosticTests() {
     if ($usersReadable && $encryptionKey) {
         try {
             // Load Encryption class to use the proper decrypt method
-            require_once __DIR__ . '/src/php/encryption.php';
+            $encryptionFile = __DIR__ . '/src/php/encryption.php';
+            if (!file_exists($encryptionFile)) {
+                throw new Exception('Encryption class file not found: ' . $encryptionFile);
+            }
+            require_once $encryptionFile;
             
             $encryptedData = file_get_contents($usersFile);
             
