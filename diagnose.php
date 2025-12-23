@@ -77,6 +77,36 @@ if (session_status() === PHP_SESSION_NONE) {
     debugLog("Session already active with ID: " . session_id(), 'INFO');
 }
 
+/**
+ * Read last N lines from a file efficiently
+ */
+function readLastNLines($filePath, $n = 20) {
+    if (!is_readable($filePath)) {
+        return [];
+    }
+    
+    $lines = [];
+    try {
+        $file = new SplFileObject($filePath);
+        $file->seek(PHP_INT_MAX);
+        $totalLines = $file->key();
+        $startLine = max(0, $totalLines - $n);
+        $file->seek($startLine);
+        
+        while (!$file->eof()) {
+            $line = trim($file->fgets());
+            if (!empty($line)) {
+                $lines[] = $line;
+            }
+        }
+    } catch (Exception $e) {
+        debugLog("Error reading file $filePath: " . $e->getMessage(), 'ERROR');
+        return [];
+    }
+    
+    return $lines;
+}
+
 $configFile = __DIR__ . '/config/config.php';
 $dataDir = __DIR__ . '/data';
 $usersFile = $dataDir . '/users.json';
@@ -623,7 +653,14 @@ function runAllTests() {
         
         debugLog("config.php owner UID: $configOwner, GID: $configGroup, perms: $configPerms", 'INFO');
         
-        $ownerMatch = ($configOwner === $currentUid || $configOwner === ($detectedWebUser ? posix_getpwnam($detectedWebUser)['uid'] : -1));
+        $webUserUid = -1;
+        if ($detectedWebUser) {
+            $webUserInfo = posix_getpwnam($detectedWebUser);
+            if ($webUserInfo !== false) {
+                $webUserUid = $webUserInfo['uid'];
+            }
+        }
+        $ownerMatch = ($configOwner === $currentUid || $configOwner === $webUserUid);
         
         $tests[] = [
             'category' => 'Dateisystem',
@@ -1098,20 +1135,7 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                             <div style="background: #263238; color: #cfd8dc; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.5; max-height: 300px; overflow-y: auto;">
                                 <div style="color: #80cbc4; margin-bottom: 5px; font-weight: bold;">📂 <?php echo htmlspecialchars($results['nginxErrorLog']); ?></div>
                                 <?php
-                                $nginxLines = [];
-                                if (is_readable($results['nginxErrorLog'])) {
-                                    $file = new SplFileObject($results['nginxErrorLog']);
-                                    $file->seek(PHP_INT_MAX);
-                                    $totalLines = $file->key();
-                                    $startLine = max(0, $totalLines - 20);
-                                    $file->seek($startLine);
-                                    while (!$file->eof()) {
-                                        $line = trim($file->fgets());
-                                        if (!empty($line)) {
-                                            $nginxLines[] = $line;
-                                        }
-                                    }
-                                }
+                                $nginxLines = readLastNLines($results['nginxErrorLog'], 20);
                                 
                                 if (empty($nginxLines)) {
                                     echo '<div style="color: #90caf9;">Keine aktuellen Einträge oder Datei leer</div>';
@@ -1134,20 +1158,7 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                             <div style="background: #263238; color: #cfd8dc; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.5; max-height: 300px; overflow-y: auto;">
                                 <div style="color: #80cbc4; margin-bottom: 5px; font-weight: bold;">📂 <?php echo htmlspecialchars($results['fpmErrorLog']); ?></div>
                                 <?php
-                                $fpmLines = [];
-                                if (is_readable($results['fpmErrorLog'])) {
-                                    $file = new SplFileObject($results['fpmErrorLog']);
-                                    $file->seek(PHP_INT_MAX);
-                                    $totalLines = $file->key();
-                                    $startLine = max(0, $totalLines - 20);
-                                    $file->seek($startLine);
-                                    while (!$file->eof()) {
-                                        $line = trim($file->fgets());
-                                        if (!empty($line)) {
-                                            $fpmLines[] = $line;
-                                        }
-                                    }
-                                }
+                                $fpmLines = readLastNLines($results['fpmErrorLog'], 20);
                                 
                                 if (empty($fpmLines)) {
                                     echo '<div style="color: #90caf9;">Keine aktuellen Einträge oder Datei leer</div>';
