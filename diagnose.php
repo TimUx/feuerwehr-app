@@ -54,8 +54,15 @@ function debugErrorHandler($errno, $errstr, $errfile, $errline) {
 
 // Set custom error handler if debug mode is enabled
 if ($debugMode) {
+    // Enable error reporting and display
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
+    
     set_error_handler('debugErrorHandler');
     debugLog("Debug mode activated", 'INFO');
+    debugLog("Error reporting enabled: E_ALL (" . error_reporting() . ")", 'INFO');
+    debugLog("Display errors enabled: " . ini_get('display_errors'), 'INFO');
     debugLog("PHP Version: " . PHP_VERSION, 'INFO');
     debugLog("Server Software: " . ($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'), 'INFO');
     debugLog("SAPI: " . php_sapi_name(), 'INFO');
@@ -68,6 +75,36 @@ if (session_status() === PHP_SESSION_NONE) {
     debugLog("Session started with ID: " . session_id(), 'INFO');
 } else {
     debugLog("Session already active with ID: " . session_id(), 'INFO');
+}
+
+/**
+ * Read last N lines from a file efficiently
+ */
+function readLastNLines($filePath, $n = 20) {
+    if (!is_readable($filePath)) {
+        return [];
+    }
+    
+    $lines = [];
+    try {
+        $file = new SplFileObject($filePath);
+        $file->seek(PHP_INT_MAX);
+        $totalLines = $file->key();
+        $startLine = max(0, $totalLines - $n);
+        $file->seek($startLine);
+        
+        while (!$file->eof()) {
+            $line = trim($file->fgets());
+            if (!empty($line)) {
+                $lines[] = $line;
+            }
+        }
+    } catch (Exception $e) {
+        debugLog("Error reading file $filePath: " . $e->getMessage(), 'ERROR');
+        return [];
+    }
+    
+    return $lines;
 }
 
 $configFile = __DIR__ . '/config/config.php';
@@ -426,6 +463,10 @@ function runAllTests() {
             'critical' => false,
             'fix' => !$isFPM ? 'Nginx sollte PHP-FPM verwenden' : null
         ];
+    } else {
+        // For non-nginx servers, still check if running via FPM
+        $sapi = php_sapi_name();
+        $isFPM = $sapi === 'fpm-fcgi' || $sapi === 'cgi-fcgi';
     }
     
     // Test 11: Auth class availability
@@ -468,13 +509,181 @@ function runAllTests() {
         ];
     }
     
+    // Test 14: Check nginx/Apache configuration
+    debugLog("Test 14: Checking webserver configuration", 'INFO');
+    $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+    $scriptFilename = $_SERVER['SCRIPT_FILENAME'] ?? '';
+    
+    if ($isNginx) {
+        // Check for common nginx issues
+        $pathInfo = $_SERVER['PATH_INFO'] ?? '';
+        $fastcgiScriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        
+        debugLog("Document Root: $documentRoot", 'INFO');
+        debugLog("Script Filename: $scriptFilename", 'INFO');
+        debugLog("FastCGI Script Name: $fastcgiScriptName", 'INFO');
+        debugLog("PATH_INFO: " . ($pathInfo ?: 'not set'), 'INFO');
+        
+        $tests[] = [
+            'category' => 'Webserver',
+            'name' => 'Nginx Document Root',
+            'status' => 'info',
+            'message' => $documentRoot ?: 'Nicht gesetzt',
+            'critical' => false
+        ];
+    }
+    
+    // Test 15: Check PHP-FPM configuration
+    if ($isFPM) {
+        debugLog("Test 15: Checking PHP-FPM configuration", 'INFO');
+        
+        // Get PHP-FPM pool name if available
+        $poolName = getenv('PHP_POOL_NAME') ?: 'Unknown';
+        debugLog("PHP-FPM Pool: $poolName", 'INFO');
+        
+        // Check important PHP-FPM settings
+        $maxExecutionTime = ini_get('max_execution_time');
+        $memoryLimit = ini_get('memory_limit');
+        $postMaxSize = ini_get('post_max_size');
+        $uploadMaxFilesize = ini_get('upload_max_filesize');
+        
+        debugLog("max_execution_time: $maxExecutionTime", 'INFO');
+        debugLog("memory_limit: $memoryLimit", 'INFO');
+        debugLog("post_max_size: $postMaxSize", 'INFO');
+        debugLog("upload_max_filesize: $uploadMaxFilesize", 'INFO');
+        
+        $tests[] = [
+            'category' => 'PHP-FPM',
+            'name' => 'PHP Limits',
+            'status' => 'info',
+            'message' => "Memory: $memoryLimit, Execution: {$maxExecutionTime}s",
+            'critical' => false
+        ];
+    }
+    
+    // Test 16: Check error log locations and readability
+    debugLog("Test 16: Checking error log locations", 'INFO');
+    $phpErrorLog = ini_get('error_log');
+    debugLog("PHP error_log setting: " . ($phpErrorLog ?: 'not set'), 'INFO');
+    
+    // Try common nginx error log locations
+    $possibleNginxLogs = [
+        '/var/log/nginx/error.log',
+        '/var/log/nginx/' . ($_SERVER['SERVER_NAME'] ?? 'localhost') . '_error.log',
+        '/usr/local/nginx/logs/error.log'
+    ];
+    
+    $nginxErrorLog = null;
+    foreach ($possibleNginxLogs as $logPath) {
+        if (file_exists($logPath) && is_readable($logPath)) {
+            $nginxErrorLog = $logPath;
+            debugLog("Found readable nginx error log: $logPath", 'INFO');
+            break;
+        }
+    }
+    
+    if (!$nginxErrorLog) {
+        debugLog("No readable nginx error log found in common locations", 'WARN');
+    }
+    
+    // Try common PHP-FPM error log locations
+    $possibleFpmLogs = [
+        '/var/log/php-fpm/error.log',
+        '/var/log/php8.3-fpm.log',
+        '/var/log/php8.2-fpm.log',
+        '/var/log/php-fpm/www-error.log',
+        '/var/log/php7.4-fpm.log'
+    ];
+    
+    $fpmErrorLog = null;
+    foreach ($possibleFpmLogs as $logPath) {
+        if (file_exists($logPath) && is_readable($logPath)) {
+            $fpmErrorLog = $logPath;
+            debugLog("Found readable PHP-FPM error log: $logPath", 'INFO');
+            break;
+        }
+    }
+    
+    if (!$fpmErrorLog && $phpErrorLog && file_exists($phpErrorLog)) {
+        $fpmErrorLog = $phpErrorLog;
+        debugLog("Using PHP error_log: $phpErrorLog", 'INFO');
+    }
+    
+    $tests[] = [
+        'category' => 'Logs',
+        'name' => 'Nginx Error Log',
+        'status' => $nginxErrorLog ? 'pass' : 'warn',
+        'message' => $nginxErrorLog ?: 'Nicht lesbar oder nicht gefunden',
+        'critical' => false
+    ];
+    
+    $tests[] = [
+        'category' => 'Logs',
+        'name' => 'PHP-FPM Error Log',
+        'status' => $fpmErrorLog ? 'pass' : 'warn',
+        'message' => $fpmErrorLog ?: 'Nicht lesbar oder nicht gefunden',
+        'critical' => false
+    ];
+    
+    // Test 17: Check file ownership and permissions
+    debugLog("Test 17: Checking file ownership and permissions", 'INFO');
+    $currentUser = get_current_user();
+    $currentUid = getmyuid();
+    $currentGid = getmygid();
+    
+    debugLog("Script runs as: $currentUser (UID: $currentUid, GID: $currentGid)", 'INFO');
+    
+    // Check web server user (common names)
+    $webserverUsers = ['www-data', 'nginx', 'apache', 'httpd'];
+    $detectedWebUser = null;
+    $detectedWebUserInfo = null;
+    
+    if (function_exists('posix_getpwnam')) {
+        foreach ($webserverUsers as $user) {
+            $userInfo = posix_getpwnam($user);
+            if ($userInfo !== false) {
+                $detectedWebUser = $user;
+                $detectedWebUserInfo = $userInfo;
+                debugLog("Detected webserver user: $user (UID: {$userInfo['uid']})", 'INFO');
+                break;
+            }
+        }
+    } else {
+        debugLog("posix_getpwnam() not available - cannot detect webserver user", 'WARN');
+    }
+    
+    if ($configExists) {
+        $configOwner = fileowner($configFile);
+        $configGroup = filegroup($configFile);
+        $configPerms = substr(sprintf('%o', fileperms($configFile)), -4);
+        
+        debugLog("config.php owner UID: $configOwner, GID: $configGroup, perms: $configPerms", 'INFO');
+        
+        $webUserUid = -1;
+        if ($detectedWebUserInfo) {
+            $webUserUid = $detectedWebUserInfo['uid'];
+        }
+        $ownerMatch = ($configOwner === $currentUid || $configOwner === $webUserUid);
+        
+        $tests[] = [
+            'category' => 'Dateisystem',
+            'name' => 'config.php Besitzer',
+            'status' => $ownerMatch ? 'pass' : 'warn',
+            'message' => "UID: $configOwner, Perms: $configPerms" . (!$ownerMatch ? ' (Besitzer stimmt nicht mit Web-User überein)' : ''),
+            'critical' => false
+        ];
+    }
+    
     return [
         'tests' => $tests,
         'criticalFailures' => $criticalFailures,
         'totalTests' => count($tests),
         'timestamp' => date('Y-m-d H:i:s'),
         'phpVersion' => PHP_VERSION,
-        'webserver' => $serverSoftware
+        'webserver' => $serverSoftware,
+        'nginxErrorLog' => $nginxErrorLog ?? null,
+        'fpmErrorLog' => $fpmErrorLog ?? null,
+        'detectedWebUser' => $detectedWebUser ?? null
     ];
 }
 
@@ -918,6 +1127,87 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                             ?>
                         </table>
                     </div>
+                    
+                    <?php if (!empty($results['nginxErrorLog']) || !empty($results['fpmErrorLog'])): ?>
+                    <div style="margin-top: 20px;">
+                        <h3 style="font-size: 16px; margin-bottom: 10px; color: #666;">📄 Server-Logs (letzte 20 Zeilen)</h3>
+                        
+                        <?php if (!empty($results['nginxErrorLog'])): ?>
+                        <div style="margin-bottom: 15px;">
+                            <h4 style="font-size: 14px; margin-bottom: 5px; color: #444;">Nginx Error Log</h4>
+                            <div style="background: #263238; color: #cfd8dc; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.5; max-height: 300px; overflow-y: auto;">
+                                <div style="color: #80cbc4; margin-bottom: 5px; font-weight: bold;">📂 <?php echo htmlspecialchars($results['nginxErrorLog']); ?></div>
+                                <?php
+                                $nginxLines = readLastNLines($results['nginxErrorLog'], 20);
+                                
+                                if (empty($nginxLines)) {
+                                    echo '<div style="color: #90caf9;">Keine aktuellen Einträge oder Datei leer</div>';
+                                } else {
+                                    foreach ($nginxLines as $line) {
+                                        $color = '#cfd8dc';
+                                        if (stripos($line, 'error') !== false) $color = '#e57373';
+                                        elseif (stripos($line, 'warn') !== false) $color = '#ffb74d';
+                                        echo '<div style="color: ' . $color . '; margin-bottom: 3px;">' . htmlspecialchars($line) . '</div>';
+                                    }
+                                }
+                                ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($results['fpmErrorLog'])): ?>
+                        <div style="margin-bottom: 15px;">
+                            <h4 style="font-size: 14px; margin-bottom: 5px; color: #444;">PHP-FPM Error Log</h4>
+                            <div style="background: #263238; color: #cfd8dc; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.5; max-height: 300px; overflow-y: auto;">
+                                <div style="color: #80cbc4; margin-bottom: 5px; font-weight: bold;">📂 <?php echo htmlspecialchars($results['fpmErrorLog']); ?></div>
+                                <?php
+                                $fpmLines = readLastNLines($results['fpmErrorLog'], 20);
+                                
+                                if (empty($fpmLines)) {
+                                    echo '<div style="color: #90caf9;">Keine aktuellen Einträge oder Datei leer</div>';
+                                } else {
+                                    foreach ($fpmLines as $line) {
+                                        $color = '#cfd8dc';
+                                        if (stripos($line, 'error') !== false || stripos($line, 'fatal') !== false) $color = '#e57373';
+                                        elseif (stripos($line, 'warn') !== false || stripos($line, 'notice') !== false) $color = '#ffb74d';
+                                        echo '<div style="color: ' . $color . '; margin-bottom: 3px;">' . htmlspecialchars($line) . '</div>';
+                                    }
+                                }
+                                ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <div style="padding: 10px; background: #e3f2fd; border-radius: 6px; border-left: 4px solid #2196f3; font-size: 12px;">
+                            <strong style="color: #1565c0;">💡 Hinweis:</strong>
+                            <span style="color: #1976d2;">
+                                Diese Logs zeigen die letzten Fehler von nginx und PHP-FPM. Suchen Sie nach Fehlern, die zeitlich mit Ihren Login-Versuchen übereinstimmen.
+                            </span>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($results['detectedWebUser'])): ?>
+                    <div style="margin-top: 20px;">
+                        <h3 style="font-size: 16px; margin-bottom: 10px; color: #666;">👤 Webserver-Benutzer</h3>
+                        <div style="padding: 15px; background: #f5f5f5; border-radius: 6px;">
+                            <table class="tests-table">
+                                <tr>
+                                    <td><strong>Erkannter Web-User</strong></td>
+                                    <td><?php echo htmlspecialchars($results['detectedWebUser']); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>PHP läuft als</strong></td>
+                                    <td><?php echo htmlspecialchars(get_current_user()); ?> (UID: <?php echo getmyuid(); ?>, GID: <?php echo getmygid(); ?>)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Empfehlung</strong></td>
+                                    <td>Alle Dateien sollten dem User <code><?php echo htmlspecialchars($results['detectedWebUser']); ?></code> gehören oder von ihm lesbar sein.</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <!-- Debug Mode Hint -->
