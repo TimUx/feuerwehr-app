@@ -45,8 +45,10 @@ function debugErrorHandler($errno, $errstr, $errfile, $errline) {
             default => 'UNKNOWN'
         };
         debugLog("PHP $errorType: $errstr in $errfile on line $errline", 'ERROR');
+        // Return true to suppress PHP internal error handler in debug mode
+        return true;
     }
-    // Don't execute PHP internal error handler
+    // Let PHP's internal error handler run when debug mode is off
     return false;
 }
 
@@ -256,20 +258,30 @@ function runAllTests() {
             debugLog("First 100 chars of encrypted data: " . substr($encryptedData, 0, 100), 'INFO');
             debugLog("Data contains '::': " . (strpos($encryptedData, '::') !== false ? 'yes (position ' . strpos($encryptedData, '::') . ')' : 'no'), 'INFO');
             
-            // Clear any existing OpenSSL errors
-            while (openssl_error_string() !== false);
+            // Clear any existing OpenSSL errors (with safety limit)
+            $errorClearCount = 0;
+            $maxErrorClearAttempts = 100;
+            while (openssl_error_string() !== false && $errorClearCount < $maxErrorClearAttempts) {
+                $errorClearCount++;
+            }
+            if ($errorClearCount > 0) {
+                debugLog("Cleared $errorClearCount OpenSSL error(s) before starting", 'INFO');
+            }
             
             debugLog("Attempting decryption with Encryption::decrypt()...", 'INFO');
             
             // Use Encryption::decrypt() which handles both old and new formats
             $decrypted = Encryption::decrypt($encryptedData);
             
-            // Check for OpenSSL errors
+            // Check for OpenSSL errors (with safety limit)
+            $errorCount = 0;
+            $maxErrorCheck = 50;
             $opensslError = openssl_error_string();
             if ($opensslError !== false) {
                 debugLog("OpenSSL error detected: $opensslError", 'ERROR');
-                while (($err = openssl_error_string()) !== false) {
+                while (($err = openssl_error_string()) !== false && $errorCount < $maxErrorCheck) {
                     debugLog("Additional OpenSSL error: $err", 'ERROR');
+                    $errorCount++;
                 }
             }
             
@@ -341,9 +353,12 @@ function runAllTests() {
             debugLog("Exception during decryption: " . $e->getMessage(), 'ERROR');
             debugLog("Exception trace: " . $e->getTraceAsString(), 'ERROR');
             
-            // Capture any OpenSSL errors
-            while (($opensslError = openssl_error_string()) !== false) {
+            // Capture any OpenSSL errors (with safety limit)
+            $errorCount = 0;
+            $maxErrorCheck = 50;
+            while (($opensslError = openssl_error_string()) !== false && $errorCount < $maxErrorCheck) {
                 debugLog("OpenSSL error in exception handler: $opensslError", 'ERROR');
+                $errorCount++;
             }
             
             $tests[] = [
