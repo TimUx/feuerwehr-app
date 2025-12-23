@@ -268,16 +268,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $usersData = json_encode([$adminUser], JSON_PRETTY_PRINT);
                 
-                // Encrypt users data manually (matching Encryption class format)
-                // Convert hex key to binary for AES-256 (64-char hex -> 32 bytes)
-                $encryption_key_binary = hex2bin($encryption_key);
-                if ($encryption_key_binary === false) {
-                    $errors[] = 'Fehler bei der Konvertierung des Verschlüsselungsschlüssels.';
-                    $step = 3; // Stay on step 3
-                } else {
-                    $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-                    $encrypted = openssl_encrypt($usersData, 'aes-256-cbc', $encryption_key_binary, OPENSSL_RAW_DATA, $iv);
-                    $encryptedUsers = base64_encode($iv . '::' . $encrypted);
+                // Use the Encryption class to ensure consistent encryption format
+                // We need to set up a temporary config for the Encryption class to use
+                $tempConfigContent = "<?php\nreturn " . var_export($config, true) . ";\n";
+                file_put_contents($configFile, $tempConfigContent);
+                chmod($configFile, 0600);
+                
+                // Now load the Encryption class and encrypt the users data
+                require_once __DIR__ . '/src/php/encryption.php';
+                try {
+                    $encryptedUsers = Encryption::encrypt($usersData);
                     
                     file_put_contents($dataDir . '/users.json', $encryptedUsers);
                     chmod($dataDir . '/users.json', 0600);
@@ -315,6 +315,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['install_time'] = time();
                     
                     $step = 4;
+                } catch (Exception $e) {
+                    $errors[] = 'Fehler beim Verschlüsseln der Benutzerdaten: ' . $e->getMessage();
+                    // Clean up the config file if encryption failed
+                    if (file_exists($configFile)) {
+                        unlink($configFile);
+                    }
+                    $step = 3; // Stay on step 3
                 }
             } else {
                 $errors[] = 'Fehler beim Schreiben der Konfigurationsdatei. Prüfen Sie die Dateiberechtigungen.';

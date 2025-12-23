@@ -61,8 +61,9 @@ class Encryption {
         // Encrypt the data (OPENSSL_RAW_DATA returns raw binary, not base64)
         $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
         
-        // Combine IV and encrypted data
-        return base64_encode($iv . '::' . $encrypted);
+        // Combine IV and encrypted data using base64 encoding for each part
+        // This prevents the '::' separator from appearing in the binary data itself
+        return base64_encode($iv) . '::' . base64_encode($encrypted);
     }
 
     /**
@@ -73,19 +74,41 @@ class Encryption {
         
         $key = self::convertHexKeyToBinary(self::$config['encryption_key']);
         
-        // Decode the data
-        $decoded = base64_decode($encryptedData);
-        
-        // Split IV and encrypted data
-        $parts = explode('::', $decoded, 2);
-        if (count($parts) !== 2) {
-            return false;
+        // Try new format first (base64 IV :: base64 encrypted)
+        if (strpos($encryptedData, '::') !== false) {
+            $parts = explode('::', $encryptedData, 2);
+            if (count($parts) === 2) {
+                // New format: both IV and encrypted data are base64 encoded separately
+                $iv = base64_decode($parts[0]);
+                $encrypted = base64_decode($parts[1]);
+                
+                // Validate that decoding worked
+                if ($iv !== false && $encrypted !== false) {
+                    $result = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+                    if ($result !== false) {
+                        return $result;
+                    }
+                }
+            }
         }
         
-        list($iv, $encrypted) = $parts;
+        // Try old format for backwards compatibility (base64(IV . '::' . encrypted))
+        $decoded = base64_decode($encryptedData);
+        if ($decoded !== false) {
+            $parts = explode('::', $decoded, 2);
+            if (count($parts) === 2) {
+                list($iv, $encrypted) = $parts;
+                
+                // Decrypt the data (OPENSSL_RAW_DATA indicates encrypted data is raw binary)
+                $result = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+                if ($result !== false) {
+                    return $result;
+                }
+            }
+        }
         
-        // Decrypt the data (OPENSSL_RAW_DATA indicates encrypted data is raw binary)
-        return openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+        // Both formats failed
+        return false;
     }
 
     /**
