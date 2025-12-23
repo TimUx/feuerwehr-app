@@ -437,6 +437,33 @@ function runAllTests() {
         'fix' => !$sessionPathWritable && !empty($sessionPath) ? 'chown www-data:www-data ' . $sessionPath : null
     ];
     
+    // Test 9a: Check session cookie settings
+    $cookieSecure = ini_get('session.cookie_secure');
+    $cookieHttponly = ini_get('session.cookie_httponly');
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
+               (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+    
+    debugLog("Session cookie_secure: $cookieSecure, HTTPS: " . ($isHttps ? 'yes' : 'no'), 'INFO');
+    debugLog("Session cookie_httponly: $cookieHttponly", 'INFO');
+    
+    // Warn if secure cookie is enabled but not using HTTPS
+    $cookieConfigOk = true;
+    $cookieMessage = "HttpOnly: " . ($cookieHttponly ? 'aktiviert' : 'deaktiviert') . ", Secure: " . ($cookieSecure ? 'aktiviert' : 'deaktiviert');
+    
+    if ($cookieSecure && !$isHttps) {
+        $cookieConfigOk = false;
+        $cookieMessage .= " ⚠️ Warnung: Secure-Flag ohne HTTPS";
+    }
+    
+    $tests[] = [
+        'category' => 'Sessions',
+        'name' => 'Session-Cookie-Konfiguration',
+        'status' => $cookieConfigOk ? 'pass' : 'warn',
+        'message' => $cookieMessage,
+        'critical' => false,
+        'fix' => !$cookieConfigOk ? 'Verwenden Sie HTTPS oder deaktivieren Sie session.cookie_secure' : null
+    ];
+    
     // Test 10: Webserver detection
     $serverSoftware = $_SERVER['SERVER_SOFTWARE'] ?? 'Unbekannt';
     $isNginx = stripos($serverSoftware, 'nginx') !== false;
@@ -463,8 +490,21 @@ function runAllTests() {
             'critical' => false,
             'fix' => !$isFPM ? 'Nginx sollte PHP-FPM verwenden' : null
         ];
+    } elseif ($isApache) {
+        // Apache-specific tests
+        $sapi = php_sapi_name();
+        $isApacheModule = $sapi === 'apache2handler' || $sapi === 'apache' || $sapi === 'litespeed';
+        $isCGI = $sapi === 'cgi' || $sapi === 'cgi-fcgi' || $sapi === 'fpm-fcgi';
+        
+        $tests[] = [
+            'category' => 'Webserver',
+            'name' => 'PHP Handler',
+            'status' => ($isApacheModule || $isCGI) ? 'pass' : 'info',
+            'message' => "SAPI: $sapi" . ($isApacheModule ? ' (Apache Module)' : ($isCGI ? ' (CGI/FPM)' : '')),
+            'critical' => false
+        ];
     } else {
-        // For non-nginx servers, still check if running via FPM
+        // For unknown servers, just report SAPI
         $sapi = php_sapi_name();
         $isFPM = $sapi === 'fpm-fcgi' || $sapi === 'cgi-fcgi';
     }
@@ -561,69 +601,143 @@ function runAllTests() {
         ];
     }
     
-    // Test 16: Check error log locations and readability
+    // Test 16: Check error log locations and readability (webserver-specific)
     debugLog("Test 16: Checking error log locations", 'INFO');
     $phpErrorLog = ini_get('error_log');
     debugLog("PHP error_log setting: " . ($phpErrorLog ?: 'not set'), 'INFO');
     
-    // Try common nginx error log locations
-    $possibleNginxLogs = [
-        '/var/log/nginx/error.log',
-        '/var/log/nginx/' . ($_SERVER['SERVER_NAME'] ?? 'localhost') . '_error.log',
-        '/usr/local/nginx/logs/error.log'
-    ];
+    $webserverErrorLog = null;
+    $phpProcessLog = null;
     
-    $nginxErrorLog = null;
-    foreach ($possibleNginxLogs as $logPath) {
-        if (file_exists($logPath) && is_readable($logPath)) {
-            $nginxErrorLog = $logPath;
-            debugLog("Found readable nginx error log: $logPath", 'INFO');
-            break;
+    // Check logs based on detected webserver
+    if ($isNginx) {
+        // Try common nginx error log locations
+        debugLog("Checking for nginx error logs", 'INFO');
+        $possibleNginxLogs = [
+            '/var/log/nginx/error.log',
+            '/var/log/nginx/' . ($_SERVER['SERVER_NAME'] ?? 'localhost') . '_error.log',
+            '/usr/local/nginx/logs/error.log'
+        ];
+        
+        foreach ($possibleNginxLogs as $logPath) {
+            if (file_exists($logPath) && is_readable($logPath)) {
+                $webserverErrorLog = $logPath;
+                debugLog("Found readable nginx error log: $logPath", 'INFO');
+                break;
+            }
         }
-    }
-    
-    if (!$nginxErrorLog) {
-        debugLog("No readable nginx error log found in common locations", 'WARN');
-    }
-    
-    // Try common PHP-FPM error log locations
-    $possibleFpmLogs = [
-        '/var/log/php-fpm/error.log',
-        '/var/log/php8.3-fpm.log',
-        '/var/log/php8.2-fpm.log',
-        '/var/log/php-fpm/www-error.log',
-        '/var/log/php7.4-fpm.log'
-    ];
-    
-    $fpmErrorLog = null;
-    foreach ($possibleFpmLogs as $logPath) {
-        if (file_exists($logPath) && is_readable($logPath)) {
-            $fpmErrorLog = $logPath;
-            debugLog("Found readable PHP-FPM error log: $logPath", 'INFO');
-            break;
+        
+        if (!$webserverErrorLog) {
+            debugLog("No readable nginx error log found in common locations", 'WARN');
         }
+        
+        $tests[] = [
+            'category' => 'Logs',
+            'name' => 'Nginx Error Log',
+            'status' => $webserverErrorLog ? 'pass' : 'warn',
+            'message' => $webserverErrorLog ?: 'Nicht lesbar oder nicht gefunden',
+            'critical' => false
+        ];
+        
+        // For nginx, also check PHP-FPM logs
+        debugLog("Checking for PHP-FPM logs", 'INFO');
+        $possibleFpmLogs = [
+            '/var/log/php-fpm/error.log',
+            '/var/log/php8.5-fpm.log',
+            '/var/log/php8.3-fpm.log',
+            '/var/log/php8.2-fpm.log',
+            '/var/log/php-fpm/www-error.log',
+            '/var/log/php7.4-fpm.log'
+        ];
+        
+        foreach ($possibleFpmLogs as $logPath) {
+            if (file_exists($logPath) && is_readable($logPath)) {
+                $phpProcessLog = $logPath;
+                debugLog("Found readable PHP-FPM error log: $logPath", 'INFO');
+                break;
+            }
+        }
+        
+        if (!$phpProcessLog && $phpErrorLog && file_exists($phpErrorLog)) {
+            $phpProcessLog = $phpErrorLog;
+            debugLog("Using PHP error_log: $phpErrorLog", 'INFO');
+        }
+        
+        $tests[] = [
+            'category' => 'Logs',
+            'name' => 'PHP-FPM Error Log',
+            'status' => $phpProcessLog ? 'pass' : 'warn',
+            'message' => $phpProcessLog ?: 'Nicht lesbar oder nicht gefunden',
+            'critical' => false
+        ];
+    } elseif ($isApache) {
+        // Try common Apache error log locations
+        debugLog("Checking for Apache error logs", 'INFO');
+        $possibleApacheLogs = [
+            '/var/log/apache2/error.log',
+            '/var/log/httpd/error_log',
+            '/var/log/apache2/' . ($_SERVER['SERVER_NAME'] ?? 'localhost') . '_error.log',
+            '/usr/local/apache2/logs/error_log',
+            '/var/log/httpd-error.log'
+        ];
+        
+        foreach ($possibleApacheLogs as $logPath) {
+            if (file_exists($logPath) && is_readable($logPath)) {
+                $webserverErrorLog = $logPath;
+                debugLog("Found readable Apache error log: $logPath", 'INFO');
+                break;
+            }
+        }
+        
+        if (!$webserverErrorLog) {
+            debugLog("No readable Apache error log found in common locations", 'WARN');
+        }
+        
+        $tests[] = [
+            'category' => 'Logs',
+            'name' => 'Apache Error Log',
+            'status' => $webserverErrorLog ? 'pass' : 'warn',
+            'message' => $webserverErrorLog ?: 'Nicht lesbar oder nicht gefunden',
+            'critical' => false
+        ];
+        
+        // For Apache, check PHP error log
+        if ($phpErrorLog && file_exists($phpErrorLog)) {
+            $phpProcessLog = $phpErrorLog;
+            debugLog("Found PHP error_log: $phpErrorLog", 'INFO');
+        }
+        
+        $tests[] = [
+            'category' => 'Logs',
+            'name' => 'PHP Error Log',
+            'status' => $phpProcessLog ? 'pass' : 'warn',
+            'message' => $phpProcessLog ?: 'Nicht lesbar oder nicht gefunden',
+            'critical' => false
+        ];
+    } else {
+        // Unknown webserver - just check PHP error log
+        debugLog("Unknown webserver - checking PHP error log only", 'INFO');
+        if ($phpErrorLog && file_exists($phpErrorLog)) {
+            $phpProcessLog = $phpErrorLog;
+            debugLog("Found PHP error_log: $phpErrorLog", 'INFO');
+        }
+        
+        $tests[] = [
+            'category' => 'Logs',
+            'name' => 'Webserver Error Log',
+            'status' => 'info',
+            'message' => 'Webserver nicht erkannt - Logs nicht verfügbar',
+            'critical' => false
+        ];
+        
+        $tests[] = [
+            'category' => 'Logs',
+            'name' => 'PHP Error Log',
+            'status' => $phpProcessLog ? 'pass' : 'warn',
+            'message' => $phpProcessLog ?: 'Nicht lesbar oder nicht gefunden',
+            'critical' => false
+        ];
     }
-    
-    if (!$fpmErrorLog && $phpErrorLog && file_exists($phpErrorLog)) {
-        $fpmErrorLog = $phpErrorLog;
-        debugLog("Using PHP error_log: $phpErrorLog", 'INFO');
-    }
-    
-    $tests[] = [
-        'category' => 'Logs',
-        'name' => 'Nginx Error Log',
-        'status' => $nginxErrorLog ? 'pass' : 'warn',
-        'message' => $nginxErrorLog ?: 'Nicht lesbar oder nicht gefunden',
-        'critical' => false
-    ];
-    
-    $tests[] = [
-        'category' => 'Logs',
-        'name' => 'PHP-FPM Error Log',
-        'status' => $fpmErrorLog ? 'pass' : 'warn',
-        'message' => $fpmErrorLog ?: 'Nicht lesbar oder nicht gefunden',
-        'critical' => false
-    ];
     
     // Test 17: Check file ownership and permissions
     debugLog("Test 17: Checking file ownership and permissions", 'INFO');
@@ -681,8 +795,10 @@ function runAllTests() {
         'timestamp' => date('Y-m-d H:i:s'),
         'phpVersion' => PHP_VERSION,
         'webserver' => $serverSoftware,
-        'nginxErrorLog' => $nginxErrorLog ?? null,
-        'fpmErrorLog' => $fpmErrorLog ?? null,
+        'isNginx' => $isNginx,
+        'isApache' => $isApache,
+        'webserverErrorLog' => $webserverErrorLog ?? null,
+        'phpProcessLog' => $phpProcessLog ?? null,
         'detectedWebUser' => $detectedWebUser ?? null
     ];
 }
@@ -1128,22 +1244,24 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                         </table>
                     </div>
                     
-                    <?php if (!empty($results['nginxErrorLog']) || !empty($results['fpmErrorLog'])): ?>
+                    <?php if (!empty($results['webserverErrorLog']) || !empty($results['phpProcessLog'])): ?>
                     <div style="margin-top: 20px;">
                         <h3 style="font-size: 16px; margin-bottom: 10px; color: #666;">📄 Server-Logs (letzte 20 Zeilen)</h3>
                         
-                        <?php if (!empty($results['nginxErrorLog'])): ?>
+                        <?php if (!empty($results['webserverErrorLog'])): ?>
                         <div style="margin-bottom: 15px;">
-                            <h4 style="font-size: 14px; margin-bottom: 5px; color: #444;">Nginx Error Log</h4>
+                            <h4 style="font-size: 14px; margin-bottom: 5px; color: #444;">
+                                <?php echo $results['isNginx'] ? 'Nginx' : ($results['isApache'] ? 'Apache' : 'Webserver'); ?> Error Log
+                            </h4>
                             <div style="background: #263238; color: #cfd8dc; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.5; max-height: 300px; overflow-y: auto;">
-                                <div style="color: #80cbc4; margin-bottom: 5px; font-weight: bold;">📂 <?php echo htmlspecialchars($results['nginxErrorLog']); ?></div>
+                                <div style="color: #80cbc4; margin-bottom: 5px; font-weight: bold;">📂 <?php echo htmlspecialchars($results['webserverErrorLog']); ?></div>
                                 <?php
-                                $nginxLines = readLastNLines($results['nginxErrorLog'], 20);
+                                $webserverLines = readLastNLines($results['webserverErrorLog'], 20);
                                 
-                                if (empty($nginxLines)) {
+                                if (empty($webserverLines)) {
                                     echo '<div style="color: #90caf9;">Keine aktuellen Einträge oder Datei leer</div>';
                                 } else {
-                                    foreach ($nginxLines as $line) {
+                                    foreach ($webserverLines as $line) {
                                         $color = '#cfd8dc';
                                         if (stripos($line, 'error') !== false) $color = '#e57373';
                                         elseif (stripos($line, 'warn') !== false) $color = '#ffb74d';
@@ -1155,18 +1273,20 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                         </div>
                         <?php endif; ?>
                         
-                        <?php if (!empty($results['fpmErrorLog'])): ?>
+                        <?php if (!empty($results['phpProcessLog'])): ?>
                         <div style="margin-bottom: 15px;">
-                            <h4 style="font-size: 14px; margin-bottom: 5px; color: #444;">PHP-FPM Error Log</h4>
+                            <h4 style="font-size: 14px; margin-bottom: 5px; color: #444;">
+                                <?php echo $results['isNginx'] ? 'PHP-FPM' : 'PHP'; ?> Error Log
+                            </h4>
                             <div style="background: #263238; color: #cfd8dc; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.5; max-height: 300px; overflow-y: auto;">
-                                <div style="color: #80cbc4; margin-bottom: 5px; font-weight: bold;">📂 <?php echo htmlspecialchars($results['fpmErrorLog']); ?></div>
+                                <div style="color: #80cbc4; margin-bottom: 5px; font-weight: bold;">📂 <?php echo htmlspecialchars($results['phpProcessLog']); ?></div>
                                 <?php
-                                $fpmLines = readLastNLines($results['fpmErrorLog'], 20);
+                                $phpLines = readLastNLines($results['phpProcessLog'], 20);
                                 
-                                if (empty($fpmLines)) {
+                                if (empty($phpLines)) {
                                     echo '<div style="color: #90caf9;">Keine aktuellen Einträge oder Datei leer</div>';
                                 } else {
-                                    foreach ($fpmLines as $line) {
+                                    foreach ($phpLines as $line) {
                                         $color = '#cfd8dc';
                                         if (stripos($line, 'error') !== false || stripos($line, 'fatal') !== false) $color = '#e57373';
                                         elseif (stripos($line, 'warn') !== false || stripos($line, 'notice') !== false) $color = '#ffb74d';
@@ -1181,7 +1301,7 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                         <div style="padding: 10px; background: #e3f2fd; border-radius: 6px; border-left: 4px solid #2196f3; font-size: 12px;">
                             <strong style="color: #1565c0;">💡 Hinweis:</strong>
                             <span style="color: #1976d2;">
-                                Diese Logs zeigen die letzten Fehler von nginx und PHP-FPM. Suchen Sie nach Fehlern, die zeitlich mit Ihren Login-Versuchen übereinstimmen.
+                                Diese Logs zeigen die letzten Fehler vom Webserver und PHP. Suchen Sie nach Fehlern, die zeitlich mit Ihren Login-Versuchen übereinstimmen.
                             </span>
                         </div>
                     </div>
