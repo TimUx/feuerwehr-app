@@ -4,23 +4,10 @@
  * This wizard helps set up the application without requiring command-line access
  */
 
+require_once __DIR__ . '/src/php/session_init.php';
+
 // Start session at the beginning
-if (session_status() === PHP_SESSION_NONE) {
-    // Set secure session cookie parameters
-    $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
-               (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-    
-    session_set_cookie_params([
-        'lifetime' => 0,  // Session cookie (expires when browser closes)
-        'path' => '/',
-        'domain' => '',
-        'secure' => $isSecure,
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    
-    session_start();
-}
+initSecureSession();
 
 // Security: Prevent running if already installed
 $configFile = __DIR__ . '/config/config.php';
