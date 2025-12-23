@@ -246,78 +246,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mkdir($configDir, 0700, true);
             }
             
-            // Write config file
-            if (file_put_contents($configFile, $configContent) !== false) {
+            // Create data directory
+            $dataDir = __DIR__ . '/data';
+            if (!file_exists($dataDir)) {
+                mkdir($dataDir, 0700, true);
+            }
+            
+            // Create admin user data
+            $adminUser = [
+                'id' => uniqid('user_'),
+                'username' => $admin_username,
+                'password' => password_hash($admin_password, PASSWORD_DEFAULT),
+                'role' => 'admin',
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            
+            $usersData = json_encode([$adminUser], JSON_PRETTY_PRINT);
+            
+            // Write config file FIRST so Encryption class can load it
+            // We wrap everything in a try-catch to ensure cleanup on any failure
+            try {
+                if (file_put_contents($configFile, $configContent) === false) {
+                    throw new Exception('Fehler beim Schreiben der Konfigurationsdatei.');
+                }
                 chmod($configFile, 0600);
                 
-                // Create data directory
-                $dataDir = __DIR__ . '/data';
-                if (!file_exists($dataDir)) {
-                    mkdir($dataDir, 0700, true);
+                // Load the Encryption class and encrypt the users data
+                require_once __DIR__ . '/src/php/encryption.php';
+                
+                // Test encryption capability before proceeding
+                $encryptedUsers = Encryption::encrypt($usersData);
+                if ($encryptedUsers === false || empty($encryptedUsers)) {
+                    throw new Exception('Encryption test failed during installation - please check encryption key configuration and OpenSSL installation.');
                 }
                 
-                // Create admin user directly in users.json
-                // We need to encrypt manually to match the Encryption class pattern
-                $adminUser = [
-                    'id' => uniqid('user_'),
-                    'username' => $admin_username,
-                    'password' => password_hash($admin_password, PASSWORD_DEFAULT),
-                    'role' => 'admin',
-                    'created_at' => date('Y-m-d H:i:s')
-                ];
+                // Write encrypted users file
+                if (file_put_contents($dataDir . '/users.json', $encryptedUsers) === false) {
+                    throw new Exception('Fehler beim Schreiben der Benutzerdatei.');
+                }
+                chmod($dataDir . '/users.json', 0600);
                 
-                $usersData = json_encode([$adminUser], JSON_PRETTY_PRINT);
-                
-                // Encrypt users data manually (matching Encryption class format)
-                // Convert hex key to binary for AES-256 (64-char hex -> 32 bytes)
-                $encryption_key_binary = hex2bin($encryption_key);
-                if ($encryption_key_binary === false) {
-                    $errors[] = 'Fehler bei der Konvertierung des Verschlüsselungsschlüssels.';
-                    $step = 3; // Stay on step 3
-                } else {
-                    $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-                    $encrypted = openssl_encrypt($usersData, 'aes-256-cbc', $encryption_key_binary, OPENSSL_RAW_DATA, $iv);
-                    $encryptedUsers = base64_encode($iv . '::' . $encrypted);
+                // Clear session data properly
+                // Note: This code is duplicated from Auth::clearSessionCookie() to avoid
+                // circular dependencies (Auth class requires config.php which we're creating here)
+                if (session_status() === PHP_SESSION_ACTIVE) {
+                    // Cookie expiry offset constant (matches Auth::COOKIE_EXPIRY_OFFSET)
+                    $cookieExpiryOffset = 3600; // 1 hour in the past
                     
-                    file_put_contents($dataDir . '/users.json', $encryptedUsers);
-                    chmod($dataDir . '/users.json', 0600);
-                    
-                    // Clear session data properly
-                    // Note: This code is duplicated from Auth::clearSessionCookie() to avoid
-                    // circular dependencies (Auth class requires config.php which we're creating here)
-                    if (session_status() === PHP_SESSION_ACTIVE) {
-                        // Cookie expiry offset constant (matches Auth::COOKIE_EXPIRY_OFFSET)
-                        $cookieExpiryOffset = 3600; // 1 hour in the past
-                        
-                        session_unset();
-                        session_destroy();
-                        // Clear the session cookie using proper parameters
-                        if (isset($_COOKIE[session_name()])) {
-                            $params = session_get_cookie_params();
-                            setcookie(
-                                session_name(),
-                                '',
-                                time() - $cookieExpiryOffset,
-                                $params['path'],
-                                $params['domain'],
-                                $params['secure'],
-                                $params['httponly']
-                            );
-                        }
+                    session_unset();
+                    session_destroy();
+                    // Clear the session cookie using proper parameters
+                    if (isset($_COOKIE[session_name()])) {
+                        $params = session_get_cookie_params();
+                        setcookie(
+                            session_name(),
+                            '',
+                            time() - $cookieExpiryOffset,
+                            $params['path'],
+                            $params['domain'],
+                            $params['secure'],
+                            $params['httponly']
+                        );
                     }
-                    
-                    $success = true;
-                    
-                    // Store installation details for diagnostics
-                    $_SESSION['install_success'] = true;
-                    $_SESSION['install_username'] = $admin_username;
-                    $_SESSION['install_password'] = $admin_password;
-                    $_SESSION['install_time'] = time();
-                    
-                    $step = 4;
                 }
-            } else {
-                $errors[] = 'Fehler beim Schreiben der Konfigurationsdatei. Prüfen Sie die Dateiberechtigungen.';
+                
+                $success = true;
+                
+                // Store installation details for diagnostics
+                $_SESSION['install_success'] = true;
+                $_SESSION['install_username'] = $admin_username;
+                $_SESSION['install_password'] = $admin_password;
+                $_SESSION['install_time'] = time();
+                
+                $step = 4;
+                
+            } catch (Exception $e) {
+                $errors[] = 'Installation fehlgeschlagen: ' . $e->getMessage();
+                
+                // Clean up any files that were created
+                if (file_exists($configFile)) {
+                    unlink($configFile);
+                }
+                if (file_exists($dataDir . '/users.json')) {
+                    unlink($dataDir . '/users.json');
+                }
+                
+                $step = 3; // Stay on step 3
             }
         }
     }
