@@ -74,19 +74,28 @@ class Encryption {
         
         $key = self::convertHexKeyToBinary(self::$config['encryption_key']);
         
-        // Try new format first (base64 IV :: base64 encrypted)
+        // Detect format based on characteristics
+        // New format: Contains '::' in base64 string, both parts are valid base64
+        // Old format: Single base64 string, after decode contains '::' in binary data
+        
         if (strpos($encryptedData, '::') !== false) {
             $parts = explode('::', $encryptedData, 2);
             if (count($parts) === 2) {
-                // New format: both IV and encrypted data are base64 encoded separately
-                $iv = base64_decode($parts[0]);
-                $encrypted = base64_decode($parts[1]);
-                
-                // Validate that decoding worked
-                if ($iv !== false && $encrypted !== false) {
-                    $result = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
-                    if ($result !== false) {
-                        return $result;
+                // Check if both parts are valid base64 (new format characteristic)
+                // Base64 strings should match pattern: [A-Za-z0-9+/]+ with optional = padding
+                if (preg_match('/^[A-Za-z0-9+\/]+=*$/', $parts[0]) && 
+                    preg_match('/^[A-Za-z0-9+\/]+=*$/', $parts[1])) {
+                    
+                    // New format: both IV and encrypted data are base64 encoded separately
+                    $iv = base64_decode($parts[0]);
+                    $encrypted = base64_decode($parts[1]);
+                    
+                    // Validate that decoding worked and IV has correct length
+                    if ($iv !== false && $encrypted !== false && strlen($iv) === 16) {
+                        $result = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+                        if ($result !== false) {
+                            return $result;
+                        }
                     }
                 }
             }
@@ -99,10 +108,13 @@ class Encryption {
             if (count($parts) === 2) {
                 list($iv, $encrypted) = $parts;
                 
-                // Decrypt the data (OPENSSL_RAW_DATA indicates encrypted data is raw binary)
-                $result = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
-                if ($result !== false) {
-                    return $result;
+                // Validate IV length for old format
+                if (strlen($iv) === 16) {
+                    // Decrypt the data (OPENSSL_RAW_DATA indicates encrypted data is raw binary)
+                    $result = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+                    if ($result !== false) {
+                        return $result;
+                    }
                 }
             }
         }
