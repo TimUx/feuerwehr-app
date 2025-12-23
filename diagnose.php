@@ -10,14 +10,73 @@ if (php_sapi_name() === 'cli') {
     exit(1);
 }
 
+// Check if debug mode is enabled
+$debugMode = isset($_GET['debug']) && $_GET['debug'] == '1';
+$debugLog = [];
+
+/**
+ * Log debug message
+ */
+function debugLog($message, $level = 'INFO') {
+    global $debugLog, $debugMode;
+    if ($debugMode) {
+        $debugLog[] = [
+            'time' => microtime(true),
+            'level' => $level,
+            'message' => $message
+        ];
+    }
+}
+
+/**
+ * Custom error handler for debug mode
+ */
+function debugErrorHandler($errno, $errstr, $errfile, $errline) {
+    global $debugMode;
+    if ($debugMode) {
+        $errorType = match($errno) {
+            E_ERROR => 'ERROR',
+            E_WARNING => 'WARNING',
+            E_NOTICE => 'NOTICE',
+            E_USER_ERROR => 'USER_ERROR',
+            E_USER_WARNING => 'USER_WARNING',
+            E_USER_NOTICE => 'USER_NOTICE',
+            E_DEPRECATED => 'DEPRECATED',
+            default => 'UNKNOWN'
+        };
+        debugLog("PHP $errorType: $errstr in $errfile on line $errline", 'ERROR');
+        // Return true to suppress PHP internal error handler in debug mode
+        return true;
+    }
+    // Let PHP's internal error handler run when debug mode is off
+    return false;
+}
+
+// Set custom error handler if debug mode is enabled
+if ($debugMode) {
+    set_error_handler('debugErrorHandler');
+    debugLog("Debug mode activated", 'INFO');
+    debugLog("PHP Version: " . PHP_VERSION, 'INFO');
+    debugLog("Server Software: " . ($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'), 'INFO');
+    debugLog("SAPI: " . php_sapi_name(), 'INFO');
+}
+
 // Start session
 if (session_status() === PHP_SESSION_NONE) {
+    debugLog("Starting session...", 'INFO');
     session_start();
+    debugLog("Session started with ID: " . session_id(), 'INFO');
+} else {
+    debugLog("Session already active with ID: " . session_id(), 'INFO');
 }
 
 $configFile = __DIR__ . '/config/config.php';
 $dataDir = __DIR__ . '/data';
 $usersFile = $dataDir . '/users.json';
+
+debugLog("Config file path: $configFile", 'INFO');
+debugLog("Data directory: $dataDir", 'INFO');
+debugLog("Users file path: $usersFile", 'INFO');
 
 /**
  * Run all diagnostic tests
@@ -25,12 +84,16 @@ $usersFile = $dataDir . '/users.json';
 function runAllTests() {
     global $configFile, $dataDir, $usersFile;
     
+    debugLog("=== Starting diagnostic tests ===", 'INFO');
+    
     $tests = [];
     $criticalFailures = 0;
     
     // Test 1: PHP Version
+    debugLog("Test 1: Checking PHP version", 'INFO');
     $phpVersion = PHP_VERSION;
     $versionOk = version_compare($phpVersion, '7.4.0', '>=');
+    debugLog("PHP version: $phpVersion, requirement: >= 7.4.0, ok: " . ($versionOk ? 'yes' : 'no'), $versionOk ? 'INFO' : 'ERROR');
     $tests[] = [
         'category' => 'System',
         'name' => 'PHP Version',
@@ -41,9 +104,11 @@ function runAllTests() {
     if (!$versionOk) $criticalFailures++;
     
     // Test 2: Required PHP extensions
+    debugLog("Test 2: Checking required PHP extensions", 'INFO');
     $requiredExtensions = ['openssl', 'mbstring', 'json', 'session'];
     foreach ($requiredExtensions as $ext) {
         $loaded = extension_loaded($ext);
+        debugLog("Extension '$ext': " . ($loaded ? 'loaded' : 'NOT LOADED'), $loaded ? 'INFO' : 'ERROR');
         $tests[] = [
             'category' => 'System',
             'name' => "PHP Extension: $ext",
@@ -55,8 +120,16 @@ function runAllTests() {
     }
     
     // Test 3: Config file
+    debugLog("Test 3: Checking config file", 'INFO');
     $configExists = file_exists($configFile);
     $configReadable = $configExists && is_readable($configFile);
+    debugLog("Config file exists: " . ($configExists ? 'yes' : 'no'), $configExists ? 'INFO' : 'ERROR');
+    if ($configExists) {
+        debugLog("Config file readable: " . ($configReadable ? 'yes' : 'no'), $configReadable ? 'INFO' : 'ERROR');
+        debugLog("Config file permissions: " . substr(sprintf('%o', fileperms($configFile)), -4), 'INFO');
+        debugLog("Config file owner: " . fileowner($configFile), 'INFO');
+        debugLog("Current process user: " . get_current_user(), 'INFO');
+    }
     $tests[] = [
         'category' => 'Konfiguration',
         'name' => 'config.php Datei',
@@ -69,15 +142,28 @@ function runAllTests() {
     if (!$configReadable) $criticalFailures++;
     
     // Test 4: Load and validate config
+    debugLog("Test 4: Loading and validating config", 'INFO');
     $config = null;
     $configValid = false;
     if ($configReadable) {
         try {
+            debugLog("Attempting to load config file...", 'INFO');
             $config = require $configFile;
+            debugLog("Config loaded successfully, type: " . gettype($config), 'INFO');
+            
+            if (is_array($config)) {
+                debugLog("Config keys: " . implode(', ', array_keys($config)), 'INFO');
+                debugLog("Has encryption_key: " . (isset($config['encryption_key']) ? 'yes' : 'no'), 'INFO');
+                debugLog("Has data_dir: " . (isset($config['data_dir']) ? 'yes' : 'no'), 'INFO');
+                debugLog("Has session_lifetime: " . (isset($config['session_lifetime']) ? 'yes' : 'no'), 'INFO');
+            }
+            
             $configValid = is_array($config) && 
                           isset($config['encryption_key']) && 
                           isset($config['data_dir']) &&
                           isset($config['session_lifetime']);
+            
+            debugLog("Config structure valid: " . ($configValid ? 'yes' : 'no'), $configValid ? 'INFO' : 'ERROR');
             
             $tests[] = [
                 'category' => 'Konfiguration',
@@ -90,7 +176,15 @@ function runAllTests() {
             
             if ($configValid) {
                 // Validate encryption key format
-                $keyValid = ctype_xdigit($config['encryption_key']) && strlen($config['encryption_key']) === 64;
+                debugLog("Validating encryption key format...", 'INFO');
+                $keyLength = strlen($config['encryption_key']);
+                $keyIsHex = ctype_xdigit($config['encryption_key']);
+                debugLog("Encryption key length: $keyLength", 'INFO');
+                debugLog("Encryption key is hex: " . ($keyIsHex ? 'yes' : 'no'), 'INFO');
+                
+                $keyValid = $keyIsHex && $keyLength === 64;
+                debugLog("Encryption key valid: " . ($keyValid ? 'yes' : 'no'), $keyValid ? 'INFO' : 'ERROR');
+                
                 $tests[] = [
                     'category' => 'Konfiguration',
                     'name' => 'Verschlüsselungsschlüssel',
@@ -102,6 +196,8 @@ function runAllTests() {
                 if (!$keyValid) $criticalFailures++;
             }
         } catch (Exception $e) {
+            debugLog("Exception loading config: " . $e->getMessage(), 'ERROR');
+            debugLog("Exception trace: " . $e->getTraceAsString(), 'ERROR');
             $tests[] = [
                 'category' => 'Konfiguration',
                 'name' => 'Config laden',
@@ -144,23 +240,69 @@ function runAllTests() {
     if (!$usersReadable) $criticalFailures++;
     
     // Test 7: Decrypt users.json
+    debugLog("Test 7: Decrypting users.json", 'INFO');
     if ($configValid && $usersReadable) {
         try {
             // Load Encryption class to use the proper decrypt method
             $encryptionFile = __DIR__ . '/src/php/encryption.php';
+            debugLog("Loading encryption class from: $encryptionFile", 'INFO');
             if (!file_exists($encryptionFile)) {
                 throw new Exception('Encryption class file not found: ' . $encryptionFile);
             }
             require_once $encryptionFile;
+            debugLog("Encryption class loaded successfully", 'INFO');
             
             $encryptedData = file_get_contents($usersFile);
+            $dataLength = strlen($encryptedData);
+            debugLog("Read encrypted data, length: $dataLength bytes", 'INFO');
+            debugLog("First 100 chars of encrypted data: " . substr($encryptedData, 0, 100), 'INFO');
+            debugLog("Data contains '::': " . (strpos($encryptedData, '::') !== false ? 'yes (position ' . strpos($encryptedData, '::') . ')' : 'no'), 'INFO');
+            
+            // Clear any existing OpenSSL errors (with safety limit)
+            $errorClearCount = 0;
+            $maxErrorClearAttempts = 100;
+            while (openssl_error_string() !== false && $errorClearCount < $maxErrorClearAttempts) {
+                $errorClearCount++;
+            }
+            if ($errorClearCount > 0) {
+                debugLog("Cleared $errorClearCount OpenSSL error(s) before starting", 'INFO');
+            }
+            
+            debugLog("Attempting decryption with Encryption::decrypt()...", 'INFO');
             
             // Use Encryption::decrypt() which handles both old and new formats
             $decrypted = Encryption::decrypt($encryptedData);
             
+            // Check for OpenSSL errors (with safety limit)
+            $errorCount = 0;
+            $maxErrorCheck = 50;
+            $opensslError = openssl_error_string();
+            if ($opensslError !== false) {
+                debugLog("OpenSSL error detected: $opensslError", 'ERROR');
+                while (($err = openssl_error_string()) !== false && $errorCount < $maxErrorCheck) {
+                    debugLog("Additional OpenSSL error: $err", 'ERROR');
+                    $errorCount++;
+                }
+            }
+            
             if ($decrypted !== false) {
+                debugLog("Decryption successful, decrypted data length: " . strlen($decrypted) . " bytes", 'INFO');
+                debugLog("First 200 chars of decrypted data: " . substr($decrypted, 0, 200), 'INFO');
+                
                 $users = json_decode($decrypted, true);
+                $jsonError = json_last_error();
+                if ($jsonError !== JSON_ERROR_NONE) {
+                    debugLog("JSON decode error: " . json_last_error_msg() . " (code: $jsonError)", 'ERROR');
+                }
+                
                 $decryptSuccess = is_array($users) && count($users) > 0;
+                debugLog("JSON parsing " . ($decryptSuccess ? 'successful' : 'failed'), $decryptSuccess ? 'INFO' : 'ERROR');
+                if ($decryptSuccess) {
+                    debugLog("Found " . count($users) . " user(s)", 'INFO');
+                    foreach ($users as $i => $user) {
+                        debugLog("User $i: username=" . ($user['username'] ?? 'N/A') . ", role=" . ($user['role'] ?? 'N/A'), 'INFO');
+                    }
+                }
                 
                 $tests[] = [
                     'category' => 'Verschlüsselung',
@@ -176,8 +318,13 @@ function runAllTests() {
                     foreach ($users as $user) {
                         if ($user['role'] === 'admin') {
                             $adminExists = true;
+                            debugLog("Admin user found: " . $user['username'], 'INFO');
                             break;
                         }
+                    }
+                    
+                    if (!$adminExists) {
+                        debugLog("WARNING: No admin user found in decrypted data", 'WARN');
                     }
                     
                     $tests[] = [
@@ -191,6 +338,7 @@ function runAllTests() {
                     $criticalFailures++;
                 }
             } else {
+                debugLog("Decryption returned false", 'ERROR');
                 $tests[] = [
                     'category' => 'Verschlüsselung',
                     'name' => 'Entschlüsselung',
@@ -202,6 +350,17 @@ function runAllTests() {
                 $criticalFailures++;
             }
         } catch (Exception $e) {
+            debugLog("Exception during decryption: " . $e->getMessage(), 'ERROR');
+            debugLog("Exception trace: " . $e->getTraceAsString(), 'ERROR');
+            
+            // Capture any OpenSSL errors (with safety limit)
+            $errorCount = 0;
+            $maxErrorCheck = 50;
+            while (($opensslError = openssl_error_string()) !== false && $errorCount < $maxErrorCheck) {
+                debugLog("OpenSSL error in exception handler: $opensslError", 'ERROR');
+                $errorCount++;
+            }
+            
             $tests[] = [
                 'category' => 'Verschlüsselung',
                 'name' => 'Entschlüsselung',
@@ -320,6 +479,10 @@ function runAllTests() {
 }
 
 $results = runAllTests();
+
+debugLog("=== Diagnostic tests completed ===", 'INFO');
+debugLog("Total tests: " . $results['totalTests'], 'INFO');
+debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -644,6 +807,134 @@ $results = runAllTests();
                     </a>
                 <?php endif; ?>
             </div>
+            
+            <?php if ($debugMode): ?>
+                <!-- Debug Mode Output -->
+                <div style="margin-top: 40px; padding-top: 30px; border-top: 3px solid #ff9800;">
+                    <h2 style="margin: 0 0 15px 0; font-size: 20px; color: #ff9800;">
+                        <span class="material-icons" style="vertical-align: middle; font-size: 24px;">bug_report</span>
+                        Debug-Modus
+                    </h2>
+                    
+                    <div class="alert" style="background: #fff3e0; border-left-color: #ff9800; color: #e65100;">
+                        <span class="material-icons">info</span>
+                        <div>
+                            <strong>Debug-Informationen aktiviert</strong><br>
+                            Hier sehen Sie detaillierte Informationen über alle Aktionen, Befehle und Meldungen während der Diagnose.
+                            Diese Informationen sind nützlich für die Fehleranalyse.
+                        </div>
+                    </div>
+                    
+                    <div style="background: #263238; color: #aed581; padding: 20px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; max-height: 600px; overflow-y: auto; margin-top: 20px;">
+                        <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #37474f; color: #80cbc4; font-weight: bold;">
+                            📋 Debug-Protokoll (<?php echo count($debugLog); ?> Einträge)
+                        </div>
+                        <?php 
+                        $startTime = !empty($debugLog) ? $debugLog[0]['time'] : microtime(true);
+                        foreach ($debugLog as $entry): 
+                            $elapsed = sprintf('%.4f', ($entry['time'] - $startTime));
+                            $levelColors = [
+                                'INFO' => '#aed581',
+                                'WARN' => '#ffb74d',
+                                'ERROR' => '#e57373'
+                            ];
+                            $color = $levelColors[$entry['level']] ?? '#90caf9';
+                        ?>
+                            <div style="margin-bottom: 8px; padding: 6px 0;">
+                                <span style="color: #78909c;">[<?php echo $elapsed; ?>s]</span>
+                                <span style="color: <?php echo $color; ?>; font-weight: bold;">[<?php echo htmlspecialchars($entry['level']); ?>]</span>
+                                <span style="color: #cfd8dc;"><?php echo htmlspecialchars($entry['message']); ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 6px; border-left: 4px solid #2196f3;">
+                        <strong style="color: #1565c0;">💡 Tipp:</strong>
+                        <span style="color: #1976d2;">
+                            Kopieren Sie diese Debug-Informationen, wenn Sie Hilfe vom Support benötigen.
+                            Um den Debug-Modus zu deaktivieren, entfernen Sie <code style="background: #fff; padding: 2px 6px; border-radius: 3px; color: #d32f2f;">?debug=1</code> aus der URL.
+                        </span>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <h3 style="font-size: 16px; margin-bottom: 10px; color: #666;">PHP-Informationen</h3>
+                        <table class="tests-table">
+                            <tr>
+                                <td><strong>Session ID</strong></td>
+                                <td><?php echo htmlspecialchars(session_id()); ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Session Status</strong></td>
+                                <td><?php echo session_status() === PHP_SESSION_ACTIVE ? 'Aktiv' : 'Inaktiv'; ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Session Save Path</strong></td>
+                                <td><?php echo htmlspecialchars(session_save_path() ?: 'Standard (tmp)'); ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Error Reporting</strong></td>
+                                <td><?php echo error_reporting(); ?> (<?php echo ini_get('display_errors') ? 'anzeigen' : 'versteckt'; ?>)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>OpenSSL Version</strong></td>
+                                <td><?php echo OPENSSL_VERSION_TEXT ?? 'Nicht verfügbar'; ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Document Root</strong></td>
+                                <td><?php echo htmlspecialchars($_SERVER['DOCUMENT_ROOT'] ?? 'N/A'); ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Script Filename</strong></td>
+                                <td><?php echo htmlspecialchars($_SERVER['SCRIPT_FILENAME'] ?? 'N/A'); ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Current User</strong></td>
+                                <td><?php echo htmlspecialchars(get_current_user()); ?> (UID: <?php echo getmyuid(); ?>, GID: <?php echo getmygid(); ?>)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Umask</strong></td>
+                                <td><?php echo sprintf('%04o', umask()); ?></td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <h3 style="font-size: 16px; margin-bottom: 10px; color: #666;">Umgebungsvariablen (Auswahl)</h3>
+                        <table class="tests-table">
+                            <?php
+                            $relevantVars = ['SERVER_SOFTWARE', 'SERVER_PROTOCOL', 'REQUEST_METHOD', 'QUERY_STRING', 
+                                           'HTTP_USER_AGENT', 'REMOTE_ADDR', 'SERVER_ADDR', 'SERVER_PORT',
+                                           'PHP_SELF', 'SCRIPT_NAME', 'REQUEST_URI'];
+                            foreach ($relevantVars as $var):
+                                if (isset($_SERVER[$var])):
+                            ?>
+                                <tr>
+                                    <td><strong><?php echo htmlspecialchars($var); ?></strong></td>
+                                    <td><?php echo htmlspecialchars($_SERVER[$var]); ?></td>
+                                </tr>
+                            <?php 
+                                endif;
+                            endforeach; 
+                            ?>
+                        </table>
+                    </div>
+                </div>
+            <?php else: ?>
+                <!-- Debug Mode Hint -->
+                <div style="margin-top: 30px; padding: 15px; background: #fff3e0; border-radius: 6px; border-left: 4px solid #ff9800;">
+                    <strong style="color: #e65100;">🔧 Debug-Modus verfügbar</strong><br>
+                    <span style="color: #f57c00;">
+                        Für detaillierte Debug-Informationen fügen Sie <code style="background: #fff; padding: 2px 6px; border-radius: 3px; color: #d32f2f;">?debug=1</code> zur URL hinzu.
+                        Dies zeigt alle PHP-Meldungen, OpenSSL-Fehler und Schritt-für-Schritt-Protokolle an.
+                    </span>
+                    <div style="margin-top: 10px;">
+                        <a href="?debug=1" class="btn btn-secondary" style="font-size: 12px; padding: 8px 16px;">
+                            <span class="material-icons" style="font-size: 16px;">bug_report</span>
+                            Debug-Modus aktivieren
+                        </a>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </body>
