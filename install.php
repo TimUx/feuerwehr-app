@@ -276,7 +276,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $step = 3; // Stay on step 3
                 } else {
                     $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-                    $encrypted = openssl_encrypt($usersData, 'aes-256-cbc', $encryption_key_binary, 0, $iv);
+                    $encrypted = openssl_encrypt($usersData, 'aes-256-cbc', $encryption_key_binary, OPENSSL_RAW_DATA, $iv);
                     $encryptedUsers = base64_encode($iv . '::' . $encrypted);
                     
                     file_put_contents($dataDir . '/users.json', $encryptedUsers);
@@ -434,7 +434,7 @@ function runDiagnosticTests() {
             }
             
             list($iv, $encrypted) = $parts;
-            $decrypted = openssl_decrypt($encrypted, 'aes-256-cbc', $keyBinary, 0, $iv);
+            $decrypted = openssl_decrypt($encrypted, 'aes-256-cbc', $keyBinary, OPENSSL_RAW_DATA, $iv);
             
             if ($decrypted === false) {
                 throw new Exception('Entschlüsselung fehlgeschlagen');
