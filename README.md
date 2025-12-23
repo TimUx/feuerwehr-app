@@ -205,11 +205,28 @@ Konfigurieren Sie E-Mail-Einstellungen für Formular-Übermittlungen:
 
 **Wichtig:** Der Verschlüsselungsschlüssel wird automatisch generiert - keine Kommandozeile erforderlich!
 
-#### 4. Logo hochladen (optional)
+#### 4. Diagnose-Tests (empfohlen)
+Nach erfolgreicher Installation sollten Sie die Diagnose-Tests durchführen, um sicherzustellen, dass alles korrekt funktioniert:
+
+- **Im Wizard:** Klicken Sie auf "Diagnose-Tests durchführen"
+- **Direkter Link:** `http://ihre-domain.de/install.php?step=4&diagnose=run`
+- **Standalone Tool:** `http://ihre-domain.de/diagnose.php`
+
+Die Diagnose prüft:
+- ✅ Konfigurationsdatei und Verschlüsselung
+- ✅ Dateiberechtigungen (wichtig für Nginx)
+- ✅ Session-Funktionalität
+- ✅ PHP Extensions
+- ✅ Login-Funktionalität
+- ✅ Nginx/PHP-FPM Konfiguration (bei Nginx)
+
+#### 5. Logo hochladen (optional)
 Platzieren Sie Ihr Feuerwehr-Logo als `public/assets/logo.png`. Dieses wird in E-Mails und PDFs verwendet.
 
-#### 5. Anmeldung
-Nach erfolgreicher Installation können Sie sich mit Ihrem erstellten Administrator-Benutzer anmelden.
+#### 6. Anmeldung
+Nach erfolgreicher Installation und Diagnose können Sie sich mit Ihrem erstellten Administrator-Benutzer anmelden.
+
+**Bei Login-Problemen:** Siehe [TROUBLESHOOTING.md](TROUBLESHOOTING.md) für detaillierte Hilfe.
 
 ---
 
@@ -595,6 +612,55 @@ session.gc_maxlifetime = 3600
 4. **Firewall-Regeln** für Admin-Bereich
 5. **Regelmäßige Updates** von PHP und Abhängigkeiten
 6. **Monitoring** der Log-Dateien
+
+---
+
+## 🔧 Troubleshooting
+
+### Login-Probleme nach der Installation?
+
+Wenn Sie nach dem Installations-Wizard die Fehlermeldung **"Ungültiger Benutzername oder Passwort"** erhalten, gibt es verschiedene mögliche Ursachen.
+
+#### Schnelle Diagnose
+
+1. **Führen Sie die Diagnose-Tests durch:**
+   ```
+   http://ihre-domain.de/diagnose.php
+   ```
+   oder
+   ```
+   http://ihre-domain.de/install.php?step=4&diagnose=run
+   ```
+
+2. **Häufigste Ursachen:**
+   - ❌ Session-Verzeichnis nicht beschreibbar (Nginx/PHP-FPM)
+   - ❌ Falsche Dateiberechtigungen für config/ oder data/
+   - ❌ Config-Datei wurde nicht erstellt
+   - ❌ Browser-Cookies blockiert
+
+3. **Schnelle Lösung für Nginx + PHP 8.4:**
+   ```bash
+   # Session-Verzeichnis Berechtigungen
+   sudo chown www-data:www-data /var/lib/php/sessions/
+   sudo chmod 733 /var/lib/php/sessions/
+   
+   # App-Verzeichnis Berechtigungen
+   sudo chown -R www-data:www-data /pfad/zur/app/config /pfad/zur/app/data
+   sudo chmod 755 /pfad/zur/app/config /pfad/zur/app/data
+   
+   # PHP-FPM neu starten
+   sudo systemctl restart php8.4-fpm
+   
+   # Browser-Cookies löschen und erneut versuchen
+   ```
+
+4. **Detaillierte Hilfe:**
+   Lesen Sie den [TROUBLESHOOTING.md](TROUBLESHOOTING.md) Guide für:
+   - Schritt-für-Schritt Problemlösung
+   - Nginx-spezifische Konfiguration
+   - PHP 8.4 spezifische Hinweise
+   - Debug-Befehle
+   - Häufige Fehlerszenarien
 
 ---
 
