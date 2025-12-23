@@ -307,6 +307,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     
                     $success = true;
+                    
+                    // Store installation details for diagnostics
+                    $_SESSION['install_success'] = true;
+                    $_SESSION['install_username'] = $admin_username;
+                    $_SESSION['install_password'] = $admin_password;
+                    $_SESSION['install_time'] = time();
+                    
                     $step = 4;
                 }
             } else {
@@ -314,6 +321,420 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+}
+
+// Handle diagnostic tests
+if (isset($_GET['diagnose']) && $_GET['diagnose'] === 'run') {
+    $diagnosticResults = runDiagnosticTests();
+}
+
+/**
+ * Run comprehensive diagnostic tests
+ */
+function runDiagnosticTests() {
+    $results = [];
+    $allPassed = true;
+    
+    // Test 1: Config file exists and is readable
+    $configFile = __DIR__ . '/config/config.php';
+    $configExists = file_exists($configFile);
+    $configReadable = $configExists && is_readable($configFile);
+    
+    $results[] = [
+        'name' => 'Konfigurationsdatei',
+        'test' => 'config/config.php existiert und ist lesbar',
+        'status' => $configReadable,
+        'details' => $configReadable ? 'Datei vorhanden und lesbar' : 
+                     ($configExists ? 'Datei existiert, aber nicht lesbar (Berechtigungsproblem)' : 'Datei existiert nicht'),
+        'critical' => true
+    ];
+    if (!$configReadable) $allPassed = false;
+    
+    // Test 2: Load and validate config
+    $configValid = false;
+    $encryptionKey = null;
+    if ($configReadable) {
+        try {
+            $config = require $configFile;
+            $configValid = is_array($config) && isset($config['encryption_key']) && isset($config['data_dir']);
+            if ($configValid) {
+                $encryptionKey = $config['encryption_key'];
+            }
+            
+            $results[] = [
+                'name' => 'Konfiguration laden',
+                'test' => 'Config-Array mit erforderlichen Schlüsseln',
+                'status' => $configValid,
+                'details' => $configValid ? 'Alle erforderlichen Konfigurationsschlüssel vorhanden' : 'Ungültige Konfigurationsstruktur',
+                'critical' => true
+            ];
+        } catch (Exception $e) {
+            $results[] = [
+                'name' => 'Konfiguration laden',
+                'test' => 'Config-Datei ohne PHP-Fehler laden',
+                'status' => false,
+                'details' => 'Fehler beim Laden: ' . $e->getMessage(),
+                'critical' => true
+            ];
+            $allPassed = false;
+        }
+    }
+    if (!$configValid) $allPassed = false;
+    
+    // Test 3: Data directory exists and is writable
+    $dataDir = __DIR__ . '/data';
+    $dataDirExists = file_exists($dataDir);
+    $dataDirWritable = $dataDirExists && is_writable($dataDir);
+    
+    $results[] = [
+        'name' => 'Datenverzeichnis',
+        'test' => 'data/ Verzeichnis existiert und ist beschreibbar',
+        'status' => $dataDirWritable,
+        'details' => $dataDirWritable ? 'Verzeichnis OK' : 
+                     ($dataDirExists ? 'Existiert, aber nicht beschreibbar' : 'Existiert nicht'),
+        'critical' => true
+    ];
+    if (!$dataDirWritable) $allPassed = false;
+    
+    // Test 4: users.json exists and is readable
+    $usersFile = $dataDir . '/users.json';
+    $usersExists = file_exists($usersFile);
+    $usersReadable = $usersExists && is_readable($usersFile);
+    
+    $results[] = [
+        'name' => 'Benutzerdatei',
+        'test' => 'data/users.json existiert und ist lesbar',
+        'status' => $usersReadable,
+        'details' => $usersReadable ? 'Datei vorhanden und lesbar' : 
+                     ($usersExists ? 'Datei existiert, aber nicht lesbar' : 'Datei existiert nicht'),
+        'critical' => true
+    ];
+    if (!$usersReadable) $allPassed = false;
+    
+    // Test 5: Decrypt users.json
+    $usersDecrypted = false;
+    $usersData = null;
+    if ($usersReadable && $encryptionKey) {
+        try {
+            $encryptedData = file_get_contents($usersFile);
+            $keyBinary = hex2bin($encryptionKey);
+            
+            if ($keyBinary === false) {
+                throw new Exception('Ungültiger Verschlüsselungsschlüssel (kein Hex)');
+            }
+            
+            $decoded = base64_decode($encryptedData);
+            if ($decoded === false) {
+                throw new Exception('Base64-Dekodierung fehlgeschlagen');
+            }
+            
+            $parts = explode('::', $decoded, 2);
+            if (count($parts) !== 2) {
+                throw new Exception('Ungültiges Verschlüsselungsformat');
+            }
+            
+            list($iv, $encrypted) = $parts;
+            $decrypted = openssl_decrypt($encrypted, 'aes-256-cbc', $keyBinary, 0, $iv);
+            
+            if ($decrypted === false) {
+                throw new Exception('Entschlüsselung fehlgeschlagen');
+            }
+            
+            $usersData = json_decode($decrypted, true);
+            $usersDecrypted = is_array($usersData) && count($usersData) > 0;
+            
+            $results[] = [
+                'name' => 'Benutzer entschlüsseln',
+                'test' => 'users.json kann mit dem Verschlüsselungsschlüssel entschlüsselt werden',
+                'status' => $usersDecrypted,
+                'details' => $usersDecrypted ? count($usersData) . ' Benutzer gefunden' : 'Entschlüsselung fehlgeschlagen',
+                'critical' => true
+            ];
+        } catch (Exception $e) {
+            $results[] = [
+                'name' => 'Benutzer entschlüsseln',
+                'test' => 'users.json entschlüsseln',
+                'status' => false,
+                'details' => 'Fehler: ' . $e->getMessage(),
+                'critical' => true
+            ];
+            $allPassed = false;
+        }
+    }
+    if (!$usersDecrypted) $allPassed = false;
+    
+    // Test 6: Verify admin user credentials
+    if ($usersDecrypted && isset($_SESSION['install_username']) && isset($_SESSION['install_password'])) {
+        $testUsername = $_SESSION['install_username'];
+        $testPassword = $_SESSION['install_password'];
+        $credentialsValid = false;
+        
+        foreach ($usersData as $user) {
+            if ($user['username'] === $testUsername && password_verify($testPassword, $user['password'])) {
+                $credentialsValid = true;
+                break;
+            }
+        }
+        
+        $results[] = [
+            'name' => 'Admin-Zugangsdaten',
+            'test' => 'Administrator-Benutzer kann sich anmelden',
+            'status' => $credentialsValid,
+            'details' => $credentialsValid ? 
+                        "Benutzer '$testUsername' mit Passwort verifiziert" : 
+                        "Benutzer '$testUsername' oder Passwort ungültig",
+            'critical' => true
+        ];
+        if (!$credentialsValid) $allPassed = false;
+    }
+    
+    // Test 7: Session functionality
+    $sessionWorking = session_status() === PHP_SESSION_ACTIVE;
+    $_SESSION['diagnostic_test'] = 'test_value_' . time();
+    $sessionDataPersists = isset($_SESSION['diagnostic_test']);
+    
+    $results[] = [
+        'name' => 'PHP Sessions',
+        'test' => 'Sessions funktionieren korrekt',
+        'status' => $sessionWorking && $sessionDataPersists,
+        'details' => $sessionWorking ? 
+                    ($sessionDataPersists ? 'Session-ID: ' . session_id() : 'Session aktiv, aber Daten werden nicht gespeichert') : 
+                    'Session konnte nicht gestartet werden',
+        'critical' => true
+    ];
+    if (!$sessionWorking || !$sessionDataPersists) $allPassed = false;
+    
+    // Test 8: PHP extensions
+    $requiredExtensions = ['openssl', 'mbstring', 'json', 'session'];
+    foreach ($requiredExtensions as $ext) {
+        $loaded = extension_loaded($ext);
+        $results[] = [
+            'name' => "PHP Extension: $ext",
+            'test' => "Extension '$ext' ist geladen",
+            'status' => $loaded,
+            'details' => $loaded ? 'Geladen' : 'Nicht geladen',
+            'critical' => true
+        ];
+        if (!$loaded) $allPassed = false;
+    }
+    
+    // Test 9: Webserver detection
+    $webserver = $_SERVER['SERVER_SOFTWARE'] ?? 'Unbekannt';
+    $isNginx = stripos($webserver, 'nginx') !== false;
+    $isApache = stripos($webserver, 'apache') !== false;
+    
+    $results[] = [
+        'name' => 'Webserver',
+        'test' => 'Webserver-Typ erkennen',
+        'status' => true,
+        'details' => $webserver . ($isNginx ? ' (Nginx erkannt)' : ($isApache ? ' (Apache erkannt)' : '')),
+        'critical' => false
+    ];
+    
+    // Test 10: Session cookie parameters
+    $cookieParams = session_get_cookie_params();
+    $results[] = [
+        'name' => 'Session-Cookie-Einstellungen',
+        'test' => 'Cookie-Parameter abrufen',
+        'status' => true,
+        'details' => 'Path: ' . $cookieParams['path'] . ', Lifetime: ' . $cookieParams['lifetime'] . 's, HttpOnly: ' . ($cookieParams['httponly'] ? 'Ja' : 'Nein'),
+        'critical' => false
+    ];
+    
+    // Test 11: File permissions
+    $configPerms = $configExists ? substr(sprintf('%o', fileperms($configFile)), -4) : 'N/A';
+    $dataPerms = $dataDirExists ? substr(sprintf('%o', fileperms($dataDir)), -4) : 'N/A';
+    $usersPerms = $usersExists ? substr(sprintf('%o', fileperms($usersFile)), -4) : 'N/A';
+    
+    $results[] = [
+        'name' => 'Dateiberechtigungen',
+        'test' => 'Berechtigungen prüfen',
+        'status' => true,
+        'details' => "config.php: $configPerms, data/: $dataPerms, users.json: $usersPerms",
+        'critical' => false
+    ];
+    
+    // Test 12: Check if Auth class can be loaded
+    $authFile = __DIR__ . '/src/php/auth.php';
+    $authExists = file_exists($authFile);
+    
+    $results[] = [
+        'name' => 'Auth-Klasse',
+        'test' => 'src/php/auth.php existiert',
+        'status' => $authExists,
+        'details' => $authExists ? 'Datei vorhanden' : 'Datei fehlt',
+        'critical' => true
+    ];
+    if (!$authExists) $allPassed = false;
+    
+    // Test 13: Test actual login with Auth class
+    if ($authExists && $configReadable && isset($_SESSION['install_username']) && isset($_SESSION['install_password'])) {
+        try {
+            require_once __DIR__ . '/src/php/encryption.php';
+            require_once __DIR__ . '/src/php/auth.php';
+            
+            // Clear any existing auth session
+            unset($_SESSION['user_id']);
+            unset($_SESSION['username']);
+            unset($_SESSION['role']);
+            
+            Auth::init();
+            $loginSuccess = Auth::login($_SESSION['install_username'], $_SESSION['install_password']);
+            
+            $results[] = [
+                'name' => 'Login-Test',
+                'test' => 'Tatsächlicher Login mit Auth::login()',
+                'status' => $loginSuccess,
+                'details' => $loginSuccess ? 
+                            'Login erfolgreich! Session-Daten gesetzt.' : 
+                            'Login fehlgeschlagen trotz korrekter Zugangsdaten',
+                'critical' => true
+            ];
+            
+            if (!$loginSuccess) $allPassed = false;
+            
+            // Check if session was set
+            if ($loginSuccess) {
+                $sessionSet = isset($_SESSION['user_id']) && isset($_SESSION['username']) && isset($_SESSION['role']);
+                $results[] = [
+                    'name' => 'Session nach Login',
+                    'test' => 'Session-Variablen nach Login gesetzt',
+                    'status' => $sessionSet,
+                    'details' => $sessionSet ? 
+                                'user_id, username, role alle gesetzt' : 
+                                'Session-Variablen nicht gesetzt',
+                    'critical' => true
+                ];
+                if (!$sessionSet) $allPassed = false;
+            }
+        } catch (Exception $e) {
+            $results[] = [
+                'name' => 'Login-Test',
+                'test' => 'Auth::login() ausführen',
+                'status' => false,
+                'details' => 'Fehler: ' . $e->getMessage(),
+                'critical' => true
+            ];
+            $allPassed = false;
+        }
+    }
+    
+    // Test 14: PHP Version check
+    $phpVersion = PHP_VERSION;
+    $results[] = [
+        'name' => 'PHP Version',
+        'test' => 'PHP Version 7.4 oder höher',
+        'status' => true,
+        'details' => "PHP $phpVersion" . (version_compare($phpVersion, '8.4.0', '>=') ? ' (PHP 8.4+)' : ''),
+        'critical' => false
+    ];
+    
+    // Test 15: Session save path
+    $sessionSavePath = session_save_path();
+    $sessionPathWritable = !empty($sessionSavePath) && is_writable($sessionSavePath);
+    
+    $results[] = [
+        'name' => 'Session-Speicherpfad',
+        'test' => 'session.save_path ist beschreibbar',
+        'status' => $sessionPathWritable,
+        'details' => $sessionPathWritable ? 
+                    "Pfad: $sessionSavePath (beschreibbar)" : 
+                    (empty($sessionSavePath) ? 'Kein Pfad gesetzt (verwendet tmp)' : "Pfad: $sessionSavePath (nicht beschreibbar)"),
+        'critical' => false
+    ];
+    
+    // Test 16: Check for common Nginx/PHP-FPM issues
+    $serverSoftware = $_SERVER['SERVER_SOFTWARE'] ?? 'Unbekannt';
+    $isNginx = stripos($serverSoftware, 'nginx') !== false;
+    
+    if ($isNginx) {
+        // Check if PHP is running as FPM
+        $sapi = php_sapi_name();
+        $isFPM = $sapi === 'fpm-fcgi' || $sapi === 'cgi-fcgi';
+        
+        $results[] = [
+            'name' => 'PHP-FPM Erkennung',
+            'test' => 'PHP läuft als FPM (empfohlen für Nginx)',
+            'status' => $isFPM,
+            'details' => "SAPI: $sapi" . ($isFPM ? ' ✓' : ' (nicht FPM)'),
+            'critical' => false
+        ];
+        
+        // Check SCRIPT_FILENAME
+        $scriptFilename = $_SERVER['SCRIPT_FILENAME'] ?? '';
+        $scriptFilenameCorrect = !empty($scriptFilename) && file_exists($scriptFilename);
+        
+        $results[] = [
+            'name' => 'Nginx SCRIPT_FILENAME',
+            'test' => 'SCRIPT_FILENAME ist korrekt gesetzt',
+            'status' => $scriptFilenameCorrect,
+            'details' => $scriptFilenameCorrect ? 
+                        'Korrekt: ' . basename($scriptFilename) : 
+                        'Fehlt oder ungültig (fastcgi_param Problem?)',
+            'critical' => false
+        ];
+    }
+    
+    // Test 17: Check session cookie settings for Nginx
+    $cookieParams = session_get_cookie_params();
+    $cookiePathCorrect = !empty($cookieParams['path']);
+    
+    $results[] = [
+        'name' => 'Session-Cookie-Pfad',
+        'test' => 'Cookie-Pfad ist gesetzt',
+        'status' => $cookiePathCorrect,
+        'details' => $cookiePathCorrect ? 
+                    "Pfad: {$cookieParams['path']}" : 
+                    'Cookie-Pfad nicht gesetzt',
+        'critical' => false
+    ];
+    
+    // Test 18: Check if .htaccess might interfere (shouldn't on Nginx but good to check)
+    $htaccessExists = file_exists(__DIR__ . '/.htaccess');
+    $results[] = [
+        'name' => '.htaccess Datei',
+        'test' => 'Keine .htaccess auf Nginx-Server',
+        'status' => !$htaccessExists || !$isNginx,
+        'details' => $htaccessExists ? 
+                    ($isNginx ? '⚠ .htaccess existiert (wird von Nginx ignoriert)' : '.htaccess existiert') : 
+                    'Keine .htaccess Datei',
+        'critical' => false
+    ];
+    
+    // Test 19: Check error reporting settings
+    $displayErrors = ini_get('display_errors');
+    $logErrors = ini_get('log_errors');
+    $errorLog = ini_get('error_log');
+    
+    $results[] = [
+        'name' => 'PHP Fehlerprotokollierung',
+        'test' => 'Fehler werden protokolliert',
+        'status' => $logErrors == '1',
+        'details' => "display_errors: $displayErrors, log_errors: $logErrors" . 
+                    (!empty($errorLog) ? ", error_log: $errorLog" : ''),
+        'critical' => false
+    ];
+    
+    // Test 20: Memory and execution limits
+    $memoryLimit = ini_get('memory_limit');
+    $maxExecutionTime = ini_get('max_execution_time');
+    
+    $results[] = [
+        'name' => 'PHP Ressourcen-Limits',
+        'test' => 'Ausreichende PHP-Limits',
+        'status' => true,
+        'details' => "memory_limit: $memoryLimit, max_execution_time: {$maxExecutionTime}s",
+        'critical' => false
+    ];
+    
+    return [
+        'results' => $results,
+        'allPassed' => $allPassed,
+        'timestamp' => date('Y-m-d H:i:s'),
+        'phpVersion' => PHP_VERSION,
+        'webserver' => $serverSoftware,
+        'isNginx' => $isNginx
+    ];
 }
 ?>
 <!DOCTYPE html>
@@ -942,42 +1363,208 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
                 
             <?php elseif ($step == 4): ?>
-                <!-- Step 4: Success -->
-                <div class="success-icon">
-                    <span class="material-icons">check_circle</span>
-                </div>
-                
-                <h2 class="section-title" style="text-align: center;">Installation erfolgreich abgeschlossen!</h2>
-                <p class="section-description" style="text-align: center;">
-                    Die Feuerwehr Management App wurde erfolgreich eingerichtet und ist jetzt einsatzbereit.
-                </p>
-                
-                <div class="alert alert-success">
-                    <strong>Konfiguration erstellt:</strong>
-                    <ul style="margin: 10px 0 0 20px;">
-                        <li>Verschlüsselungsschlüssel generiert</li>
-                        <li>Administrator-Benutzer erstellt</li>
-                        <li>E-Mail-Einstellungen konfiguriert</li>
-                        <li>Datenverzeichnis erstellt</li>
-                    </ul>
-                </div>
-                
-                <div class="info-box">
-                    <strong>Nächste Schritte:</strong>
-                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
-                        <li>Melden Sie sich mit Ihrem Administrator-Benutzer an</li>
-                        <li>Fügen Sie Einsatzkräfte hinzu</li>
-                        <li>Konfigurieren Sie Fahrzeuge</li>
-                        <li>Erstellen Sie weitere Benutzer bei Bedarf</li>
-                    </ul>
-                </div>
-                
-                <div class="button-group" style="justify-content: center;">
-                    <a href="index.php" class="btn btn-primary">
-                        <span class="material-icons">login</span>
-                        Zur Anmeldung
-                    </a>
-                </div>
+                <!-- Step 4: Success with Diagnostics -->
+                <?php if (isset($_GET['diagnose']) && $_GET['diagnose'] === 'run'): ?>
+                    <!-- Diagnostic Results -->
+                    <?php $diagnostics = $diagnosticResults ?? runDiagnosticTests(); ?>
+                    
+                    <h2 class="section-title">Diagnose-Ergebnisse</h2>
+                    <p class="section-description">
+                        Umfassende Tests zur Identifizierung von Problemen, die die Anmeldung verhindern könnten.
+                        <br><small style="color: #666;">
+                            PHP <?php echo htmlspecialchars($diagnostics['phpVersion']); ?> | 
+                            <?php echo htmlspecialchars($diagnostics['webserver']); ?>
+                            <?php if ($diagnostics['isNginx']): ?>
+                                | <strong>Nginx-spezifische Tests aktiv</strong>
+                            <?php endif; ?>
+                        </small>
+                    </p>
+                    
+                    <?php if ($diagnostics['allPassed']): ?>
+                        <div class="alert alert-success">
+                            <strong>✓ Alle Tests bestanden!</strong><br>
+                            Die Installation ist vollständig und funktionsfähig. Sie sollten sich jetzt anmelden können.
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-error">
+                            <strong>⚠ Einige Tests sind fehlgeschlagen</strong><br>
+                            Beheben Sie die unten aufgeführten Probleme, bevor Sie sich anmelden.
+                        </div>
+                    <?php endif; ?>
+                    
+                    <table class="requirements-table" style="margin-top: 20px;">
+                        <thead>
+                            <tr>
+                                <th>Komponente</th>
+                                <th>Test</th>
+                                <th>Details</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($diagnostics['results'] as $result): ?>
+                                <tr>
+                                    <td><strong><?php echo htmlspecialchars($result['name']); ?></strong></td>
+                                    <td><?php echo htmlspecialchars($result['test']); ?></td>
+                                    <td style="font-size: 12px; color: #666;"><?php echo htmlspecialchars($result['details']); ?></td>
+                                    <td>
+                                        <?php if ($result['status']): ?>
+                                            <span class="status-icon status-pass">
+                                                <span class="material-icons" style="font-size: 20px;">check_circle</span>
+                                                OK
+                                            </span>
+                                        <?php elseif ($result['critical']): ?>
+                                            <span class="status-icon status-fail">
+                                                <span class="material-icons" style="font-size: 20px;">error</span>
+                                                Fehler
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="status-icon status-warning">
+                                                <span class="material-icons" style="font-size: 20px;">warning</span>
+                                                Warnung
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    
+                    <div class="info-box" style="margin-top: 20px;">
+                        <strong>Häufige Probleme und Lösungen (Nginx + PHP 8.4):</strong>
+                        <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                            <li><strong>Config-Datei existiert nicht:</strong> 
+                                <br>→ Prüfen Sie Schreibrechte: <code>sudo chown -R www-data:www-data config/ data/</code>
+                                <br>→ Oder: <code>sudo chmod 755 config/ data/</code>
+                            </li>
+                            <li><strong>Entschlüsselung fehlgeschlagen:</strong> 
+                                <br>→ Datei wurde möglicherweise beschädigt
+                                <br>→ Löschen Sie config/config.php und data/users.json und führen Sie die Installation erneut durch
+                            </li>
+                            <li><strong>Session-Probleme (Nginx):</strong> 
+                                <br>→ Prüfen Sie: <code>ls -la /var/lib/php/sessions/</code> (oder /tmp je nach Konfiguration)
+                                <br>→ Stellen Sie sicher, dass www-data Schreibrechte hat: <code>sudo chown www-data:www-data /var/lib/php/sessions/</code>
+                                <br>→ In php.ini: <code>session.save_path = "/var/lib/php/sessions"</code>
+                            </li>
+                            <li><strong>Login fehlschlägt trotz korrekter Daten:</strong> 
+                                <br>→ Löschen Sie alle Browser-Cookies für diese Domain
+                                <br>→ Prüfen Sie Nginx fastcgi_params: <code>fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;</code>
+                                <br>→ Starten Sie PHP-FPM neu: <code>sudo systemctl restart php8.4-fpm</code>
+                            </li>
+                            <li><strong>PHP 8.4 spezifisch:</strong> 
+                                <br>→ Stellen Sie sicher, dass alle PHP 8.4 Extensions installiert sind: <code>sudo apt install php8.4-fpm php8.4-mbstring php8.4-json</code>
+                                <br>→ Prüfen Sie PHP-FPM Socket: <code>ls -la /run/php/php8.4-fpm.sock</code>
+                            </li>
+                            <li><strong>Nginx Konfiguration prüfen:</strong> 
+                                <br>→ <code>sudo nginx -t</code> (Syntax-Test)
+                                <br>→ <code>sudo systemctl reload nginx</code>
+                                <br>→ Prüfen Sie den location Block für .php Dateien
+                            </li>
+                            <li><strong>Dateiberechtigungen (empfohlen):</strong> 
+                                <br>→ Verzeichnisse: <code>chmod 755 config/ data/</code>
+                                <br>→ Dateien: <code>chmod 644 config/config.php data/users.json</code>
+                                <br>→ Owner: <code>chown www-data:www-data config/ data/ -R</code>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="info-box" style="margin-top: 20px; background: #e3f2fd; border-left-color: #2196f3;">
+                        <strong>🔍 Debug-Befehle für die Kommandozeile:</strong>
+                        <ul style="margin: 10px 0 0 20px; line-height: 1.8; font-family: monospace; font-size: 13px;">
+                            <li>PHP-FPM Status: <code>sudo systemctl status php8.4-fpm</code></li>
+                            <li>PHP-FPM Error Log: <code>sudo tail -f /var/log/php8.4-fpm.log</code></li>
+                            <li>Nginx Error Log: <code>sudo tail -f /var/log/nginx/error.log</code></li>
+                            <li>Session-Verzeichnis: <code>ls -la $(php -r "echo session_save_path();")</code></li>
+                            <li>PHP Config: <code>php --ini</code></li>
+                            <li>Berechtigungen prüfen: <code>ls -la <?php echo __DIR__; ?>/config/ <?php echo __DIR__; ?>/data/</code></li>
+                        </ul>
+                    </div>
+                    
+                    <?php if (isset($_SESSION['install_username']) && isset($_SESSION['install_password'])): ?>
+                        <div class="alert alert-info" style="margin-top: 20px;">
+                            <strong>Ihre Zugangsdaten:</strong><br>
+                            Benutzername: <code><?php echo htmlspecialchars($_SESSION['install_username']); ?></code><br>
+                            Passwort: <code><?php echo htmlspecialchars($_SESSION['install_password']); ?></code>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <div class="button-group" style="justify-content: center; margin-top: 30px;">
+                        <a href="?step=4" class="btn btn-secondary">
+                            <span class="material-icons">arrow_back</span>
+                            Zurück
+                        </a>
+                        <a href="?step=4&diagnose=run" class="btn btn-secondary">
+                            <span class="material-icons">refresh</span>
+                            Tests erneut durchführen
+                        </a>
+                        <a href="index.php" class="btn btn-primary">
+                            <span class="material-icons">login</span>
+                            Zur Anmeldung
+                        </a>
+                    </div>
+                    
+                <?php else: ?>
+                    <!-- Success Page -->
+                    <div class="success-icon">
+                        <span class="material-icons">check_circle</span>
+                    </div>
+                    
+                    <h2 class="section-title" style="text-align: center;">Installation erfolgreich abgeschlossen!</h2>
+                    <p class="section-description" style="text-align: center;">
+                        Die Feuerwehr Management App wurde erfolgreich eingerichtet und ist jetzt einsatzbereit.
+                    </p>
+                    
+                    <div class="alert alert-success">
+                        <strong>Konfiguration erstellt:</strong>
+                        <ul style="margin: 10px 0 0 20px;">
+                            <li>Verschlüsselungsschlüssel generiert</li>
+                            <li>Administrator-Benutzer erstellt</li>
+                            <li>E-Mail-Einstellungen konfiguriert</li>
+                            <li>Datenverzeichnis erstellt</li>
+                        </ul>
+                    </div>
+                    
+                    <?php if (isset($_SESSION['install_username']) && isset($_SESSION['install_password'])): ?>
+                        <div class="alert alert-info">
+                            <strong>Ihre Zugangsdaten:</strong><br>
+                            Benutzername: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px;"><?php echo htmlspecialchars($_SESSION['install_username']); ?></code><br>
+                            Passwort: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px;"><?php echo htmlspecialchars($_SESSION['install_password']); ?></code><br>
+                            <small style="color: #666; display: block; margin-top: 8px;">Notieren Sie sich diese Daten, bevor Sie fortfahren!</small>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <div class="info-box">
+                        <strong>Nächste Schritte:</strong>
+                        <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                            <li>Führen Sie die Diagnose-Tests durch, um sicherzustellen, dass alles funktioniert</li>
+                            <li>Melden Sie sich mit Ihrem Administrator-Benutzer an</li>
+                            <li>Fügen Sie Einsatzkräfte hinzu</li>
+                            <li>Konfigurieren Sie Fahrzeuge</li>
+                            <li>Erstellen Sie weitere Benutzer bei Bedarf</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="info-box" style="background: #fff3e0; border-left-color: #ff9800;">
+                        <strong>⚠ Wichtig für Nginx-Server:</strong>
+                        <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                            <li>Stellen Sie sicher, dass PHP-FPM korrekt konfiguriert ist</li>
+                            <li>Prüfen Sie die Session-Einstellungen in php.ini</li>
+                            <li>Vergewissern Sie sich, dass der Webserver-User (z.B. www-data) Schreibrechte für config/ und data/ hat</li>
+                            <li>Bei Problemen: Führen Sie die Diagnose-Tests aus</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="button-group" style="justify-content: center;">
+                        <a href="?step=4&diagnose=run" class="btn btn-secondary">
+                            <span class="material-icons">troubleshoot</span>
+                            Diagnose-Tests durchführen
+                        </a>
+                        <a href="index.php" class="btn btn-primary">
+                            <span class="material-icons">login</span>
+                            Zur Anmeldung
+                        </a>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
