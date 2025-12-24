@@ -18,34 +18,32 @@ Auth::init();
 // Handle logout
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     Auth::logout();
-    header('Location: /index.php');
+    header('Location: /index.php?page=login');
+    exit;
+}
+
+// Check authentication
+$isAuthenticated = Auth::isAuthenticated();
+$page = $_GET['page'] ?? ($isAuthenticated ? 'home' : 'login');
+
+// If not authenticated and trying to access protected page, redirect to login
+if (!$isAuthenticated && $page !== 'login') {
+    header('Location: /index.php?page=login');
     exit;
 }
 
 // Handle login form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
+if ($page === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     
     if (Auth::login($username, $password)) {
-        // Login successful - redirect to home
-        // Session will be written automatically by PHP
+        // Redirect to home page - session will be automatically saved by PHP
         header('Location: /index.php');
         exit;
     } else {
         $loginError = 'Ungültiger Benutzername oder Passwort';
     }
-}
-
-// Check authentication status
-$isAuthenticated = Auth::isAuthenticated();
-
-// Determine which page to show
-$page = $_GET['page'] ?? 'home';
-
-// If not authenticated, show login page
-if (!$isAuthenticated) {
-    $page = 'login';
 }
 
 $user = Auth::getUser();
@@ -87,7 +85,7 @@ $user = Auth::getUser();
                     <div class="alert alert-error"><?php echo htmlspecialchars($loginError); ?></div>
                 <?php endif; ?>
                 
-                <form method="POST" action="/index.php">
+                <form method="POST" action="/index.php?page=login">
                     <div class="form-group">
                         <label class="form-label" for="username">Benutzername</label>
                         <input type="text" id="username" name="username" class="form-input" required autofocus>

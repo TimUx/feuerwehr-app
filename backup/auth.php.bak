@@ -3,40 +3,39 @@ require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/session_init.php';
 
 /**
- * Simplified Authentication System
- * Clean rebuild using proven PHP session patterns
+ * Authentication and Session Management
  */
 
 class Auth {
     private static $config;
     private static $dataDir;
     private static $initialized = false;
+    
+    // Cookie expiration offset for clearing session cookies (1 hour in the past)
+    private const COOKIE_EXPIRY_OFFSET = 3600;
 
     public static function init() {
-        // Initialize only once
+        // Only initialize once to avoid reloading config and resetting session settings
         if (self::$initialized) {
             return;
         }
         
-        // Start secure session FIRST (before loading config)
-        initSecureSession();
+        self::$config = require __DIR__ . '/../../config/config.php';
+        self::$dataDir = self::$config['data_dir'];
         
-        // Load config if not already loaded
-        if (self::$config === null) {
-            self::$config = require __DIR__ . '/../../config/config.php';
-            self::$dataDir = self::$config['data_dir'];
-            
-            // Ensure data directory exists
-            if (!file_exists(self::$dataDir)) {
-                mkdir(self::$dataDir, 0700, true);
-            }
+        // Ensure data directory exists
+        if (!file_exists(self::$dataDir)) {
+            mkdir(self::$dataDir, 0700, true);
         }
+
+        // Start session with secure settings using shared function
+        initSecureSession();
         
         self::$initialized = true;
     }
 
     /**
-     * Authenticate user with username and password
+     * Login user
      */
     public static function login($username, $password) {
         self::init();
@@ -46,15 +45,15 @@ class Auth {
         // Check credentials
         foreach ($users as $user) {
             if ($user['username'] === $username && password_verify($password, $user['password'])) {
-                // Set new session data FIRST
-                $_SESSION['authenticated'] = true;
+                // Set session data first
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
-                $_SESSION['login_time'] = time();
                 $_SESSION['last_activity'] = time();
                 
-                // Regenerate session ID (keep old session temporarily for safety)
+                // Regenerate session ID to prevent session fixation attacks
+                // Use false to keep old session temporarily (safer for race conditions)
+                // This prevents the issue where the new session is not yet written when redirect happens
                 session_regenerate_id(false);
                 
                 return true;
@@ -65,63 +64,57 @@ class Auth {
     }
 
     /**
-     * Logout user and destroy session
+     * Logout user
      */
     public static function logout() {
-        self::init();
+        // Only destroy session if one is active
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            // Clear session data
+            session_unset();
+            session_destroy();
+            
+            // Clear the session cookie using proper parameters
+            self::clearSessionCookie();
+        }
         
-        // Clear all session variables
-        $_SESSION = array();
-        
-        // Delete session cookie
+        return true;
+    }
+    
+    /**
+     * Clear the session cookie from the browser
+     */
+    private static function clearSessionCookie() {
         if (isset($_COOKIE[session_name()])) {
             $params = session_get_cookie_params();
             setcookie(
                 session_name(),
                 '',
-                time() - 86400,
+                time() - self::COOKIE_EXPIRY_OFFSET,
                 $params['path'],
                 $params['domain'],
                 $params['secure'],
                 $params['httponly']
             );
         }
-        
-        // Destroy session
-        session_destroy();
-        
-        return true;
     }
 
     /**
      * Check if user is authenticated
      */
     public static function isAuthenticated() {
-        self::init();
-        
-        // Check if authenticated flag is set
-        if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
-            return false;
-        }
-        
-        // Check if user_id exists
         if (!isset($_SESSION['user_id'])) {
             return false;
         }
-        
-        // Check session timeout (1 hour)
-        $timeout = self::$config['session_lifetime'] ?? 3600;
-        if (isset($_SESSION['last_activity'])) {
-            $elapsed = time() - $_SESSION['last_activity'];
-            if ($elapsed > $timeout) {
-                self::logout();
-                return false;
-            }
+
+        // Check session timeout
+        self::init();
+        $timeout = self::$config['session_lifetime'];
+        if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout)) {
+            self::logout();
+            return false;
         }
-        
-        // Update last activity time
+
         $_SESSION['last_activity'] = time();
-        
         return true;
     }
 
