@@ -479,11 +479,12 @@ function runAllTests() {
         'critical' => false
     ];
     
+    // Detect SAPI type
+    $sapi = php_sapi_name();
+    $isFPM = $sapi === 'fpm-fcgi' || $sapi === 'cgi-fcgi';
+    
     if ($isNginx) {
         // Nginx-specific tests
-        $sapi = php_sapi_name();
-        $isFPM = $sapi === 'fpm-fcgi' || $sapi === 'cgi-fcgi';
-        
         $tests[] = [
             'category' => 'Webserver',
             'name' => 'PHP-FPM',
@@ -494,7 +495,6 @@ function runAllTests() {
         ];
     } elseif ($isApache) {
         // Apache-specific tests
-        $sapi = php_sapi_name();
         $isApacheModule = $sapi === 'apache2handler' || $sapi === 'apache' || $sapi === 'litespeed';
         $isCGI = $sapi === 'cgi' || $sapi === 'cgi-fcgi' || $sapi === 'fpm-fcgi';
         
@@ -505,10 +505,6 @@ function runAllTests() {
             'message' => "SAPI: $sapi" . ($isApacheModule ? ' (Apache Module)' : ($isCGI ? ' (CGI/FPM)' : '')),
             'critical' => false
         ];
-    } else {
-        // For unknown servers, just report SAPI
-        $sapi = php_sapi_name();
-        $isFPM = $sapi === 'fpm-fcgi' || $sapi === 'cgi-fcgi';
     }
     
     // Test 11: Auth class availability
