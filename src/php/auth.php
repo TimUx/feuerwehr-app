@@ -45,13 +45,17 @@ class Auth {
         // Check credentials
         foreach ($users as $user) {
             if ($user['username'] === $username && password_verify($password, $user['password'])) {
-                // Regenerate session ID to prevent session fixation attacks
-                session_regenerate_id(true);
-                
+                // Set session data first
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['last_activity'] = time();
+                
+                // Regenerate session ID to prevent session fixation attacks
+                // Use false to keep old session temporarily (safer for race conditions)
+                // This prevents the issue where the new session is not yet written when redirect happens
+                session_regenerate_id(false);
+                
                 return true;
             }
         }
