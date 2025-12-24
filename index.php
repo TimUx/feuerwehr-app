@@ -18,7 +18,7 @@ Auth::init();
 // Handle logout
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     Auth::logout();
-    header('Location: /index.php');
+    header('Location: index.php');
     exit;
 }
 
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
     if (Auth::login($username, $password)) {
         // Login successful - redirect to home
         // Session will be written automatically by PHP
-        header('Location: /index.php');
+        header('Location: index.php');
         exit;
     } else {
         $loginError = 'Ungültiger Benutzername oder Passwort';
@@ -87,7 +87,7 @@ $user = Auth::getUser();
                     <div class="alert alert-error"><?php echo htmlspecialchars($loginError); ?></div>
                 <?php endif; ?>
                 
-                <form method="POST" action="/index.php">
+                <form method="POST" action="index.php">
                     <div class="form-group">
                         <label class="form-label" for="username">Benutzername</label>
                         <input type="text" id="username" name="username" class="form-input" required autofocus>
@@ -124,7 +124,7 @@ $user = Auth::getUser();
                     <button id="theme-toggle" class="icon-btn" title="Design umschalten">
                         <span class="material-icons">dark_mode</span>
                     </button>
-                    <button class="icon-btn" onclick="window.location.href='/index.php?action=logout'" title="Abmelden">
+                    <button class="icon-btn" onclick="window.location.href='index.php?action=logout'" title="Abmelden">
                         <span class="material-icons">logout</span>
                     </button>
                 </div>

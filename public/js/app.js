@@ -12,6 +12,9 @@ class FeuerwehrApp {
     this.setupTheme();
     this.setupNavigation();
     this.setupEventListeners();
+    
+    // Load the home page on initialization
+    this.loadPage(this.currentPage);
   }
 
   // Register Service Worker for PWA
