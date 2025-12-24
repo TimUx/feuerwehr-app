@@ -18,7 +18,9 @@ Auth::init();
 // Handle logout
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     Auth::logout();
-    header('Location: index.php');
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'];
+    header("Location: {$protocol}://{$host}/index.php");
     exit;
 }
 
@@ -29,8 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
     
     if (Auth::login($username, $password)) {
         // Login successful - redirect to home
-        // Session will be written automatically by PHP
-        header('Location: index.php');
+        // Use absolute URL to preserve hostname
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'];
+        header("Location: {$protocol}://{$host}/index.php");
         exit;
     } else {
         $loginError = 'Ungültiger Benutzername oder Passwort';

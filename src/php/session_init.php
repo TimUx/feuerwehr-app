@@ -37,9 +37,9 @@ function initSecureSession() {
         'lifetime' => 0,  // Session cookie (expires when browser closes)
         'path' => '/',
         'domain' => '',
-        'secure' => $isSecure,
+        'secure' => false,  // Allow both HTTP and HTTPS
         'httponly' => true,
-        'samesite' => 'Lax'
+        'samesite' => ''  // No SameSite restriction for maximum compatibility
     ]);
     
     // Set additional session settings before session_start()
