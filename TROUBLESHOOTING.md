@@ -20,7 +20,25 @@ http://ihre-domain.de/diagnose.php
 
 ## Häufige Probleme und Lösungen
 
-### 1. Config-Datei wurde nicht erstellt
+### 1. Session-Cookie-Parameter werden nicht korrekt gesetzt (PHP 8.5+)
+
+**Symptom:** Login funktioniert nicht, Benutzer wird immer wieder zum Login zurückgeleitet
+
+**Ursache:** 
+- Session-Cookies werden mit `HttpOnly` und anderen Sicherheitsparametern nicht korrekt gesetzt
+- Dies betrifft besonders PHP 8.5 und neuere Versionen
+
+**Lösung:**
+Dieses Problem wurde in Version (nach dem Fix) behoben. Die Anwendung verwendet jetzt `session_set_cookie_params()` statt `ini_set()`.
+
+Wenn Sie eine ältere Version verwenden:
+```bash
+git pull origin main
+```
+
+Weitere Details finden Sie in `LOGIN_FIX.md`.
+
+### 2. Config-Datei wurde nicht erstellt
 
 **Symptom:** `config/config.php` existiert nicht
 
@@ -40,7 +58,7 @@ sudo chmod 755 /pfad/zur/app/config
 # Besuchen Sie: http://ihre-domain.de/install.php
 ```
 
-### 2. Session-Probleme (häufigste Ursache)
+### 3. Session-Probleme (häufigste Ursache bei älteren Installationen)
 
 **Symptom:** Login schlägt fehl, obwohl config.php und users.json existieren
 
@@ -76,7 +94,7 @@ session.gc_probability = 1
 session.gc_divisor = 1000
 ```
 
-### 3. Entschlüsselungsfehler
+### 4. Entschlüsselungsfehler
 
 **Symptom:** users.json kann nicht entschlüsselt werden
 
@@ -93,7 +111,7 @@ rm -rf data/
 # Besuchen Sie: http://ihre-domain.de/install.php
 ```
 
-### 4. Falsche Dateiberechtigungen
+### 5. Falsche Dateiberechtigungen
 
 **Symptom:** Verschiedene Fehler beim Zugriff auf Dateien
 

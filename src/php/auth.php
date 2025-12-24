@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/encryption.php';
+require_once __DIR__ . '/session_init.php';
 
 /**
  * Authentication and Session Management
@@ -27,16 +28,8 @@ class Auth {
             mkdir(self::$dataDir, 0700, true);
         }
 
-        // Start session with secure settings
-        if (session_status() === PHP_SESSION_NONE) {
-            ini_set('session.cookie_httponly', 1);
-            // Only set secure cookie if HTTPS is actually enabled (not just set to 'off')
-            $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
-                       (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-            ini_set('session.cookie_secure', $isSecure ? 1 : 0);
-            ini_set('session.use_strict_mode', 1);
-            session_start();
-        }
+        // Start session with secure settings using shared function
+        initSecureSession();
         
         self::$initialized = true;
     }

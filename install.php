@@ -4,10 +4,10 @@
  * This wizard helps set up the application without requiring command-line access
  */
 
+require_once __DIR__ . '/src/php/session_init.php';
+
 // Start session at the beginning
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+initSecureSession();
 
 // Security: Prevent running if already installed
 $configFile = __DIR__ . '/config/config.php';

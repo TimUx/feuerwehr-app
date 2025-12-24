@@ -68,10 +68,12 @@ if ($debugMode) {
     debugLog("SAPI: " . php_sapi_name(), 'INFO');
 }
 
+require_once __DIR__ . '/src/php/session_init.php';
+
 // Start session
 if (session_status() === PHP_SESSION_NONE) {
     debugLog("Starting session...", 'INFO');
-    session_start();
+    initSecureSession();
     debugLog("Session started with ID: " . session_id(), 'INFO');
 } else {
     debugLog("Session already active with ID: " . session_id(), 'INFO');
