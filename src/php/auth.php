@@ -10,8 +10,17 @@ require_once __DIR__ . '/session_init.php';
 class Auth {
     private static $config;
     private static $dataDir;
+    private static $initialized = false;
 
     public static function init() {
+        // Initialize only once
+        if (self::$initialized) {
+            return;
+        }
+        
+        // Start secure session FIRST (before loading config)
+        initSecureSession();
+        
         // Load config if not already loaded
         if (self::$config === null) {
             self::$config = require __DIR__ . '/../../config/config.php';
@@ -23,8 +32,7 @@ class Auth {
             }
         }
         
-        // Start secure session
-        initSecureSession();
+        self::$initialized = true;
     }
 
     /**
@@ -38,16 +46,16 @@ class Auth {
         // Check credentials
         foreach ($users as $user) {
             if ($user['username'] === $username && password_verify($password, $user['password'])) {
-                // Clear any existing session data
-                session_regenerate_id(true);
-                
-                // Set new session data
+                // Set new session data FIRST
                 $_SESSION['authenticated'] = true;
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['login_time'] = time();
                 $_SESSION['last_activity'] = time();
+                
+                // Regenerate session ID (keep old session temporarily for safety)
+                session_regenerate_id(false);
                 
                 return true;
             }

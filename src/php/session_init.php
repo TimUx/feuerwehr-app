@@ -8,10 +8,19 @@
  * Initialize a secure PHP session
  */
 function initSecureSession() {
+    // Configure session save path BEFORE checking status
+    $sessionPath = '/tmp/php_sessions';
+    if (!file_exists($sessionPath)) {
+        mkdir($sessionPath, 0700, true);
+    }
+    
     // Only start session once
-    if (session_status() === PHP_SESSION_ACTIVE) {
+    if (session_status() !== PHP_SESSION_NONE) {
         return;
     }
+    
+    // Set session save path before any other session operations
+    session_save_path($sessionPath);
     
     // Detect HTTPS
     $isSecure = (

@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
     
     if (Auth::login($username, $password)) {
         // Login successful - redirect to home
+        // Session will be written automatically by PHP
         header('Location: /index.php');
         exit;
     } else {
