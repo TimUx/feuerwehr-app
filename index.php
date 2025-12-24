@@ -15,12 +15,25 @@ if (!file_exists(__DIR__ . '/config/config.php')) {
 // Initialize session
 Auth::init();
 
+// Helper function to build safe redirect URL
+function getSafeRedirectUrl($path) {
+    // Validate and sanitize HTTP_HOST to prevent Host header injection
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    // Remove any potentially malicious characters
+    $host = preg_replace('/[^a-zA-Z0-9.-:]/', '', $host);
+    // Ensure the host is reasonable (basic validation)
+    if (empty($host) || strlen($host) > 255) {
+        $host = $_SERVER['SERVER_NAME'] ?? 'localhost';
+    }
+    
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+    return "{$protocol}://{$host}{$path}";
+}
+
 // Handle logout
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     Auth::logout();
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'];
-    header("Location: {$protocol}://{$host}/index.php");
+    header('Location: ' . getSafeRedirectUrl('/index.php'));
     exit;
 }
 
@@ -31,10 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
     
     if (Auth::login($username, $password)) {
         // Login successful - redirect to home
-        // Use absolute URL to preserve hostname
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'];
-        header("Location: {$protocol}://{$host}/index.php");
+        header('Location: ' . getSafeRedirectUrl('/index.php'));
         exit;
     } else {
         $loginError = 'Ungültiger Benutzername oder Passwort';

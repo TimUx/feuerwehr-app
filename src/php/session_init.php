@@ -33,13 +33,17 @@ function initSecureSession() {
     session_name('FWAPP_SESSION');
     
     // Configure session parameters BEFORE starting the session
+    // NOTE: For production environments, consider:
+    // - Setting 'secure' => true when using HTTPS
+    // - Using 'samesite' => 'Lax' or 'Strict' with HTTPS
+    // - Implementing CSRF tokens in forms
     session_set_cookie_params([
         'lifetime' => 0,  // Session cookie (expires when browser closes)
         'path' => '/',
         'domain' => '',
-        'secure' => false,  // Allow both HTTP and HTTPS
+        'secure' => false,  // Allow both HTTP and HTTPS (set to true in production with HTTPS)
         'httponly' => true,
-        'samesite' => ''  // No SameSite restriction for maximum compatibility
+        'samesite' => ''  // No SameSite restriction for maximum compatibility (consider 'Lax' in production)
     ]);
     
     // Set additional session settings before session_start()
