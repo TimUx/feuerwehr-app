@@ -15,10 +15,25 @@ if (!file_exists(__DIR__ . '/config/config.php')) {
 // Initialize session
 Auth::init();
 
+// Helper function to build safe redirect URL
+function getSafeRedirectUrl($path) {
+    // Validate and sanitize HTTP_HOST to prevent Host header injection
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    // Remove any potentially malicious characters
+    $host = preg_replace('/[^a-zA-Z0-9.-:]/', '', $host);
+    // Ensure the host is reasonable (basic validation)
+    if (empty($host) || strlen($host) > 255) {
+        $host = $_SERVER['SERVER_NAME'] ?? 'localhost';
+    }
+    
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+    return "{$protocol}://{$host}{$path}";
+}
+
 // Handle logout
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     Auth::logout();
-    header('Location: /index.php');
+    header('Location: ' . getSafeRedirectUrl('/index.php'));
     exit;
 }
 
@@ -29,8 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
     
     if (Auth::login($username, $password)) {
         // Login successful - redirect to home
-        // Session will be written automatically by PHP
-        header('Location: /index.php');
+        header('Location: ' . getSafeRedirectUrl('/index.php'));
         exit;
     } else {
         $loginError = 'Ungültiger Benutzername oder Passwort';
@@ -87,7 +101,7 @@ $user = Auth::getUser();
                     <div class="alert alert-error"><?php echo htmlspecialchars($loginError); ?></div>
                 <?php endif; ?>
                 
-                <form method="POST" action="/index.php">
+                <form method="POST" action="index.php">
                     <div class="form-group">
                         <label class="form-label" for="username">Benutzername</label>
                         <input type="text" id="username" name="username" class="form-input" required autofocus>
@@ -124,7 +138,7 @@ $user = Auth::getUser();
                     <button id="theme-toggle" class="icon-btn" title="Design umschalten">
                         <span class="material-icons">dark_mode</span>
                     </button>
-                    <button class="icon-btn" onclick="window.location.href='/index.php?action=logout'" title="Abmelden">
+                    <button class="icon-btn" onclick="window.location.href='index.php?action=logout'" title="Abmelden">
                         <span class="material-icons">logout</span>
                     </button>
                 </div>
