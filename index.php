@@ -38,8 +38,7 @@ if ($page === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     
     if (Auth::login($username, $password)) {
-        // Ensure session is saved before redirect
-        session_write_close();
+        // Redirect to home page - session will be automatically saved by PHP
         header('Location: /index.php');
         exit;
     } else {
