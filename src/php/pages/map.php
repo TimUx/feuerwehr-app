@@ -56,8 +56,12 @@ $user = Auth::getUser();
 let map;
 let routingControl;
 
-// Initialize map
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize map immediately
+function initMap() {
+    if (map) {
+        map.remove(); // Clean up existing map
+    }
+    
     // Default center: Germany (can be customized)
     map = L.map('map').setView([50.9787, 9.7632], 13);
     
@@ -82,7 +86,10 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Geolocation error:', error);
         });
     }
-});
+}
+
+// Initialize map after a short delay to ensure DOM is ready
+setTimeout(initMap, 100);
 
 function calculateRoute() {
     const start = document.getElementById('routeStart').value;

@@ -152,7 +152,35 @@ class FeuerwehrApp {
       const response = await fetch(`/src/php/pages/${page}.php`);
       if (response.ok) {
         const html = await response.text();
-        mainContent.innerHTML = html;
+        
+        // Create a temporary container
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        
+        // Extract and execute scripts
+        const scripts = tempDiv.querySelectorAll('script');
+        const scriptContents = [];
+        scripts.forEach(script => {
+          scriptContents.push(script.textContent);
+          script.remove(); // Remove script from HTML
+        });
+        
+        // Set the HTML without scripts
+        mainContent.innerHTML = tempDiv.innerHTML;
+        
+        // Execute scripts in order
+        scriptContents.forEach(scriptContent => {
+          try {
+            const scriptEl = document.createElement('script');
+            scriptEl.textContent = scriptContent;
+            document.body.appendChild(scriptEl);
+            // Clean up
+            setTimeout(() => scriptEl.remove(), 0);
+          } catch (error) {
+            console.error('Error executing page script:', error);
+          }
+        });
+        
         this.setupEventListeners();
       } else {
         mainContent.innerHTML = '<div class="alert alert-error">Seite konnte nicht geladen werden.</div>';
