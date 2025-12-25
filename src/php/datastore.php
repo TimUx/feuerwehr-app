@@ -164,6 +164,7 @@ class DataStore {
             'location' => $data['location'],
             'type' => $data['type'],
             'radio_call_sign' => $data['radio_call_sign'],
+            'crew_size' => $data['crew_size'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
@@ -189,6 +190,9 @@ class DataStore {
                 }
                 if (isset($data['radio_call_sign'])) {
                     $vehicle['radio_call_sign'] = $data['radio_call_sign'];
+                }
+                if (isset($data['crew_size'])) {
+                    $vehicle['crew_size'] = $data['crew_size'];
                 }
                 $vehicle['updated_at'] = date('Y-m-d H:i:s');
                 
