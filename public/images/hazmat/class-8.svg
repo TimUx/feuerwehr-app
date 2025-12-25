@@ -1,29 +1,41 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
-  <!-- White background (top half) and Black background (bottom half) -->
-  <rect width="300" height="150" fill="white"/>
-  <rect y="150" width="300" height="150" fill="#000000"/>
-  <!-- Black border -->
-  <rect x="10" y="10" width="280" height="280" fill="none" stroke="black" stroke-width="6"/>
-  <!-- Liquid dripping on hand and metal -->
-  <!-- Test tube pouring -->
-  <g transform="translate(110,50)">
-    <rect x="0" y="0" width="25" height="45" fill="#000000" rx="5"/>
-    <rect x="3" y="3" width="19" height="35" fill="white"/>
-    <!-- Droplets -->
-    <ellipse cx="12" cy="50" rx="4" ry="6" fill="#000000"/>
-    <ellipse cx="12" cy="60" rx="4" ry="6" fill="#000000"/>
-  </g>
-  <!-- Hand -->
-  <g transform="translate(180,65)">
-    <rect x="-15" y="0" width="30" height="40" fill="#000000" rx="5"/>
-    <rect x="-12" y="3" width="24" height="32" fill="white"/>
-    <ellipse cx="0" cy="25" rx="6" ry="8" fill="#000000"/>
-  </g>
-  <!-- Metal bar -->
-  <g transform="translate(100,80)">
-    <rect x="0" y="0" width="80" height="15" fill="white"/>
-  </g>
-  <!-- Class number -->
-  <text x="150" y="270" text-anchor="middle" font-size="100" font-weight="bold" fill="white" font-family="Arial, sans-serif">8</text>
-</svg>
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Wikimedia Error</title>
+<style>
+* { margin: 0; padding: 0; }
+body { background: #fff; font: 15px/1.6 sans-serif; color: #333; }
+.content { margin: 7% auto 0; padding: 2em 1em 1em; max-width: 640px; display: flex; flex-direction: row; flex-wrap: wrap; }
+.footer { clear: both; margin-top: 14%; border-top: 1px solid #e5e5e5; background: #f9f9f9; padding: 2em 0; font-size: 0.8em; text-align: center; }
+img { margin: 0 2em 2em 0; }
+a img { border: 0; }
+h1 { margin-top: 1em; font-size: 1.2em; }
+.content-text { flex: 1; }
+p { margin: 0.7em 0 1em 0; }
+a { color: #0645ad; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: sans-serif; }
+summary { font-weight: bold; cursor: pointer; }
+details[open] { background: #970302; color: #dfdedd; }
+.text-muted { color: #777; }
+@media (prefers-color-scheme: dark) {
+  a { color: #9e9eff; }
+  body { background: transparent; color: #ddd; }
+  .footer { border-top: 1px solid #444; background: #060606; }
+  #logo { filter: invert(1) hue-rotate(180deg); }
+  .text-muted { color: #888; }
+}
+</style>
+<meta name="color-scheme" content="light dark">
+<div class="content" role="main">
+<a href="https://www.wikimedia.org"><img id="logo" src="https://www.wikimedia.org/static/images/wmf-logo.png" srcset="https://www.wikimedia.org/static/images/wmf-logo-2x.png 2x" alt="Wikimedia" width="135" height="101">
+</a>
+<div class="content-text">
+<h1>Error</h1>
+
+<p>Please set a proper user-agent and respect our robot policy https://w.wiki/4wJS. See also https://phabricator.wikimedia.org/T400119</p>
+</div>
+</div>
+<div class="footer"><p>If you report this error to the Wikimedia System Administrators, please include the details below.</p><p class="text-muted"><code>Request served via cp2027 cp2027, Varnish XID 375020942<br>Upstream caches: cp2027 int<br>Error: 429, Please set a proper user-agent and respect our robot policy https://w.wiki/4wJS. See also https://phabricator.wikimedia.org/T400119 at Thu, 25 Dec 2025 16:37:39 GMT<br><details><summary>Sensitive client information</summary>IP address: 172.212.163.20</details></code></p>
+</div>
+</html>
