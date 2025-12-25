@@ -128,34 +128,29 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
                 <?php endif; ?>
             </div>
             
-            <h3>Anzahl beteiligter Einsatzkräfte *</h3>
-            
-            <div class="form-group">
-                <label class="form-label" for="anzahl_einsatzkrafte">Anzahl beteiligter Einsatzkräfte</label>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <input type="range" id="anzahl_einsatzkrafte" name="anzahl_einsatzkrafte" min="1" max="20" value="1" class="form-range" style="flex: 1;">
-                    <span id="anzahl_einsatzkrafte_value" class="range-value">1</span>
-                </div>
-            </div>
-            
             <h3>Fahrzeugbesatzung *</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Für jedes ausgewählte Fahrzeug werden entsprechend der Besatzungsstärke Eingabefelder angezeigt.
+                Mindestens eine Zeile pro Fahrzeug muss ausgefüllt werden.
+            </p>
             
             <div id="crew-container">
-                <!-- Dynamic crew entries will be added here -->
+                <!-- Dynamic crew entries per vehicle will be added here -->
             </div>
             
-            <h3>Anzahl beteiligter Personen</h3>
+            <h3>Beteiligte Personen</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Fügen Sie beteiligte Personen hinzu (Verursacher, Geschädigte, Zeugen, etc.)
+            </p>
             
             <div class="form-group">
-                <label class="form-label" for="anzahl_beteiligter_personen">Anzahl beteiligter Personen?</label>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <input type="range" id="anzahl_beteiligter_personen" name="anzahl_beteiligter_personen" min="0" max="10" value="0" class="form-range" style="flex: 1;">
-                    <span id="anzahl_beteiligter_personen_value" class="range-value">0</span>
-                </div>
+                <button type="button" id="add-person-btn" class="btn btn-secondary">
+                    <span class="material-icons">add</span>
+                    Person hinzufügen
+                </button>
             </div>
             
-            <div id="persons-container" style="display: none;">
-                <h3>Beteiligte Personen</h3>
+            <div id="persons-container">
                 <!-- Dynamic person entries will be added here -->
             </div>
             
@@ -175,54 +170,60 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
 
 <style>
 .crew-entry, .person-entry {
-    background: var(--card-bg);
-    border: 2px solid #888;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color, #ddd);
     border-radius: 10px;
     padding: 15px;
     margin-bottom: 15px;
+    position: relative;
+}
+
+.vehicle-crew-section {
+    background: var(--bg-secondary);
+    border: 3px solid var(--primary-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 25px;
+}
+
+.vehicle-crew-section h4 {
+    color: var(--primary-color);
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vehicle-crew-section h4 .material-icons {
+    font-size: 28px;
+}
+
+.remove-person-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--danger-color, #dc3545);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+}
+
+.remove-person-btn:hover {
+    background: #c82333;
 }
 
 .form-row {
     display: flex;
     gap: 15px;
     flex-wrap: wrap;
-}
-
-.form-range {
-    -webkit-appearance: none;
-    appearance: none;
-    height: 10px;
-    border-radius: 5px;
-    background: #888;
-    outline: none;
-}
-
-.form-range::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #bb0000;
-    border: 4px solid #000;
-    cursor: pointer;
-}
-
-.form-range::-moz-range-thumb {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #bb0000;
-    border: 4px solid #000;
-    cursor: pointer;
-}
-
-.range-value {
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #bb0000;
-    min-width: 30px;
-    text-align: center;
 }
 </style>
 
@@ -258,155 +259,169 @@ document.getElementById('vehicle-custom').addEventListener('change', function() 
     if (!this.checked) {
         customInput.value = '';
     }
+    updateCrewSections();
 });
 
-// Handle anzahl einsatzkrafte range
-const crewRange = document.getElementById('anzahl_einsatzkrafte');
-const crewValue = document.getElementById('anzahl_einsatzkrafte_value');
-const crewContainer = document.getElementById('crew-container');
+document.getElementById('vehicle-custom-input').addEventListener('input', updateCrewSections);
 
-crewRange.addEventListener('input', function() {
-    crewValue.textContent = this.value;
-    updateCrewEntries(parseInt(this.value));
-});
-
-function updateCrewEntries(count) {
+// Update crew sections based on selected vehicles
+function updateCrewSections() {
+    const crewContainer = document.getElementById('crew-container');
+    const selectedVehicles = [];
+    
+    // Get all checked vehicles with their crew sizes
+    document.querySelectorAll('.vehicle-checkbox:checked').forEach(cb => {
+        if (cb.dataset.custom) {
+            const customValue = document.getElementById('vehicle-custom-input').value;
+            if (customValue) {
+                selectedVehicles.push({
+                    id: 'custom',
+                    type: customValue,
+                    crew_size: 6 // Default for custom
+                });
+            }
+        } else {
+            const vehicle = vehicles.find(v => v.type === cb.value);
+            if (vehicle) {
+                selectedVehicles.push({
+                    id: vehicle.id,
+                    type: vehicle.type,
+                    crew_size: parseInt(vehicle.crew_size) || 6
+                });
+            }
+        }
+    });
+    
+    // Clear existing
     crewContainer.innerHTML = '';
     
-    for (let i = 0; i < count; i++) {
-        const entry = document.createElement('div');
-        entry.className = 'crew-entry';
-        entry.innerHTML = `
-            <h4 style="margin-top: 0;">Einsatzkraft ${i + 1}</h4>
-            
-            <div class="form-group">
-                <label class="form-label">Funktion</label>
-                <select name="fahrzeugbesatzung[${i}][funktion]" class="form-select">
-                    <option value="">Funktion</option>
-                    ${functions.map(f => `<option value="${f}">${f}</option>`).join('')}
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Name</label>
-                <select name="fahrzeugbesatzung[${i}][name]" class="form-select">
-                    <option value="">Name</option>
-                    ${personnel.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Fahrzeug</label>
-                <select name="fahrzeugbesatzung[${i}][fahrzeug]" class="form-select vehicle-select">
-                    <option value="">Fahrzeug</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Verdienstausfall?</label>
-                <div class="form-check">
-                    <input type="checkbox" id="verdienstausfall_${i}" name="fahrzeugbesatzung[${i}][verdienstausfall]" value="ja" class="form-check-input">
-                    <label for="verdienstausfall_${i}" class="form-check-label">ja</label>
-                </div>
-            </div>
+    if (selectedVehicles.length === 0) {
+        crewContainer.innerHTML = '<p style="color: var(--text-secondary);">Bitte wählen Sie zuerst Fahrzeuge aus.</p>';
+        return;
+    }
+    
+    // Create section for each vehicle
+    selectedVehicles.forEach(vehicle => {
+        const section = document.createElement('div');
+        section.className = 'vehicle-crew-section';
+        section.dataset.vehicleId = vehicle.id;
+        
+        let sectionHTML = `
+            <h4>
+                <span class="material-icons">local_shipping</span>
+                ${vehicle.type} <span style="font-weight: normal; font-size: 0.9em;">(Besatzung: ${vehicle.crew_size})</span>
+            </h4>
         `;
-        crewContainer.appendChild(entry);
-    }
-    
-    updateVehicleSelects();
-}
-
-// Update vehicle select options based on checked vehicles
-function updateVehicleSelects() {
-    const checkedVehicles = Array.from(document.querySelectorAll('.vehicle-checkbox:checked'))
-        .filter(cb => !cb.dataset.custom)
-        .map(cb => cb.value);
-    
-    const customVehicle = document.getElementById('vehicle-custom-input').value;
-    if (customVehicle && document.getElementById('vehicle-custom').checked) {
-        checkedVehicles.push(customVehicle);
-    }
-    
-    document.querySelectorAll('.vehicle-select').forEach(select => {
-        const currentValue = select.value;
-        select.innerHTML = '<option value="">Fahrzeug</option>' +
-            checkedVehicles.map(v => `<option value="${v}" ${v === currentValue ? 'selected' : ''}>${v}</option>`).join('');
+        
+        // Create crew member entries
+        for (let i = 0; i < vehicle.crew_size; i++) {
+            sectionHTML += `
+                <div class="crew-entry">
+                    <h5 style="margin-top: 0;">Einsatzkraft ${i + 1}</h5>
+                    <input type="hidden" name="fahrzeugbesatzung[${vehicle.id}_${i}][fahrzeug]" value="${vehicle.type}">
+                    
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label class="form-label">Funktion</label>
+                            <select name="fahrzeugbesatzung[${vehicle.id}_${i}][funktion]" class="form-select">
+                                <option value="">Funktion wählen</option>
+                                ${functions.map(f => `<option value="${f}">${f}</option>`).join('')}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label class="form-label">Name</label>
+                            <select name="fahrzeugbesatzung[${vehicle.id}_${i}][name]" class="form-select">
+                                <option value="">Name wählen</option>
+                                ${personnel.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" style="flex: 0 0 150px;">
+                            <label class="form-label">Verdienstausfall?</label>
+                            <div class="form-check">
+                                <input type="checkbox" id="verdienstausfall_${vehicle.id}_${i}" name="fahrzeugbesatzung[${vehicle.id}_${i}][verdienstausfall]" value="ja" class="form-check-input">
+                                <label for="verdienstausfall_${vehicle.id}_${i}" class="form-check-label">ja</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        section.innerHTML = sectionHTML;
+        crewContainer.appendChild(section);
     });
 }
 
-// Listen for changes in vehicle checkboxes
+// Listen for vehicle checkbox changes
 document.querySelectorAll('.vehicle-checkbox').forEach(cb => {
-    cb.addEventListener('change', updateVehicleSelects);
+    cb.addEventListener('change', updateCrewSections);
 });
 
-document.getElementById('vehicle-custom-input').addEventListener('input', updateVehicleSelects);
+// Beteiligte Personen - Add/Remove functionality
+let personCounter = 0;
 
-// Handle anzahl beteiligter personen range
-const personsRange = document.getElementById('anzahl_beteiligter_personen');
-const personsValue = document.getElementById('anzahl_beteiligter_personen_value');
-const personsContainer = document.getElementById('persons-container');
-
-personsRange.addEventListener('input', function() {
-    personsValue.textContent = this.value;
-    const count = parseInt(this.value);
-    
-    if (count > 0) {
-        personsContainer.style.display = 'block';
-        updatePersonEntries(count);
-    } else {
-        personsContainer.style.display = 'none';
-    }
+document.getElementById('add-person-btn').addEventListener('click', function() {
+    addPersonEntry();
 });
 
-function updatePersonEntries(count) {
-    const container = personsContainer.querySelector('div') || (() => {
-        const div = document.createElement('div');
-        personsContainer.appendChild(div);
-        return div;
-    })();
+function addPersonEntry() {
+    const personsContainer = document.getElementById('persons-container');
+    const entry = document.createElement('div');
+    entry.className = 'person-entry';
+    entry.dataset.personId = personCounter;
     
-    container.innerHTML = '';
-    
-    for (let i = 0; i < count; i++) {
-        const entry = document.createElement('div');
-        entry.className = 'person-entry';
-        entry.innerHTML = `
-            <h4 style="margin-top: 0;">Person ${i + 1}</h4>
-            
-            <div class="form-group">
-                <label class="form-label">Beteiligungsart</label>
-                <select name="beteiligte_personen[${i}][beteiligungsart]" class="form-select">
+    entry.innerHTML = `
+        <button type="button" class="remove-person-btn" onclick="removePersonEntry(${personCounter})" title="Entfernen">
+            <span class="material-icons" style="font-size: 20px;">close</span>
+        </button>
+        
+        <h4 style="margin-top: 0;">Person ${personCounter + 1}</h4>
+        
+        <div class="form-row">
+            <div class="form-group" style="flex: 1; min-width: 200px;">
+                <label class="form-label">Beteiligungsart *</label>
+                <select name="beteiligte_personen[${personCounter}][beteiligungsart]" class="form-select" required>
                     <option value="">Wählen...</option>
                     ${involvementTypes.map(t => `<option value="${t}">${t}</option>`).join('')}
                 </select>
             </div>
             
-            <div class="form-group">
-                <label class="form-label">Name</label>
-                <input type="text" name="beteiligte_personen[${i}][name]" class="form-input">
+            <div class="form-group" style="flex: 1; min-width: 200px;">
+                <label class="form-label">Name *</label>
+                <input type="text" name="beteiligte_personen[${personCounter}][name]" class="form-input" required>
             </div>
-            
-            <div class="form-group">
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group" style="flex: 1; min-width: 200px;">
                 <label class="form-label">Telefonnummer</label>
-                <input type="tel" name="beteiligte_personen[${i}][telefonnummer]" class="form-input">
+                <input type="tel" name="beteiligte_personen[${personCounter}][telefonnummer]" class="form-input">
             </div>
             
-            <div class="form-group">
-                <label class="form-label">Adresse</label>
-                <textarea name="beteiligte_personen[${i}][adresse]" class="form-textarea" rows="2"></textarea>
-            </div>
-            
-            <div class="form-group">
+            <div class="form-group" style="flex: 1; min-width: 200px;">
                 <label class="form-label">KFZ-Kennzeichen</label>
-                <input type="text" name="beteiligte_personen[${i}][kfz_kennzeichen]" class="form-input">
+                <input type="text" name="beteiligte_personen[${personCounter}][kfz_kennzeichen]" class="form-input">
             </div>
-        `;
-        container.appendChild(entry);
-    }
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Adresse</label>
+            <textarea name="beteiligte_personen[${personCounter}][adresse]" class="form-textarea" rows="2"></textarea>
+        </div>
+    `;
+    
+    personsContainer.appendChild(entry);
+    personCounter++;
 }
 
-// Initialize with 1 crew member
-updateCrewEntries(1);
+function removePersonEntry(id) {
+    const entry = document.querySelector(`.person-entry[data-person-id="${id}"]`);
+    if (entry) {
+        entry.remove();
+    }
+}
 
 // Form submission
 document.getElementById('mission-report-form').addEventListener('submit', async (e) => {
@@ -416,6 +431,31 @@ document.getElementById('mission-report-form').addEventListener('submit', async 
     const vehiclesChecked = document.querySelectorAll('.vehicle-checkbox:checked').length;
     if (vehiclesChecked === 0) {
         window.feuerwehrApp.showAlert('error', 'Bitte wählen Sie mindestens ein Fahrzeug aus.');
+        return;
+    }
+    
+    // Validate at least one crew member per vehicle
+    const vehicleSections = document.querySelectorAll('.vehicle-crew-section');
+    let hasAllCrewMembers = true;
+    
+    vehicleSections.forEach(section => {
+        const entries = section.querySelectorAll('.crew-entry');
+        let hasAtLeastOne = false;
+        
+        entries.forEach(entry => {
+            const nameSelect = entry.querySelector('select[name*="[name]"]');
+            if (nameSelect && nameSelect.value) {
+                hasAtLeastOne = true;
+            }
+        });
+        
+        if (!hasAtLeastOne) {
+            hasAllCrewMembers = false;
+        }
+    });
+    
+    if (!hasAllCrewMembers) {
+        window.feuerwehrApp.showAlert('error', 'Bitte füllen Sie mindestens eine Einsatzkraft pro Fahrzeug aus.');
         return;
     }
     
@@ -433,12 +473,9 @@ document.getElementById('mission-report-form').addEventListener('submit', async 
             window.feuerwehrApp.showAlert('success', result.message);
             e.target.reset();
             document.getElementById('einsatzdatum').valueAsDate = new Date();
-            crewRange.value = 1;
-            crewValue.textContent = '1';
-            personsRange.value = 0;
-            personsValue.textContent = '0';
-            updateCrewEntries(1);
-            personsContainer.style.display = 'none';
+            document.getElementById('crew-container').innerHTML = '<p style="color: var(--text-secondary);">Bitte wählen Sie zuerst Fahrzeuge aus.</p>';
+            document.getElementById('persons-container').innerHTML = '';
+            personCounter = 0;
         } else {
             window.feuerwehrApp.showAlert('error', result.message);
         }
@@ -447,4 +484,7 @@ document.getElementById('mission-report-form').addEventListener('submit', async 
         window.feuerwehrApp.showAlert('error', 'Fehler beim Absenden des Berichts');
     }
 });
+
+// Initialize
+updateCrewSections();
 </script>
