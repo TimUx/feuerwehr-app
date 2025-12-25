@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <!-- Yellow background -->
+  <rect width="300" height="300" fill="#FFD700"/>
+  <!-- Black border -->
+  <rect x="10" y="10" width="280" height="280" fill="none" stroke="black" stroke-width="6"/>
+  <!-- Circle with flame (oxidizing symbol) -->
+  <circle cx="150" cy="100" r="35" fill="none" stroke="#000000" stroke-width="8"/>
+  <!-- Flame above circle -->
+  <path d="M150,140 L158,155 L156,168 L162,178 L160,192 L158,202 L150,205 L142,202 L140,192 L143,182 L141,172 L147,162 L144,152 L148,145 Z" fill="#000000"/>
+  <!-- Class number -->
+  <text x="150" y="270" text-anchor="middle" font-size="100" font-weight="bold" fill="#000000" font-family="Arial, sans-serif">5</text>
+</svg>

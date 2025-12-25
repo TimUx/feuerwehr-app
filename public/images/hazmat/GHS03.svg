@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- White background -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="white"/>
+  <!-- Red border -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="none" stroke="#C1272D" stroke-width="25"/>
+  <!-- Circle with flame (oxidizing symbol) -->
+  <circle cx="256" cy="180" r="50" fill="none" stroke="#000000" stroke-width="12"/>
+  <!-- Flame above circle -->
+  <path d="M256,280 L270,300 L265,320 L275,335 L270,355 L265,370 L250,375 L235,370 L230,355 L235,340 L230,325 L240,310 L235,295 L245,285 L256,280 Z" fill="#000000"/>
+</svg>

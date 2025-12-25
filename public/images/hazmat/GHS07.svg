@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- White background -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="white"/>
+  <!-- Red border -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="none" stroke="#C1272D" stroke-width="25"/>
+  <!-- Exclamation mark -->
+  <rect x="236" y="140" width="40" height="160" rx="8" fill="#000000"/>
+  <circle cx="256" cy="340" r="25" fill="#000000"/>
+</svg>

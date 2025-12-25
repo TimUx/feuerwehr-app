@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <!-- Red and white stripes background -->
+  <rect width="300" height="300" fill="#FF0000"/>
+  <rect x="0" y="0" width="300" height="50" fill="white"/>
+  <rect x="0" y="100" width="300" height="50" fill="white"/>
+  <rect x="0" y="200" width="300" height="50" fill="white"/>
+  <!-- White border -->
+  <rect x="10" y="10" width="280" height="280" fill="none" stroke="black" stroke-width="6"/>
+  <!-- Flame symbol -->
+  <path d="M150,80 L160,95 L158,110 L165,120 L163,140 L160,150 L150,155 L140,150 L137,140 L140,130 L138,120 L145,110 L142,100 L148,90 Z" fill="#000000"/>
+  <!-- Class number -->
+  <text x="150" y="260" text-anchor="middle" font-size="100" font-weight="bold" fill="#000000" font-family="Arial, sans-serif">4</text>
+</svg>

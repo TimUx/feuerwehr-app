@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <!-- White background -->
+  <rect width="300" height="300" fill="white"/>
+  <!-- Black border -->
+  <rect x="10" y="10" width="280" height="280" fill="none" stroke="black" stroke-width="6"/>
+  <!-- Skull and crossbones -->
+  <!-- Skull -->
+  <ellipse cx="150" cy="110" rx="40" ry="45" fill="#000000"/>
+  <!-- Eye sockets -->
+  <ellipse cx="135" cy="105" rx="12" ry="15" fill="white"/>
+  <ellipse cx="165" cy="105" rx="12" ry="15" fill="white"/>
+  <!-- Nose -->
+  <path d="M150,125 L143,135 L150,138 L157,135 Z" fill="white"/>
+  <!-- Crossbones -->
+  <rect x="100" y="165" width="100" height="18" rx="9" fill="#000000" transform="rotate(30 150 174)"/>
+  <rect x="100" y="165" width="100" height="18" rx="9" fill="#000000" transform="rotate(-30 150 174)"/>
+  <!-- Class number -->
+  <text x="150" y="270" text-anchor="middle" font-size="100" font-weight="bold" fill="#000000" font-family="Arial, sans-serif">6</text>
+</svg>

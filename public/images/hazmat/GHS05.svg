@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- White background -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="white"/>
+  <!-- Red border -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="none" stroke="#C1272D" stroke-width="25"/>
+  <!-- Corrosion symbol - hand and metal bar being corroded -->
+  <!-- Metal bar -->
+  <rect x="140" y="180" width="90" height="140" fill="#000000" transform="skewX(-10)"/>
+  <circle cx="165" cy="240" r="15" fill="white"/>
+  <path d="M160,280 Q165,285 170,280" stroke="white" stroke-width="3" fill="none"/>
+  <!-- Test tube pouring liquid -->
+  <path d="M280,140 L320,140 L330,200 L340,250 L320,280 L300,290 L280,280 L270,250 L275,200 Z" fill="#000000"/>
+  <!-- Droplets -->
+  <circle cx="300" cy="300" r="8" fill="#000000"/>
+  <circle cx="190" cy="200" r="8" fill="#000000"/>
+  <circle cx="200" cy="240" r="8" fill="#000000"/>
+</svg>

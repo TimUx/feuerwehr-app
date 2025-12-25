@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- White background -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="white"/>
+  <!-- Red border -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="none" stroke="#C1272D" stroke-width="25"/>
+  <!-- Dead tree and fish (environment) -->
+  <!-- Dead tree trunk -->
+  <rect x="180" y="240" width="30" height="120" fill="#000000"/>
+  <!-- Dead branches -->
+  <line x1="195" y1="260" x2="160" y2="240" stroke="#000000" stroke-width="12" stroke-linecap="round"/>
+  <line x1="195" y1="280" x2="230" y2="260" stroke="#000000" stroke-width="12" stroke-linecap="round"/>
+  <line x1="195" y1="300" x2="165" y2="300" stroke="#000000" stroke-width="12" stroke-linecap="round"/>
+  <!-- Dead fish -->
+  <ellipse cx="310" cy="230" rx="45" ry="25" fill="#000000"/>
+  <path d="M355,230 L375,215 L375,245 Z" fill="#000000"/>
+  <circle cx="295" cy="225" r="5" fill="white"/>
+  <line x1="290" y1="240" x2="330" y2="240" stroke="white" stroke-width="3"/>
+</svg>

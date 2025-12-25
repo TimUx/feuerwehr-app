@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <!-- Red background -->
+  <rect width="300" height="300" fill="#FF0000"/>
+  <!-- White border -->
+  <rect x="10" y="10" width="280" height="280" fill="none" stroke="white" stroke-width="6"/>
+  <!-- Flame symbol -->
+  <path d="M150,60 L165,80 L160,105 L175,125 L170,155 L165,170 L150,180 L135,170 L130,155 L135,140 L130,125 L145,110 L140,90 L150,70 Z M140,110 L145,125 L140,140 L135,130 L140,110 Z M165,120 L160,135 L165,150 L170,140 L165,120 Z" fill="white"/>
+  <!-- Class number -->
+  <text x="150" y="260" text-anchor="middle" font-size="100" font-weight="bold" fill="white" font-family="Arial, sans-serif">3</text>
+</svg>

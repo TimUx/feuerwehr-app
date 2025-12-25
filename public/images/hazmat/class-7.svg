@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <!-- Yellow background -->
+  <rect width="300" height="300" fill="#FFD700"/>
+  <!-- Black border -->
+  <rect x="10" y="10" width="280" height="280" fill="none" stroke="black" stroke-width="6"/>
+  <!-- Trefoil radiation symbol -->
+  <g transform="translate(150,130)">
+    <circle cx="0" cy="0" r="20" fill="#000000"/>
+    <!-- Three blades -->
+    <path d="M0,-20 Q-15,-50 -30,-70 L-20,-80 Q0,-60 15,-50 Q5,-30 0,-20 Z" fill="#000000"/>
+    <path d="M17.3,-10 Q30,-40 60,-52 L65,-40 Q40,-30 25,-10 Q20,5 17.3,-10 Z" fill="#000000" transform="rotate(120 0 0)"/>
+    <path d="M17.3,-10 Q30,-40 60,-52 L65,-40 Q40,-30 25,-10 Q20,5 17.3,-10 Z" fill="#000000" transform="rotate(240 0 0)"/>
+  </g>
+  <!-- Class number -->
+  <text x="150" y="270" text-anchor="middle" font-size="100" font-weight="bold" fill="#000000" font-family="Arial, sans-serif">7</text>
+</svg>

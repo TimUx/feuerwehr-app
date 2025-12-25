@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- White background -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="white"/>
+  <!-- Red border -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="none" stroke="#C1272D" stroke-width="25"/>
+  <!-- Human silhouette with health hazard indication -->
+  <!-- Head -->
+  <circle cx="256" cy="160" r="35" fill="#000000"/>
+  <!-- Torso -->
+  <ellipse cx="256" cy="260" rx="55" ry="70" fill="#000000"/>
+  <!-- Star burst inside torso (health hazard) -->
+  <circle cx="240" cy="250" r="15" fill="white"/>
+  <circle cx="272" cy="250" r="15" fill="white"/>
+  <!-- Arms -->
+  <ellipse cx="200" cy="240" rx="20" ry="55" fill="#000000" transform="rotate(-20 200 240)"/>
+  <ellipse cx="312" cy="240" rx="20" ry="55" fill="#000000" transform="rotate(20 312 240)"/>
+  <!-- Legs -->
+  <ellipse cx="236" cy="345" rx="18" ry="60" fill="#000000"/>
+  <ellipse cx="276" cy="345" rx="18" ry="60" fill="#000000"/>
+</svg>

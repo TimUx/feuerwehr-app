@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- White background -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="white"/>
+  <!-- Red border -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="none" stroke="#C1272D" stroke-width="25"/>
+  <!-- Flame symbol -->
+  <path d="M256,120 L280,150 L270,180 L290,200 L280,240 L300,260 L280,300 L260,320 L240,340 L220,350 L200,340 L180,320 L170,290 L160,270 L180,240 L170,220 L190,190 L180,170 L200,150 L220,140 L240,130 L256,120 Z M230,200 L240,220 L230,240 L220,230 L230,200 Z M280,220 L270,240 L280,260 L290,250 L280,220 Z" fill="#000000"/>
+</svg>

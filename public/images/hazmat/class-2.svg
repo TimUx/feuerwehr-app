@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <!-- Red or green background (using red for flammable gases) -->
+  <rect width="300" height="300" fill="#FF0000"/>
+  <!-- White border -->
+  <rect x="10" y="10" width="280" height="280" fill="none" stroke="white" stroke-width="6"/>
+  <!-- Gas cylinder symbol -->
+  <g transform="translate(150,120)">
+    <rect x="-35" y="-60" width="70" height="120" rx="10" fill="white"/>
+    <circle cx="0" cy="-50" r="15" fill="white"/>
+  </g>
+  <!-- Class number -->
+  <text x="150" y="260" text-anchor="middle" font-size="100" font-weight="bold" fill="white" font-family="Arial, sans-serif">2</text>
+</svg>

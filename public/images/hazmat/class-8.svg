@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <!-- White background (top half) and Black background (bottom half) -->
+  <rect width="300" height="150" fill="white"/>
+  <rect y="150" width="300" height="150" fill="#000000"/>
+  <!-- Black border -->
+  <rect x="10" y="10" width="280" height="280" fill="none" stroke="black" stroke-width="6"/>
+  <!-- Liquid dripping on hand and metal -->
+  <!-- Test tube pouring -->
+  <g transform="translate(110,50)">
+    <rect x="0" y="0" width="25" height="45" fill="#000000" rx="5"/>
+    <rect x="3" y="3" width="19" height="35" fill="white"/>
+    <!-- Droplets -->
+    <ellipse cx="12" cy="50" rx="4" ry="6" fill="#000000"/>
+    <ellipse cx="12" cy="60" rx="4" ry="6" fill="#000000"/>
+  </g>
+  <!-- Hand -->
+  <g transform="translate(180,65)">
+    <rect x="-15" y="0" width="30" height="40" fill="#000000" rx="5"/>
+    <rect x="-12" y="3" width="24" height="32" fill="white"/>
+    <ellipse cx="0" cy="25" rx="6" ry="8" fill="#000000"/>
+  </g>
+  <!-- Metal bar -->
+  <g transform="translate(100,80)">
+    <rect x="0" y="0" width="80" height="15" fill="white"/>
+  </g>
+  <!-- Class number -->
+  <text x="150" y="270" text-anchor="middle" font-size="100" font-weight="bold" fill="white" font-family="Arial, sans-serif">8</text>
+</svg>

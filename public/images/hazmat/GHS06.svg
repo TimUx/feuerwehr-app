@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- White background -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="white"/>
+  <!-- Red border -->
+  <path d="M256,25 L487,256 L256,487 L25,256 Z" fill="none" stroke="#C1272D" stroke-width="25"/>
+  <!-- Skull and crossbones -->
+  <!-- Skull -->
+  <ellipse cx="256" cy="200" rx="70" ry="80" fill="#000000"/>
+  <!-- Eye sockets -->
+  <ellipse cx="235" cy="190" rx="20" ry="25" fill="white"/>
+  <ellipse cx="277" cy="190" rx="20" ry="25" fill="white"/>
+  <!-- Nose -->
+  <path d="M256,220 L245,235 L256,240 L267,235 Z" fill="white"/>
+  <!-- Crossbones -->
+  <rect x="180" y="295" width="152" height="30" rx="15" fill="#000000" transform="rotate(30 256 310)"/>
+  <rect x="180" y="295" width="152" height="30" rx="15" fill="#000000" transform="rotate(-30 256 310)"/>
+</svg>
