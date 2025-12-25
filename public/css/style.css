@@ -655,8 +655,9 @@ body {
     justify-content: center;
     gap: 0.75rem;
     padding: 2rem 1rem;
-    background: var(--bg-card);
-    border: 2px solid var(--border-color);
+    background: var(--primary-color);
+    color: white;
+    border: 2px solid var(--primary-dark);
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -666,8 +667,8 @@ body {
 
 .menu-button:hover:not(:disabled) {
     transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(220, 38, 38, 0.2);
-    border-color: var(--primary-color);
+    box-shadow: 0 6px 12px rgba(220, 38, 38, 0.3);
+    background: var(--primary-dark);
 }
 
 .menu-button:active:not(:disabled) {
@@ -676,33 +677,36 @@ body {
 
 .menu-button .material-icons {
     font-size: 48px;
-    color: var(--primary-color);
+    color: white;
 }
 
 .menu-button-text {
     font-size: 1rem;
     font-weight: 500;
-    color: var(--text-primary);
+    color: white;
     text-align: center;
     line-height: 1.3;
 }
 
 .menu-button-admin {
-    border-color: var(--info-color);
+    background: var(--info-color);
+    border-color: #1976d2;
 }
 
 .menu-button-admin .material-icons {
-    color: var(--info-color);
+    color: white;
 }
 
 .menu-button-admin:hover:not(:disabled) {
-    border-color: var(--info-color);
-    box-shadow: 0 6px 12px rgba(59, 130, 246, 0.2);
+    background: #1976d2;
+    border-color: #1565c0;
+    box-shadow: 0 6px 12px rgba(59, 130, 246, 0.3);
 }
 
 .menu-button-disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    background: var(--bg-secondary);
 }
 
 .menu-button-disabled .material-icons,
@@ -1014,24 +1018,12 @@ body {
     border-radius: 12px;
     padding: 1rem;
     text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.hazmat-symbol {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    border: 3px solid #000;
-    background: white;
-    transform: rotate(45deg);
-}
-
-.hazmat-symbol .symbol-text {
-    font-size: 2.5rem;
-    transform: rotate(-45deg);
+.hazmat-symbol-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
 }
 
 .hazmat-symbol-card h4 {
@@ -1044,6 +1036,20 @@ body {
     color: var(--text-secondary);
     font-size: 0.85rem;
     line-height: 1.4;
+}
+
+.ghs-pictogram {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 1rem;
+    display: block;
+}
+
+.ghs-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    font-style: italic;
 }
 
 /* ADR Classes Section */
@@ -1244,4 +1250,40 @@ body {
     .menu-button {
         aspect-ratio: auto;
     }
+}
+
+/* Filter Controls */
+.filter-controls {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.filter-controls .form-group {
+    margin: 0;
+}
+
+.filter-controls .form-input {
+    height: 40px;
+}
+
+/* Search Box */
+.search-box {
+    margin-bottom: 1.5rem;
+}
+
+.search-box .form-input {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+}
+
+/* Sortable Table Headers */
+.table th[onclick] {
+    user-select: none;
+    background-color: var(--bg-secondary);
+}
+
+.table th[onclick]:hover {
+    background-color: var(--border-color);
 }

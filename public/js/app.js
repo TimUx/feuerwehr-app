@@ -4,6 +4,7 @@ class FeuerwehrApp {
   constructor() {
     this.currentPage = 'home';
     this.theme = localStorage.getItem('theme') || 'light';
+    this.deferredPrompt = null;
     this.init();
   }
 
@@ -12,6 +13,7 @@ class FeuerwehrApp {
     this.setupTheme();
     this.setupNavigation();
     this.setupEventListeners();
+    this.setupPWAInstall();
     
     // Load the home page on initialization
     this.loadPage(this.currentPage);
@@ -28,6 +30,53 @@ class FeuerwehrApp {
           console.error('Service Worker registration failed:', error);
         });
     }
+  }
+
+  // PWA Install Prompt
+  setupPWAInstall() {
+    const installBtn = document.getElementById('install-btn');
+    
+    if (!installBtn) return;
+
+    // Listen for the beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      this.deferredPrompt = e;
+      // Show the install button
+      installBtn.style.display = 'block';
+    });
+
+    // Handle install button click
+    installBtn.addEventListener('click', async () => {
+      if (!this.deferredPrompt) {
+        return;
+      }
+
+      // Show the install prompt
+      this.deferredPrompt.prompt();
+      
+      // Wait for the user to respond to the prompt
+      const { outcome } = await this.deferredPrompt.userChoice;
+      
+      console.log(`User response to the install prompt: ${outcome}`);
+      
+      // Clear the deferredPrompt
+      this.deferredPrompt = null;
+      
+      // Hide the install button
+      installBtn.style.display = 'none';
+    });
+
+    // Listen for the appinstalled event
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA was installed');
+      // Hide the install button
+      installBtn.style.display = 'none';
+      // Clear the deferredPrompt
+      this.deferredPrompt = null;
+    });
   }
 
   // Theme Management
@@ -103,7 +152,35 @@ class FeuerwehrApp {
       const response = await fetch(`/src/php/pages/${page}.php`);
       if (response.ok) {
         const html = await response.text();
-        mainContent.innerHTML = html;
+        
+        // Create a temporary container
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        
+        // Extract and execute scripts
+        const scripts = tempDiv.querySelectorAll('script');
+        const scriptContents = [];
+        scripts.forEach(script => {
+          scriptContents.push(script.textContent);
+          script.remove(); // Remove script from HTML
+        });
+        
+        // Set the HTML without scripts
+        mainContent.innerHTML = tempDiv.innerHTML;
+        
+        // Execute scripts in order
+        scriptContents.forEach(scriptContent => {
+          try {
+            const scriptEl = document.createElement('script');
+            scriptEl.textContent = scriptContent;
+            document.body.appendChild(scriptEl);
+            // Clean up immediately after execution
+            document.body.removeChild(scriptEl);
+          } catch (error) {
+            console.error('Error executing page script:', error);
+          }
+        });
+        
         this.setupEventListeners();
       } else {
         mainContent.innerHTML = '<div class="alert alert-error">Seite konnte nicht geladen werden.</div>';
