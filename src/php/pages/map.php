@@ -46,17 +46,35 @@ $user = Auth::getUser();
 </div>
 
 <!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+      crossorigin=""/>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<!-- Leaflet Routing Machine CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
+<!-- Leaflet Routing Machine JavaScript -->
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
 <script>
 let map;
 let routingControl;
 
-// Initialize map immediately
+// Wait for Leaflet to be available before initializing
+function waitForLeaflet(callback) {
+    if (typeof L !== 'undefined') {
+        callback();
+    } else {
+        setTimeout(() => waitForLeaflet(callback), 100);
+    }
+}
+
+// Initialize map
 function initMap() {
     if (map) {
         map.remove(); // Clean up existing map
@@ -88,10 +106,15 @@ function initMap() {
     }
 }
 
-// Initialize map after a short delay to ensure DOM is ready
-setTimeout(initMap, 100);
+// Initialize map after scripts are loaded
+waitForLeaflet(initMap);
 
 function calculateRoute() {
+    if (typeof L === 'undefined' || typeof L.Routing === 'undefined') {
+        alert('Karte wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.');
+        return;
+    }
+    
     const start = document.getElementById('routeStart').value;
     const end = document.getElementById('routeEnd').value;
     
