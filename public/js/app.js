@@ -174,8 +174,8 @@ class FeuerwehrApp {
             const scriptEl = document.createElement('script');
             scriptEl.textContent = scriptContent;
             document.body.appendChild(scriptEl);
-            // Clean up
-            setTimeout(() => scriptEl.remove(), 0);
+            // Clean up immediately after execution
+            document.body.removeChild(scriptEl);
           } catch (error) {
             console.error('Error executing page script:', error);
           }

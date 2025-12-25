@@ -236,8 +236,8 @@ document.getElementById('filterType')?.addEventListener('change', filterVehicles
 
 function filterVehicles() {
     const searchTerm = document.getElementById('searchVehicles')?.value.toLowerCase() || '';
-    const locationFilter = document.getElementById('filterLocation')?.value || '';
-    const typeFilter = document.getElementById('filterType')?.value || '';
+    const locationFilter = document.getElementById('filterLocation')?.value.toLowerCase() || '';
+    const typeFilter = document.getElementById('filterType')?.value.toLowerCase() || '';
     
     const rows = document.querySelectorAll('#vehiclesTableBody tr');
     
@@ -247,8 +247,8 @@ function filterVehicles() {
         const radio = row.dataset.radio?.toLowerCase() || '';
         
         const matchesSearch = !searchTerm || type.includes(searchTerm) || radio.includes(searchTerm);
-        const matchesLocation = !locationFilter || row.dataset.location === locationFilter;
-        const matchesType = !typeFilter || row.dataset.type === typeFilter;
+        const matchesLocation = !locationFilter || location === locationFilter;
+        const matchesType = !typeFilter || type === typeFilter;
         
         if (matchesSearch && matchesLocation && matchesType) {
             row.style.display = '';

@@ -20,7 +20,8 @@ function getSafeRedirectUrl($path) {
     // Validate and sanitize HTTP_HOST to prevent Host header injection
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     // Remove any potentially malicious characters (allow alphanumeric, dots, hyphens, colons for port)
-    $host = preg_replace('/[^a-zA-Z0-9.\-:]/', '', $host);
+    // Hyphen at the end of character class to avoid being interpreted as range
+    $host = preg_replace('/[^a-zA-Z0-9.:-]/', '', $host);
     // Ensure the host is reasonable (basic validation)
     if (empty($host) || strlen($host) > 255) {
         $host = $_SERVER['SERVER_NAME'] ?? 'localhost';
