@@ -111,7 +111,7 @@ waitForLeaflet(initMap);
 
 function calculateRoute() {
     if (typeof L === 'undefined' || typeof L.Routing === 'undefined') {
-        alert('Karte wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.');
+        alert('Die Karte wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.');
         return;
     }
     

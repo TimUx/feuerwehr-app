@@ -288,6 +288,8 @@ function updateHazardSummary() {
 }
 
 function updateHazardMatrix() {
+    // Update the hazard matrix table based on selected hazards
+    // Shows which hazards affect which entities (Menschen, Tiere, etc.)
     const activeHazards = document.querySelectorAll('.hazard-item.active');
     const tableContainer = document.getElementById('hazardMatrixTableContainer');
     
@@ -300,6 +302,7 @@ function updateHazardMatrix() {
     tableContainer.style.display = 'block';
     
     // Map hazard items to their data-item values
+    // These correspond to the data-hazard attributes in the table columns
     const activeHazardItems = new Set();
     activeHazards.forEach(item => {
         activeHazardItems.add(item.dataset.item);
