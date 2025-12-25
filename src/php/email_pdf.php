@@ -171,7 +171,12 @@ class EmailPDF {
      * Create mission report HTML from template
      */
     public static function generateMissionReportHTML($data) {
-        $logo = self::getLogoPath();
+        require_once __DIR__ . '/datastore.php';
+        $settings = DataStore::getSettings();
+        
+        $logo = self::getLogoPathFromSettings($settings);
+        $fireDepartmentName = htmlspecialchars($settings['fire_department_name'] ?? 'Freiwillige Feuerwehr');
+        $fireDepartmentCity = !empty($settings['fire_department_city']) ? '<br>' . htmlspecialchars($settings['fire_department_city']) : '';
         
         // Format dates
         $einsatzdatum = date('d.m.Y', strtotime($data['einsatzdatum']));
@@ -262,12 +267,25 @@ class EmailPDF {
             font-size: 18px;
             text-align: left;
         }
+        
+        .vehicle-section {
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .vehicle-title {
+            background-color: #e3f2fd;
+            padding: 8px;
+            font-weight: bold;
+            border-left: 4px solid #1976d2;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
     <div class="header-container">
-        <h1>Freiwillige Feuerwehr<br>Willingshausen</h1>
-        ' . ($logo ? '<img src="' . $logo . '" alt="Logo Feuerwehr Willingshausen">' : '') . '
+        <h1>' . $fireDepartmentName . $fireDepartmentCity . '</h1>
+        ' . ($logo ? '<img src="' . $logo . '" alt="Logo ' . $fireDepartmentName . '">' : '') . '
     </div>
     <hr class="header-line">
     <h2>Einsatzbericht</h2>
@@ -328,9 +346,9 @@ class EmailPDF {
     </tbody>
     </table>
     <h3>Fahrzeugbesatzung</h3>
-    ' . self::generatePersonnelTable($data['fahrzeugbesatzung'] ?? []) . '
+    ' . self::generateCrewByVehicle($data['fahrzeugbesatzung'] ?? [], $data['eingesetzte_fahrzeuge'] ?? []) . '
     <h3>Beteiligte Personen</h3>
-    ' . self::generatePersonnelTable($data['beteiligte_personen'] ?? []) . '
+    ' . self::generateInvolvedPersonsTable($data['beteiligte_personen'] ?? []) . '
 </body>
 </html>';
         
@@ -547,5 +565,92 @@ class EmailPDF {
             return 'data:image/png;base64,' . $imageData;
         }
         return null;
+    }
+    
+    /**
+     * Get logo path from settings
+     */
+    private static function getLogoPathFromSettings($settings) {
+        if (!empty($settings['logo_filename'])) {
+            $logoPath = __DIR__ . '/../../data/settings/' . $settings['logo_filename'];
+            if (file_exists($logoPath)) {
+                // Convert to base64 for embedding
+                $imageData = base64_encode(file_get_contents($logoPath));
+                $extension = pathinfo($settings['logo_filename'], PATHINFO_EXTENSION);
+                $mimeType = $extension === 'svg' ? 'image/svg+xml' : 'image/' . $extension;
+                return 'data:' . $mimeType . ';base64,' . $imageData;
+            }
+        }
+        // Fallback to old logo
+        return self::getLogoPath();
+    }
+    
+    /**
+     * Generate crew table grouped by vehicle
+     */
+    private static function generateCrewByVehicle($crewData, $vehicles) {
+        if (empty($crewData)) {
+            return '<p>Keine Fahrzeugbesatzung angegeben</p>';
+        }
+        
+        // Group crew by vehicle
+        $groupedCrew = [];
+        foreach ($crewData as $member) {
+            $vehicle = $member['fahrzeug'] ?? 'Unbekannt';
+            if (!isset($groupedCrew[$vehicle])) {
+                $groupedCrew[$vehicle] = [];
+            }
+            $groupedCrew[$vehicle][] = $member;
+        }
+        
+        $html = '';
+        foreach ($groupedCrew as $vehicle => $members) {
+            $html .= '<div class="vehicle-section">';
+            $html .= '<div class="vehicle-title">' . htmlspecialchars($vehicle) . '</div>';
+            $html .= '<table><tbody>';
+            $html .= '<tr><th>Funktion</th><th>Name</th><th>Verdienstausfall</th></tr>';
+            
+            foreach ($members as $member) {
+                if (!empty($member['name']) || !empty($member['funktion'])) {
+                    $html .= '<tr>';
+                    $html .= '<td>' . htmlspecialchars($member['funktion'] ?? '-') . '</td>';
+                    $html .= '<td>' . htmlspecialchars($member['name'] ?? '-') . '</td>';
+                    $html .= '<td>' . (isset($member['verdienstausfall']) && $member['verdienstausfall'] === 'ja' ? 'Ja' : 'Nein') . '</td>';
+                    $html .= '</tr>';
+                }
+            }
+            
+            $html .= '</tbody></table>';
+            $html .= '</div>';
+        }
+        
+        return $html;
+    }
+    
+    /**
+     * Generate table for involved persons
+     */
+    private static function generateInvolvedPersonsTable($persons) {
+        if (empty($persons)) {
+            return '<p>Keine beteiligten Personen angegeben</p>';
+        }
+        
+        $html = '<table><tbody>';
+        $html .= '<tr><th>Beteiligungsart</th><th>Name</th><th>Telefonnummer</th><th>Adresse</th><th>KFZ-Kennzeichen</th></tr>';
+        
+        foreach ($persons as $person) {
+            if (!empty($person['name']) || !empty($person['beteiligungsart'])) {
+                $html .= '<tr>';
+                $html .= '<td>' . htmlspecialchars($person['beteiligungsart'] ?? '-') . '</td>';
+                $html .= '<td>' . htmlspecialchars($person['name'] ?? '-') . '</td>';
+                $html .= '<td>' . htmlspecialchars($person['telefonnummer'] ?? '-') . '</td>';
+                $html .= '<td>' . nl2br(htmlspecialchars($person['adresse'] ?? '-')) . '</td>';
+                $html .= '<td>' . htmlspecialchars($person['kfz_kennzeichen'] ?? '-') . '</td>';
+                $html .= '</tr>';
+            }
+        }
+        
+        $html .= '</tbody></table>';
+        return $html;
     }
 }
