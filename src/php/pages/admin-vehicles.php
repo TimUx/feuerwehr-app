@@ -119,28 +119,14 @@ $vehicles = DataStore::getVehicles();
                     <option value="">-- Fahrzeugtyp auswählen --</option>
                     <option value="LF 8" data-crew="6">LF 8 - Löschgruppenfahrzeug 8 (Besatzung: 1/5)</option>
                     <option value="LF 10" data-crew="9">LF 10 - Löschgruppenfahrzeug 10 (Besatzung: 1/8)</option>
-                    <option value="LF 16" data-crew="9">LF 16 - Löschgruppenfahrzeug 16 (Besatzung: 1/8)</option>
                     <option value="HLF 10" data-crew="9">HLF 10 - Hilfeleistungslöschgruppenfahrzeug 10 (Besatzung: 1/8)</option>
                     <option value="TSF" data-crew="6">TSF - Tragkraftspritzenfahrzeug (Besatzung: 1/5)</option>
                     <option value="TSF-W" data-crew="6">TSF-W - Tragkraftspritzenfahrzeug mit Löschwasserbehälter (Besatzung: 1/5)</option>
                     <option value="MTF" data-crew="9">MTF - Mannschaftstransportfahrzeug (Besatzung: 1/8)</option>
                     <option value="MLF" data-crew="6">MLF - Mittleres Löschfahrzeug (Besatzung: 1/5)</option>
-                    <option value="TLF 16/24" data-crew="3">TLF 16/24 - Tanklöschfahrzeug 16/24 (Besatzung: 1/2)</option>
-                    <option value="TLF 16/25" data-crew="6">TLF 16/25 - Tanklöschfahrzeug 16/25 (Besatzung: 1/5)</option>
-                    <option value="TLF 20/40" data-crew="3">TLF 20/40 - Tanklöschfahrzeug 20/40 (Besatzung: 1/2)</option>
-                    <option value="TLF 20/40-SL" data-crew="3">TLF 20/40-SL - Tanklöschfahrzeug 20/40 mit Schnellangriffseinrichtung (Besatzung: 1/2)</option>
-                    <option value="SLF" data-crew="3">SLF - Schnelllöschfahrzeug (Besatzung: 1/2)</option>
                     <option value="ELW 1" data-crew="3">ELW 1 - Einsatzleitwagen 1 (Besatzung: 1/2)</option>
                     <option value="GW-L" data-crew="3">GW-L - Gerätewagen Logistik (Besatzung: 1/2)</option>
-                    <option value="GW-Mess" data-crew="3">GW-Mess - Gerätewagen Messtechnik (Besatzung: 1/2)</option>
-                    <option value="GW-G" data-crew="6">GW-G - Gerätewagen Gefahrgut (Besatzung: 1/5)</option>
-                    <option value="GW-Öl" data-crew="3">GW-Öl - Gerätewagen Öl (Besatzung: 1/2)</option>
-                    <option value="GW-Strahlenschutz" data-crew="3">GW-Strahlenschutz - Gerätewagen Strahlenschutz (Besatzung: 1/2)</option>
-                    <option value="AB-Rüst" data-crew="0">AB-Rüst - Abrollbehälter Rüst (Besatzung: -)</option>
-                    <option value="AB-Schlauch" data-crew="0">AB-Schlauch - Abrollbehälter Schlauch (Besatzung: -)</option>
-                    <option value="SW 2000" data-crew="3">SW 2000 - Schlauchwagen 2000 (Besatzung: 1/2)</option>
                     <option value="RW" data-crew="3">RW - Rüstwagen (Besatzung: 1/2)</option>
-                    <option value="FwK" data-crew="9">FwK - Feuerwehrkran (Besatzung: 1/8)</option>
                 </select>
             </div>
             
