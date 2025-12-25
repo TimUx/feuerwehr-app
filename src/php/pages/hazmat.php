@@ -231,7 +231,7 @@ async function searchHazmat() {
     }
     
     try {
-        const response = await fetch(`src/php/api/hazmat.php?un=${encodeURIComponent(unNumber)}`);
+        const response = await fetch(`/src/php/api/hazmat.php?un=${encodeURIComponent(unNumber)}`);
         const result = await response.json();
         
         if (result.success) {

@@ -144,7 +144,7 @@ async function savePhoneNumber(event) {
     const data = Object.fromEntries(formData);
     
     try {
-        const response = await fetch('src/php/api/phone-numbers.php', {
+        const response = await fetch('/src/php/api/phone-numbers.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -172,7 +172,7 @@ async function deletePhoneNumber(id) {
     }
     
     try {
-        const response = await fetch('src/php/api/phone-numbers.php', {
+        const response = await fetch('/src/php/api/phone-numbers.php', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json'
