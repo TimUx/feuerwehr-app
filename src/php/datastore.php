@@ -164,6 +164,7 @@ class DataStore {
             'location' => $data['location'],
             'type' => $data['type'],
             'radio_call_sign' => $data['radio_call_sign'],
+            'crew_size' => $data['crew_size'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
@@ -189,6 +190,9 @@ class DataStore {
                 }
                 if (isset($data['radio_call_sign'])) {
                     $vehicle['radio_call_sign'] = $data['radio_call_sign'];
+                }
+                if (isset($data['crew_size'])) {
+                    $vehicle['crew_size'] = $data['crew_size'];
                 }
                 $vehicle['updated_at'] = date('Y-m-d H:i:s');
                 
@@ -413,6 +417,68 @@ class DataStore {
         });
         
         self::save('phone-numbers.json', array_values($numbers));
+        return true;
+    }
+
+    /**
+     * Get settings
+     */
+    public static function getSettings() {
+        $settings = self::load('settings.json');
+        
+        // Return default settings if none exist
+        if (empty($settings)) {
+            return [
+                'fire_department_name' => 'Freiwillige Feuerwehr',
+                'fire_department_city' => '',
+                'logo_filename' => '',
+                'email_recipient' => '',
+                'contact_phone' => '',
+                'contact_email' => '',
+                'address' => ''
+            ];
+        }
+        
+        return $settings;
+    }
+
+    /**
+     * Update settings
+     */
+    public static function updateSettings($data) {
+        $settings = self::getSettings();
+        
+        // Update fields
+        foreach ($data as $key => $value) {
+            $settings[$key] = $value;
+        }
+        
+        $settings['updated_at'] = date('Y-m-d H:i:s');
+        
+        self::save('settings.json', $settings);
+        return $settings;
+    }
+
+    /**
+     * Remove logo from settings
+     */
+    public static function removeLogo() {
+        $settings = self::getSettings();
+        
+        // Delete logo file if exists
+        if (!empty($settings['logo_filename'])) {
+            self::init();
+            $logoPath = self::$dataDir . '/settings/' . $settings['logo_filename'];
+            if (file_exists($logoPath)) {
+                unlink($logoPath);
+            }
+        }
+        
+        // Update settings
+        $settings['logo_filename'] = '';
+        $settings['updated_at'] = date('Y-m-d H:i:s');
+        
+        self::save('settings.json', $settings);
         return true;
     }
 }

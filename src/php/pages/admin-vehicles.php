@@ -80,10 +80,12 @@ $vehicles = DataStore::getVehicles();
                         ?>
                         <tr data-type="<?php echo htmlspecialchars($vehicle['type']); ?>" 
                             data-location="<?php echo htmlspecialchars($vehicle['location'] ?? ''); ?>"
-                            data-radio="<?php echo htmlspecialchars($vehicle['radio_call_sign'] ?? ''); ?>">
+                            data-radio="<?php echo htmlspecialchars($vehicle['radio_call_sign'] ?? ''); ?>"
+                            data-crew="<?php echo htmlspecialchars($vehicle['crew_size'] ?? ''); ?>">
                             <td><strong><?php echo htmlspecialchars($vehicle['type']); ?></strong></td>
                             <td><?php echo htmlspecialchars($vehicle['location'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($vehicle['radio_call_sign'] ?? '-'); ?></td>
+                            <td><?php echo htmlspecialchars($vehicle['crew_size'] ?? '-'); ?></td>
                             <td>
                                 <button class="icon-btn" onclick='editVehicle(<?php echo json_encode($vehicle); ?>)' title="Bearbeiten">
                                     <span class="material-icons">edit</span>
@@ -113,7 +115,25 @@ $vehicles = DataStore::getVehicles();
             
             <div class="form-group">
                 <label class="form-label" for="vehicle-type">Typ *</label>
-                <input type="text" id="vehicle-type" name="type" class="form-input" placeholder="z.B. LF 10, TLF 16/25, DLK 23/12" required>
+                <select id="vehicle-type" name="type" class="form-input" required onchange="updateCrewSize()">
+                    <option value="">-- Fahrzeugtyp auswählen --</option>
+                    <option value="LF 8" data-crew="6">LF 8 - Löschgruppenfahrzeug 8 (Besatzung: 1/5)</option>
+                    <option value="LF 10" data-crew="9">LF 10 - Löschgruppenfahrzeug 10 (Besatzung: 1/8)</option>
+                    <option value="HLF 10" data-crew="9">HLF 10 - Hilfeleistungslöschgruppenfahrzeug 10 (Besatzung: 1/8)</option>
+                    <option value="TSF" data-crew="6">TSF - Tragkraftspritzenfahrzeug (Besatzung: 1/5)</option>
+                    <option value="TSF-W" data-crew="6">TSF-W - Tragkraftspritzenfahrzeug mit Löschwasserbehälter (Besatzung: 1/5)</option>
+                    <option value="MTF" data-crew="9">MTF - Mannschaftstransportfahrzeug (Besatzung: 1/8)</option>
+                    <option value="MLF" data-crew="6">MLF - Mittleres Löschfahrzeug (Besatzung: 1/5)</option>
+                    <option value="ELW 1" data-crew="3">ELW 1 - Einsatzleitwagen 1 (Besatzung: 1/2)</option>
+                    <option value="GW-L" data-crew="3">GW-L - Gerätewagen Logistik (Besatzung: 1/2)</option>
+                    <option value="RW" data-crew="3">RW - Rüstwagen (Besatzung: 1/2)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="vehicle-crew-size">Besatzungsstärke</label>
+                <input type="text" id="vehicle-crew-size" name="crew_size" class="form-input" readonly style="background-color: var(--bg-secondary);">
+                <small style="color: var(--text-secondary);">Wird automatisch basierend auf dem Fahrzeugtyp gesetzt</small>
             </div>
             
             <div class="form-group">
@@ -135,11 +155,27 @@ $vehicles = DataStore::getVehicles();
 </div>
 
 <script>
+function updateCrewSize() {
+    const typeSelect = document.getElementById('vehicle-type');
+    const crewSizeInput = document.getElementById('vehicle-crew-size');
+    const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+    const crewSize = selectedOption.getAttribute('data-crew');
+    
+    if (crewSize && crewSize !== '0') {
+        crewSizeInput.value = crewSize;
+    } else if (crewSize === '0') {
+        crewSizeInput.value = '-';
+    } else {
+        crewSizeInput.value = '';
+    }
+}
+
 function openVehicleModal() {
     document.getElementById('vehicle-modal').classList.add('show');
     document.getElementById('modal-title').textContent = 'Fahrzeug hinzufügen';
     document.getElementById('vehicle-form').reset();
     document.getElementById('vehicle-id').value = '';
+    document.getElementById('vehicle-crew-size').value = '';
 }
 
 function closeVehicleModal() {
@@ -153,6 +189,13 @@ function editVehicle(vehicle) {
     document.getElementById('vehicle-type').value = vehicle.type;
     document.getElementById('vehicle-location').value = vehicle.location || '';
     document.getElementById('vehicle-radio').value = vehicle.radio_call_sign || '';
+    
+    // Set crew size from existing data or trigger update
+    if (vehicle.crew_size) {
+        document.getElementById('vehicle-crew-size').value = vehicle.crew_size;
+    } else {
+        updateCrewSize();
+    }
 }
 
 async function deleteVehicle(id, type) {
@@ -188,7 +231,8 @@ document.getElementById('vehicle-form').addEventListener('submit', async (e) => 
     const data = {
         type: formData.get('type'),
         location: formData.get('location'),
-        radio_call_sign: formData.get('radio_call_sign')
+        radio_call_sign: formData.get('radio_call_sign'),
+        crew_size: formData.get('crew_size')
     };
     
     const id = formData.get('id');
@@ -276,6 +320,11 @@ function sortVehicles(column) {
         } else if (column === 'radio_call_sign') {
             aVal = a.dataset.radio || '';
             bVal = b.dataset.radio || '';
+        } else if (column === 'crew_size') {
+            aVal = parseInt(a.dataset.crew) || 0;
+            bVal = parseInt(b.dataset.crew) || 0;
+            const numComparison = aVal - bVal;
+            return currentSortDirection === 'asc' ? numComparison : -numComparison;
         }
         
         const comparison = aVal.localeCompare(bVal, 'de', { sensitivity: 'base' });

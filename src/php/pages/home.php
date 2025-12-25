@@ -67,6 +67,24 @@ $isAdmin = Auth::isAdmin();
         <h3 class="menu-title">Administration</h3>
         
         <div class="menu-grid">
+            <!-- Fahrzeugverwaltung -->
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-vehicles')">
+                <span class="material-icons">local_shipping</span>
+                <span class="menu-button-text">Fahrzeugverwaltung</span>
+            </button>
+            
+            <!-- Telefonnummernverwaltung -->
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-phone-numbers')">
+                <span class="material-icons">phone</span>
+                <span class="menu-button-text">Telefonnummern</span>
+            </button>
+            
+            <!-- Allgemeine Einstellungen -->
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-settings')">
+                <span class="material-icons">settings</span>
+                <span class="menu-button-text">Allgemeine Einstellungen</span>
+            </button>
+            
             <!-- Einsatzkräfte verwalten -->
             <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('personnel')">
                 <span class="material-icons">people</span>
