@@ -4,6 +4,7 @@ class FeuerwehrApp {
   constructor() {
     this.currentPage = 'home';
     this.theme = localStorage.getItem('theme') || 'light';
+    this.deferredPrompt = null;
     this.init();
   }
 
@@ -12,6 +13,7 @@ class FeuerwehrApp {
     this.setupTheme();
     this.setupNavigation();
     this.setupEventListeners();
+    this.setupPWAInstall();
     
     // Load the home page on initialization
     this.loadPage(this.currentPage);
@@ -28,6 +30,53 @@ class FeuerwehrApp {
           console.error('Service Worker registration failed:', error);
         });
     }
+  }
+
+  // PWA Install Prompt
+  setupPWAInstall() {
+    const installBtn = document.getElementById('install-btn');
+    
+    if (!installBtn) return;
+
+    // Listen for the beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      this.deferredPrompt = e;
+      // Show the install button
+      installBtn.style.display = 'block';
+    });
+
+    // Handle install button click
+    installBtn.addEventListener('click', async () => {
+      if (!this.deferredPrompt) {
+        return;
+      }
+
+      // Show the install prompt
+      this.deferredPrompt.prompt();
+      
+      // Wait for the user to respond to the prompt
+      const { outcome } = await this.deferredPrompt.userChoice;
+      
+      console.log(`User response to the install prompt: ${outcome}`);
+      
+      // Clear the deferredPrompt
+      this.deferredPrompt = null;
+      
+      // Hide the install button
+      installBtn.style.display = 'none';
+    });
+
+    // Listen for the appinstalled event
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA was installed');
+      // Hide the install button
+      installBtn.style.display = 'none';
+      // Clear the deferredPrompt
+      this.deferredPrompt = null;
+    });
   }
 
   // Theme Management
