@@ -139,12 +139,113 @@ $user = Auth::getUser();
             <p class="text-secondary">Keine Gefahren markiert</p>
         </div>
     </div>
+    
+    <!-- Gefahrenmatrix Table -->
+    <div class="hazard-matrix-table-container" id="hazardMatrixTableContainer" style="display: none; margin-top: 2rem;">
+        <h3>Gefahrenmatrix Tabelle</h3>
+        <div class="table-container">
+            <table class="hazard-matrix-table" id="hazardMatrixTable">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Atemgifte</th>
+                        <th>Angstreaktion</th>
+                        <th>Ausbreitung</th>
+                        <th>Atomare Strahlung</th>
+                        <th>Chemische/Biologische Stoffe</th>
+                        <th>Erkrankung/Verletzung</th>
+                        <th>Explosion</th>
+                        <th>Elektrizität</th>
+                        <th>Einsturz/Absturz</th>
+                    </tr>
+                </thead>
+                <tbody id="hazardMatrixTableBody">
+                    <tr data-entity="menschen">
+                        <th>Menschen</th>
+                        <td data-hazard="atemgifte"></td>
+                        <td data-hazard="angstreaktion"></td>
+                        <td data-hazard="ausbreitung"></td>
+                        <td data-hazard="atomare"></td>
+                        <td data-hazard="chemische"></td>
+                        <td data-hazard="erkrankung"></td>
+                        <td data-hazard="explosion"></td>
+                        <td data-hazard="elektrizitat"></td>
+                        <td data-hazard="einsturz"></td>
+                    </tr>
+                    <tr data-entity="tiere">
+                        <th>Tiere</th>
+                        <td data-hazard="atemgifte"></td>
+                        <td data-hazard="angstreaktion"></td>
+                        <td data-hazard="ausbreitung"></td>
+                        <td data-hazard="atomare"></td>
+                        <td data-hazard="chemische"></td>
+                        <td data-hazard="erkrankung"></td>
+                        <td data-hazard="explosion"></td>
+                        <td data-hazard="elektrizitat"></td>
+                        <td data-hazard="einsturz"></td>
+                    </tr>
+                    <tr data-entity="umwelt">
+                        <th>Umwelt</th>
+                        <td data-hazard="atemgifte"></td>
+                        <td data-hazard="angstreaktion" class="not-applicable">–</td>
+                        <td data-hazard="ausbreitung"></td>
+                        <td data-hazard="atomare"></td>
+                        <td data-hazard="chemische"></td>
+                        <td data-hazard="erkrankung" class="not-applicable">–</td>
+                        <td data-hazard="explosion"></td>
+                        <td data-hazard="elektrizitat" class="not-applicable">–</td>
+                        <td data-hazard="einsturz" class="not-applicable">–</td>
+                    </tr>
+                    <tr data-entity="sachwerte">
+                        <th>Sachwerte</th>
+                        <td data-hazard="atemgifte" class="not-applicable">–</td>
+                        <td data-hazard="angstreaktion" class="not-applicable">–</td>
+                        <td data-hazard="ausbreitung"></td>
+                        <td data-hazard="atomare"></td>
+                        <td data-hazard="chemische"></td>
+                        <td data-hazard="erkrankung" class="not-applicable">–</td>
+                        <td data-hazard="explosion"></td>
+                        <td data-hazard="elektrizitat"></td>
+                        <td data-hazard="einsturz"></td>
+                    </tr>
+                    <tr class="separator-row">
+                        <td colspan="10"></td>
+                    </tr>
+                    <tr data-entity="mannschaft">
+                        <th>Mannschaft</th>
+                        <td data-hazard="atemgifte"></td>
+                        <td data-hazard="angstreaktion"></td>
+                        <td data-hazard="ausbreitung"></td>
+                        <td data-hazard="atomare"></td>
+                        <td data-hazard="chemische"></td>
+                        <td data-hazard="erkrankung"></td>
+                        <td data-hazard="explosion"></td>
+                        <td data-hazard="elektrizitat"></td>
+                        <td data-hazard="einsturz"></td>
+                    </tr>
+                    <tr data-entity="geraet">
+                        <th>Gerät</th>
+                        <td data-hazard="atemgifte" class="not-applicable">–</td>
+                        <td data-hazard="angstreaktion" class="not-applicable">–</td>
+                        <td data-hazard="ausbreitung"></td>
+                        <td data-hazard="atomare"></td>
+                        <td data-hazard="chemische"></td>
+                        <td data-hazard="erkrankung" class="not-applicable">–</td>
+                        <td data-hazard="explosion"></td>
+                        <td data-hazard="elektrizitat"></td>
+                        <td data-hazard="einsturz"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script>
 function toggleHazard(element) {
     element.classList.toggle('active');
     updateHazardSummary();
+    updateHazardMatrix();
 }
 
 function clearHazardMatrix() {
@@ -152,6 +253,7 @@ function clearHazardMatrix() {
         item.classList.remove('active');
     });
     updateHazardSummary();
+    updateHazardMatrix();
 }
 
 function updateHazardSummary() {
@@ -183,6 +285,44 @@ function updateHazardSummary() {
     }
     
     summaryDiv.innerHTML = html;
+}
+
+function updateHazardMatrix() {
+    // Update the hazard matrix table based on selected hazards
+    // Shows which hazards affect which entities (Menschen, Tiere, etc.)
+    const activeHazards = document.querySelectorAll('.hazard-item.active');
+    const tableContainer = document.getElementById('hazardMatrixTableContainer');
+    
+    if (activeHazards.length === 0) {
+        tableContainer.style.display = 'none';
+        return;
+    }
+    
+    // Show the table
+    tableContainer.style.display = 'block';
+    
+    // Map hazard items to their data-item values
+    // These correspond to the data-hazard attributes in the table columns
+    const activeHazardItems = new Set();
+    activeHazards.forEach(item => {
+        activeHazardItems.add(item.dataset.item);
+    });
+    
+    // Reset all cells
+    const allCells = document.querySelectorAll('#hazardMatrixTableBody td:not(.not-applicable)');
+    allCells.forEach(cell => {
+        cell.classList.remove('hazard-present');
+        cell.textContent = '';
+    });
+    
+    // Mark cells with active hazards
+    activeHazardItems.forEach(hazardItem => {
+        const cells = document.querySelectorAll(`#hazardMatrixTableBody td[data-hazard="${hazardItem}"]:not(.not-applicable)`);
+        cells.forEach(cell => {
+            cell.classList.add('hazard-present');
+            cell.textContent = '✓';
+        });
+    });
 }
 
 function getCategoryName(category) {

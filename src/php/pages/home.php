@@ -12,8 +12,6 @@ $isAdmin = Auth::isAdmin();
 ?>
 
 <div class="menu-container">
-    <h2 class="menu-title">Hauptmenü</h2>
-    
     <div class="menu-grid">
         <!-- Anwesenheitsliste -->
         <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('attendance')">

@@ -657,7 +657,7 @@ body {
     padding: 2rem 1rem;
     background: var(--primary-color);
     color: white;
-    border: 2px solid var(--primary-dark);
+    border: none;
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -690,7 +690,6 @@ body {
 
 .menu-button-admin {
     background: var(--info-color);
-    border-color: #1976d2;
 }
 
 .menu-button-admin .material-icons {
@@ -699,7 +698,6 @@ body {
 
 .menu-button-admin:hover:not(:disabled) {
     background: #1976d2;
-    border-color: #1565c0;
     box-shadow: 0 6px 12px rgba(59, 130, 246, 0.3);
 }
 
@@ -881,6 +879,68 @@ body {
 .hazard-summary-category ul {
     margin-top: 0.5rem;
     margin-left: 1.5rem;
+}
+
+/* Hazard Matrix Table Styles */
+.hazard-matrix-table-container {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-small);
+}
+
+.hazard-matrix-table-container h3 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.hazard-matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.hazard-matrix-table th,
+.hazard-matrix-table td {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.hazard-matrix-table thead th {
+    background: var(--primary-color);
+    color: white;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.hazard-matrix-table tbody th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.hazard-matrix-table td.hazard-present {
+    background: #dc2626;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.hazard-matrix-table td.not-applicable {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-weight: bold;
+}
+
+.hazard-matrix-table .separator-row td {
+    height: 0.5rem;
+    padding: 0;
+    border: none;
+    background: transparent;
 }
 
 /* ============================================================
