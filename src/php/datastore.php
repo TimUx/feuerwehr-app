@@ -83,6 +83,7 @@ class DataStore {
             'qualifications' => $data['qualifications'] ?? [],
             'leadership_roles' => $data['leadership_roles'] ?? [],
             'is_instructor' => $data['is_instructor'] ?? false,
+            'location_id' => $data['location_id'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
@@ -111,6 +112,9 @@ class DataStore {
                 }
                 if (isset($data['is_instructor'])) {
                     $person['is_instructor'] = $data['is_instructor'];
+                }
+                if (isset($data['location_id'])) {
+                    $person['location_id'] = $data['location_id'];
                 }
                 $person['updated_at'] = date('Y-m-d H:i:s');
                 
@@ -165,7 +169,8 @@ class DataStore {
         
         $newVehicle = [
             'id' => uniqid('veh_'),
-            'location' => $data['location'],
+            'location' => $data['location'] ?? null,
+            'location_id' => $data['location_id'] ?? null,
             'type' => $data['type'],
             'radio_call_sign' => $data['radio_call_sign'],
             'crew_size' => $data['crew_size'] ?? null,
@@ -189,6 +194,9 @@ class DataStore {
                 if (isset($data['location'])) {
                     $vehicle['location'] = $data['location'];
                 }
+                if (isset($data['location_id'])) {
+                    $vehicle['location_id'] = $data['location_id'];
+                }
                 if (isset($data['type'])) {
                     $vehicle['type'] = $data['type'];
                 }
@@ -198,6 +206,15 @@ class DataStore {
                 if (isset($data['crew_size'])) {
                     $vehicle['crew_size'] = $data['crew_size'];
                 }
+                $vehicle['updated_at'] = date('Y-m-d H:i:s');
+                
+                self::save('vehicles.json', $vehicles);
+                return $vehicle;
+            }
+        }
+        
+        return null;
+    }
                 $vehicle['updated_at'] = date('Y-m-d H:i:s');
                 
                 self::save('vehicles.json', $vehicles);
@@ -218,6 +235,84 @@ class DataStore {
         });
         
         self::save('vehicles.json', array_values($vehicles));
+        return true;
+    }
+
+    // ==================== Locations Management ====================
+
+    /**
+     * Get all locations
+     */
+    public static function getLocations() {
+        return self::load('locations.json');
+    }
+
+    /**
+     * Get single location by ID
+     */
+    public static function getLocationById($id) {
+        $locations = self::getLocations();
+        foreach ($locations as $location) {
+            if ($location['id'] === $id) {
+                return $location;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Create new location
+     */
+    public static function createLocation($data) {
+        $locations = self::getLocations();
+        
+        $newLocation = [
+            'id' => uniqid('loc_'),
+            'name' => $data['name'],
+            'address' => $data['address'] ?? '',
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        $locations[] = $newLocation;
+        self::save('locations.json', $locations);
+        return $newLocation;
+    }
+
+    /**
+     * Update location
+     */
+    public static function updateLocation($id, $data) {
+        $locations = self::getLocations();
+        
+        foreach ($locations as &$location) {
+            if ($location['id'] === $id) {
+                if (isset($data['name'])) {
+                    $location['name'] = $data['name'];
+                }
+                if (isset($data['address'])) {
+                    $location['address'] = $data['address'];
+                }
+                $location['updated_at'] = date('Y-m-d H:i:s');
+                
+                self::save('locations.json', $locations);
+                return $location;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Delete location
+     */
+    public static function deleteLocation($id) {
+        $locations = self::getLocations();
+        $locations = array_filter($locations, function($location) use ($id) {
+            return $location['id'] !== $id;
+        });
+        
+        self::save('locations.json', array_values($locations));
         return true;
     }
 

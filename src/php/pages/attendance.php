@@ -9,6 +9,7 @@ require_once __DIR__ . '/../datastore.php';
 Auth::requireOperator();
 
 $personnel = DataStore::getPersonnel();
+$locations = DataStore::getLocations();
 ?>
 
 <div class="card">
@@ -20,6 +21,19 @@ $personnel = DataStore::getPersonnel();
         <form id="attendance-form" method="POST" action="/src/php/forms/submit_attendance.php" enctype="multipart/form-data">
             
             <h3 style="margin-top: 0;">Veranstaltungsdaten</h3>
+            
+            <div class="form-group">
+                <label class="form-label" for="standort-filter">Einsatzabteilung / Standort *</label>
+                <select id="standort-filter" name="standort" class="form-input" required>
+                    <option value="">-- Standort auswählen --</option>
+                    <?php foreach ($locations as $location): ?>
+                    <option value="<?php echo htmlspecialchars($location['id']); ?>"><?php echo htmlspecialchars($location['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Je nach Auswahl werden die entsprechenden Übungsleiter und Einsatzkräfte angezeigt
+                </small>
+            </div>
             
             <div class="form-group">
                 <label class="form-label" for="datum">Datum *</label>
@@ -57,7 +71,7 @@ $personnel = DataStore::getPersonnel();
                         $isInstructor = !empty($person['is_instructor']) && $person['is_instructor'];
                         if ($isInstructor):
                     ?>
-                        <option value="<?php echo htmlspecialchars($person['name']); ?>">
+                        <option value="<?php echo htmlspecialchars($person['name']); ?>" data-location-id="<?php echo htmlspecialchars($person['location_id'] ?? ''); ?>">
                             <?php echo htmlspecialchars($person['name']); ?>
                             <?php if (!empty($person['qualifications'])): ?>
                                 (<?php echo implode(', ', array_map('htmlspecialchars', $person['qualifications'])); ?>)
@@ -121,7 +135,7 @@ $personnel = DataStore::getPersonnel();
                 <?php else: ?>
                     <div id="attendees-list">
                         <?php foreach ($personnel as $person): ?>
-                        <div class="form-check">
+                        <div class="form-check" data-location-id="<?php echo htmlspecialchars($person['location_id'] ?? ''); ?>">
                             <input type="checkbox" id="attendee-<?php echo $person['id']; ?>" name="teilnehmer[]" value="<?php echo $person['id']; ?>" class="form-check-input attendee-checkbox">
                             <label for="attendee-<?php echo $person['id']; ?>" class="form-check-label">
                                 <?php echo htmlspecialchars($person['name']); ?>
@@ -161,6 +175,57 @@ $personnel = DataStore::getPersonnel();
 <script>
 // Set default date to today
 document.getElementById('datum').valueAsDate = new Date();
+
+// Filter instructors and personnel by selected location
+function filterByLocation() {
+    const selectedLocationId = document.getElementById('standort-filter').value;
+    
+    // Filter instructors in dropdown
+    const instructorOptions = document.querySelectorAll('#uebungsleiter-select option');
+    let visibleInstructors = 0;
+    instructorOptions.forEach(option => {
+        const optionLocationId = option.getAttribute('data-location-id') || '';
+        if (!selectedLocationId || optionLocationId === selectedLocationId) {
+            option.style.display = '';
+            visibleInstructors++;
+        } else {
+            option.style.display = 'none';
+            option.selected = false; // Deselect hidden options
+        }
+    });
+    
+    // Filter attendees in checkboxes
+    const attendeeItems = document.querySelectorAll('#attendees-list .form-check');
+    let visibleAttendees = 0;
+    attendeeItems.forEach(item => {
+        const itemLocationId = item.getAttribute('data-location-id') || '';
+        if (!selectedLocationId || itemLocationId === selectedLocationId) {
+            item.style.display = '';
+            visibleAttendees++;
+        } else {
+            item.style.display = 'none';
+            // Uncheck hidden attendees
+            const checkbox = item.querySelector('.attendee-checkbox');
+            if (checkbox) checkbox.checked = false;
+        }
+    });
+    
+    // Update count after filtering
+    updateTotalCount();
+    
+    // Show message if no items are available for the selected location
+    if (selectedLocationId) {
+        if (visibleInstructors === 0) {
+            console.log('Keine Übungsleiter für den ausgewählten Standort verfügbar');
+        }
+        if (visibleAttendees === 0) {
+            console.log('Keine Einsatzkräfte für den ausgewählten Standort verfügbar');
+        }
+    }
+}
+
+// Add event listener for location filter
+document.getElementById('standort-filter').addEventListener('change', filterByLocation);
 
 // Calculate duration automatically
 function calculateDuration() {

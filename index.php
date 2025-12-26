@@ -210,6 +210,11 @@ $user = Auth::getUser();
                     <span>Fahrzeuge</span>
                 </a>
                 
+                <a href="#" class="nav-item" data-page="admin-locations">
+                    <span class="material-icons">location_city</span>
+                    <span>Standorte</span>
+                </a>
+                
                 <a href="#" class="nav-item" data-page="admin-phone-numbers">
                     <span class="material-icons">phone</span>
                     <span>Telefonnummern</span>

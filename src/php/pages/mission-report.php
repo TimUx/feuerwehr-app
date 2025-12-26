@@ -11,6 +11,7 @@ Auth::requireOperator();
 
 $personnel = DataStore::getPersonnel();
 $vehicles = DataStore::getVehicles();
+$locations = DataStore::getLocations();
 
 // Function options from JSON
 $functions = [
@@ -31,6 +32,19 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
         <form id="mission-report-form" method="POST" action="/src/php/forms/submit_mission_report.php">
             
             <h3 style="margin-top: 0;">Einsatzdaten</h3>
+            
+            <div class="form-group">
+                <label class="form-label" for="standort-filter">Einsatzabteilung / Standort *</label>
+                <select id="standort-filter" name="standort" class="form-input" required>
+                    <option value="">-- Standort auswählen --</option>
+                    <?php foreach ($locations as $location): ?>
+                    <option value="<?php echo htmlspecialchars($location['id']); ?>"><?php echo htmlspecialchars($location['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Je nach Auswahl werden nur die Fahrzeuge und Einsatzkräfte dieses Standorts angezeigt
+                </small>
+            </div>
             
             <div class="form-group">
                 <label class="form-label" for="einsatzgrund">Einsatzgrund *</label>
@@ -110,7 +124,7 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
                     <p style="color: var(--text-secondary);">Keine Fahrzeuge vorhanden. Bitte zuerst Fahrzeuge anlegen.</p>
                 <?php else: ?>
                     <?php foreach ($vehicles as $vehicle): ?>
-                    <div class="form-check">
+                    <div class="form-check" data-location-id="<?php echo htmlspecialchars($vehicle['location_id'] ?? ''); ?>">
                         <!-- value = vehicle type (for form submission), data-vehicle-id = vehicle ID (for JS lookup) -->
                         <input type="checkbox" id="vehicle-<?php echo $vehicle['id']; ?>" 
                                name="eingesetzte_fahrzeuge[]" 
@@ -238,6 +252,42 @@ const vehicles = <?php echo json_encode($vehicles); ?>;
 const functions = <?php echo json_encode($functions); ?>;
 const involvementTypes = <?php echo json_encode($involvement_types); ?>;
 
+// Filter vehicles and personnel by selected location
+function filterByLocation() {
+    const selectedLocationId = document.getElementById('standort-filter').value;
+    
+    // Filter vehicles
+    const vehicleItems = document.querySelectorAll('#mission-report-form .form-check[data-location-id]');
+    vehicleItems.forEach(item => {
+        const itemLocationId = item.getAttribute('data-location-id') || '';
+        if (!selectedLocationId || itemLocationId === selectedLocationId) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+            // Uncheck hidden vehicles
+            const checkbox = item.querySelector('.vehicle-checkbox');
+            if (checkbox && !checkbox.hasAttribute('data-custom')) {
+                checkbox.checked = false;
+            }
+        }
+    });
+    
+    // Trigger crew update when location changes
+    updateCrewFields();
+}
+
+// Get filtered personnel based on selected location
+function getFilteredPersonnel() {
+    const selectedLocationId = document.getElementById('standort-filter').value;
+    if (!selectedLocationId) {
+        return personnel;
+    }
+    return personnel.filter(p => p.location_id === selectedLocationId);
+}
+
+// Add event listener for location filter
+document.getElementById('standort-filter').addEventListener('change', filterByLocation);
+
 // Set default date to today
 const einsatzdatumField = document.getElementById('einsatzdatum');
 if (einsatzdatumField) {
@@ -360,7 +410,7 @@ function updateCrewSections() {
                             <label class="form-label">Name</label>
                             <select name="fahrzeugbesatzung[${vehicle.id}_${i}][name]" class="form-select">
                                 <option value="">Name wählen</option>
-                                ${personnel.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                                ${getFilteredPersonnel().map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
                             </select>
                         </div>
                         
