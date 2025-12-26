@@ -61,12 +61,6 @@ $isAdmin = Auth::isAdmin();
             <span class="menu-button-text">Statistiken</span>
         </button>
         
-        <!-- Allgemeine Einstellungen (for all users) -->
-        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('admin-settings')">
-            <span class="material-icons">settings</span>
-            <span class="menu-button-text">Allgemeine Einstellungen</span>
-        </button>
-        
         <!-- PWA Install Button (only show if app can be installed) -->
         <button class="menu-button" id="home-install-btn" style="display: none;" onclick="window.feuerwehrApp.installPWA()">
             <span class="material-icons">get_app</span>

@@ -466,6 +466,41 @@ class DataStore {
         ];
     }
 
+    /**
+     * Get statistics for a specific location
+     */
+    public static function getLocationStatistics($locationId, $year = null) {
+        if (!$year) {
+            $year = date('Y');
+        }
+
+        $attendance = self::getAttendanceRecords();
+        $missions = self::getMissionReports();
+
+        // Filter by year and location
+        $locationAttendance = array_filter($attendance, function($record) use ($year, $locationId) {
+            return strpos($record['date'], $year) === 0 && 
+                   isset($record['location_id']) && $record['location_id'] === $locationId;
+        });
+
+        $locationMissions = array_filter($missions, function($report) use ($year, $locationId) {
+            return strpos($report['date'], $year) === 0 && 
+                   isset($report['location_id']) && $report['location_id'] === $locationId;
+        });
+
+        $trainingHours = array_sum(array_column($locationAttendance, 'duration_hours'));
+        $missionHours = array_sum(array_column($locationMissions, 'duration_hours'));
+
+        return [
+            'location_id' => $locationId,
+            'year' => $year,
+            'total_training_sessions' => count($locationAttendance),
+            'total_training_hours' => $trainingHours,
+            'total_missions' => count($locationMissions),
+            'total_mission_hours' => $missionHours
+        ];
+    }
+
     // ==================== Phone Numbers ====================
 
     /**

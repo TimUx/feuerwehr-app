@@ -106,6 +106,9 @@ function initMap() {
             maxZoom: 19
         }).addTo(map);
         
+        // Mark map as loaded
+        window.mapLoaded = true;
+        
         // Force map to invalidate size after initialization
         setTimeout(function() {
             if (map) {
@@ -135,8 +138,14 @@ function initMap() {
 }
 
 function calculateRoute() {
-    if (typeof L === 'undefined' || typeof L.Routing === 'undefined') {
+    // Check if map is loaded
+    if (!window.mapLoaded || !map) {
         alert('Die Karte wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.');
+        return;
+    }
+    
+    if (typeof L === 'undefined' || typeof L.Routing === 'undefined') {
+        alert('Die Routing-Bibliothek wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.');
         return;
     }
     
