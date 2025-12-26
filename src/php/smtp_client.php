@@ -162,8 +162,8 @@ class SMTPClient {
             return; // Success
         } catch (Exception $e) {
             // AUTH LOGIN failed - connection may be in inconsistent state
-            // Close and reconnect before trying AUTH PLAIN
-            error_log("AUTH LOGIN fehlgeschlagen: " . $e->getMessage() . ". Verbinde erneut für AUTH PLAIN...");
+            // Don't log the error message as it may contain sensitive info
+            error_log("AUTH LOGIN fehlgeschlagen. Verbinde erneut für AUTH PLAIN...");
             
             $this->disconnect();
             
@@ -192,8 +192,8 @@ class SMTPClient {
             $auth = base64_encode("\0" . $this->username . "\0" . $this->password);
             $this->sendCommand("AUTH PLAIN {$auth}", 235);
         } catch (Exception $e) {
-            // Both methods failed
-            throw new Exception("SMTP-Authentifizierung fehlgeschlagen mit AUTH LOGIN und AUTH PLAIN: " . $e->getMessage());
+            // Both methods failed - don't log details to avoid credential exposure
+            throw new Exception("SMTP-Authentifizierung fehlgeschlagen. Bitte überprüfen Sie Benutzername und Passwort.");
         }
     }
     
