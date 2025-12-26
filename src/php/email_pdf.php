@@ -252,8 +252,8 @@ class EmailPDF {
      * Uses mPDF library to convert HTML to PDF with full styling support
      */
     public static function generatePDF($html) {
-        // Try to use mPDF if available
-        if (class_exists('\Mpdf\Mpdf')) {
+        // Try to use mPDF if available (don't autoload for performance)
+        if (class_exists('\Mpdf\Mpdf', false) || class_exists('\Mpdf\Mpdf')) {
             return self::generatePDFWithMpdf($html);
         }
         
@@ -300,7 +300,7 @@ class EmailPDF {
         } catch (\Mpdf\MpdfException $e) {
             error_log("mPDF generation failed: " . $e->getMessage());
             return false;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("PDF generation error: " . $e->getMessage());
             return false;
         }
