@@ -194,7 +194,7 @@ class Auth {
      * Check if user has global access (no location restriction)
      */
     public static function hasGlobalAccess() {
-        return self::isAuthenticated() && (!isset($_SESSION['location_id']) || $_SESSION['location_id'] === null);
+        return self::isAuthenticated() && empty($_SESSION['location_id']);
     }
 
     /**

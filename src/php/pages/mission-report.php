@@ -13,19 +13,9 @@ $user = Auth::getUser();
 $hasGlobalAccess = Auth::hasGlobalAccess();
 $userLocationId = Auth::getUserLocationId();
 
-$personnel = DataStore::getPersonnel();
-$vehicles = DataStore::getVehicles();
+$personnel = DataStore::getPersonnelByLocation($hasGlobalAccess ? null : $userLocationId);
+$vehicles = DataStore::getVehiclesByLocation($hasGlobalAccess ? null : $userLocationId);
 $locations = DataStore::getLocations();
-
-// Filter personnel and vehicles by user's location if not global
-if (!$hasGlobalAccess && $userLocationId) {
-    $personnel = array_filter($personnel, function($person) use ($userLocationId) {
-        return !isset($person['location_id']) || $person['location_id'] === $userLocationId;
-    });
-    $vehicles = array_filter($vehicles, function($vehicle) use ($userLocationId) {
-        return !isset($vehicle['location_id']) || $vehicle['location_id'] === $userLocationId;
-    });
-}
 
 // Function options from JSON
 $functions = [

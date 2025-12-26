@@ -154,7 +154,7 @@ if ($selectedLocation) {
             <div style="margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; border-radius: 8px; text-align: center;">
                 <div style="font-size: 0.875rem; margin-bottom: 0.5rem; opacity: 0.9;">Gesamtstunden (Übungen + Einsätze)</div>
                 <div style="font-size: 3rem; font-weight: 500;">
-                    <?php echo number_format($locationStats['total_training_hours'] + $locationStats['total_mission_hours'], 1); ?> h
+                    <?php echo number_format(($locationStats['total_training_hours'] ?? 0) + ($locationStats['total_mission_hours'] ?? 0), 1); ?> h
                 </div>
             </div>
             
