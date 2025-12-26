@@ -304,7 +304,8 @@ body {
 
 .form-input,
 .form-select,
-.form-textarea {
+.form-textarea,
+.form-control {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
@@ -317,7 +318,8 @@ body {
 
 .form-input:focus,
 .form-select:focus,
-.form-textarea:focus {
+.form-textarea:focus,
+.form-control:focus {
   outline: none;
   border-color: var(--primary-color);
 }
@@ -1039,9 +1041,20 @@ body {
     flex: 1;
 }
 
-#unNumberSearch {
+.search-form #unNumberSearch {
     font-size: 1.25rem;
     padding: 1rem;
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: border-color 0.2s;
+}
+
+.search-form #unNumberSearch:focus {
+    outline: none;
+    border-color: var(--primary-color);
 }
 
 .hazmat-details {
