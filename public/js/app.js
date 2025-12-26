@@ -5,6 +5,7 @@ class FeuerwehrApp {
     this.currentPage = 'home';
     this.theme = localStorage.getItem('theme') || 'light';
     this.deferredPrompt = null;
+    this.pageScripts = []; // Track scripts added by pages for cleanup
     this.init();
   }
 
@@ -243,6 +244,14 @@ class FeuerwehrApp {
 
     // Show loading spinner
     mainContent.innerHTML = '<div class="spinner"></div>';
+    
+    // Clean up scripts from previous page
+    this.pageScripts.forEach(script => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    });
+    this.pageScripts = [];
 
     try {
       const response = await fetch(`/src/php/pages/${page}.php`);
@@ -259,7 +268,8 @@ class FeuerwehrApp {
         links.forEach(link => {
           // Check if this stylesheet is already loaded
           const href = link.getAttribute('href');
-          if (!document.querySelector(`link[href="${href}"]`)) {
+          const existingLink = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).find(l => l.href === link.href);
+          if (!existingLink) {
             const newLink = document.createElement('link');
             newLink.rel = 'stylesheet';
             newLink.href = href;
@@ -286,7 +296,8 @@ class FeuerwehrApp {
           if (src) {
             // External script
             // Check if this script is already loaded
-            if (!document.querySelector(`script[src="${src}"]`)) {
+            const existingScript = Array.from(document.querySelectorAll('script[src]')).find(s => s.src === script.src);
+            if (!existingScript) {
               const newScript = document.createElement('script');
               newScript.src = src;
               if (script.integrity) newScript.integrity = script.integrity;
@@ -319,6 +330,8 @@ class FeuerwehrApp {
             const scriptEl = document.createElement('script');
             scriptEl.textContent = scriptContent;
             document.head.appendChild(scriptEl);
+            // Track for cleanup when loading next page
+            this.pageScripts.push(scriptEl);
           } catch (error) {
             console.error('Error executing page script:', error);
           }
