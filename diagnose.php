@@ -916,7 +916,8 @@ function runAllTests() {
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Feuerwehr-App-Diagnostics/1.0');
-        curl_setopt($ch, CURLOPT_NOBODY, true); // HEAD request only
+        // Use GET request instead of HEAD for better API compatibility (especially Nominatim)
+        curl_setopt($ch, CURLOPT_NOBODY, false);
         
         $result = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
