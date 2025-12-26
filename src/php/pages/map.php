@@ -61,271 +61,277 @@ $user = Auth::getUser();
 </style>
 
 <script>
-let map;
-let routeLayer;
-let markers = [];
+(function() {
+    let map;
+    let routeLayer;
+    let markers = [];
 
-// Constants
-const MAPLIBRE_CHECK_INTERVAL = 100; // milliseconds
+    // Constants
+    const MAPLIBRE_CHECK_INTERVAL = 100; // milliseconds
 
-// Wait for MapLibre GL to be available before initializing
-function waitForMapLibre(callback) {
-    if (typeof maplibregl !== 'undefined') {
-        callback();
-    } else {
-        setTimeout(() => waitForMapLibre(callback), MAPLIBRE_CHECK_INTERVAL);
-    }
-}
-
-// Initialize map when the page is fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    waitForMapLibre(initMap);
-});
-
-// Initialize map
-function initMap() {
-    try {
-        if (map) {
-            map.remove(); // Clean up existing map
+    // Wait for MapLibre GL to be available before initializing
+    function waitForMapLibre(callback) {
+        if (typeof maplibregl !== 'undefined') {
+            callback();
+        } else {
+            setTimeout(() => waitForMapLibre(callback), MAPLIBRE_CHECK_INTERVAL);
         }
-        
-        // Default center: Germany (can be customized)
-        map = new maplibregl.Map({
-            container: 'map',
-            style: {
-                version: 8,
-                sources: {
-                    'osm-tiles': {
-                        type: 'raster',
-                        tiles: [
-                            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
-                        ],
-                        tileSize: 256,
-                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    }
+    }
+
+    // Initialize map when the page is fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        waitForMapLibre(initMap);
+    });
+
+    // Initialize map
+    function initMap() {
+        try {
+            if (map) {
+                map.remove(); // Clean up existing map
+            }
+            
+            // Default center: Germany (can be customized)
+            map = new maplibregl.Map({
+                container: 'map',
+                style: {
+                    version: 8,
+                    sources: {
+                        'osm-tiles': {
+                            type: 'raster',
+                            tiles: [
+                                'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                            ],
+                            tileSize: 256,
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        }
+                    },
+                    layers: [
+                        {
+                            id: 'osm-tiles',
+                            type: 'raster',
+                            source: 'osm-tiles',
+                            minzoom: 0,
+                            maxzoom: 19
+                        }
+                    ]
                 },
-                layers: [
-                    {
-                        id: 'osm-tiles',
-                        type: 'raster',
-                        source: 'osm-tiles',
-                        minzoom: 0,
-                        maxzoom: 19
-                    }
-                ]
-            },
-            center: [9.7632, 50.9787], // [longitude, latitude] - Germany
-            zoom: 12
-        });
-        
-        // Add navigation controls
-        map.addControl(new maplibregl.NavigationControl(), 'top-right');
-        
-        // Add scale control
-        map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
-        
-        // Mark map as loaded
-        window.mapLoaded = true;
-        
-        // Try to get user's location
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                
-                // Center map on user location
-                map.flyTo({
-                    center: [lon, lat],
-                    zoom: 14
-                });
-                
-                // Add marker for current position
-                const marker = new maplibregl.Marker({color: '#d32f2f'})
-                    .setLngLat([lon, lat])
-                    .setPopup(new maplibregl.Popup().setHTML('<strong>Ihr aktueller Standort</strong>'))
-                    .addTo(map);
-                
-                marker.togglePopup();
-                markers.push(marker);
-            }, function(error) {
-                console.log('Geolocation error:', error);
+                center: [9.7632, 50.9787], // [longitude, latitude] - Germany
+                zoom: 12
             });
+            
+            // Add navigation controls
+            map.addControl(new maplibregl.NavigationControl(), 'top-right');
+            
+            // Add scale control
+            map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
+            
+            // Mark map as loaded
+            window.mapLoaded = true;
+            
+            // Try to get user's location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    // Center map on user location
+                    map.flyTo({
+                        center: [lon, lat],
+                        zoom: 14
+                    });
+                    
+                    // Add marker for current position
+                    const marker = new maplibregl.Marker({color: '#d32f2f'})
+                        .setLngLat([lon, lat])
+                        .setPopup(new maplibregl.Popup().setHTML('<strong>Ihr aktueller Standort</strong>'))
+                        .addTo(map);
+                    
+                    marker.togglePopup();
+                    markers.push(marker);
+                }, function(error) {
+                    console.log('Geolocation error:', error);
+                });
+            }
+        } catch (error) {
+            console.error('Map initialization error:', error);
+            alert('Fehler beim Laden der Karte: ' + error.message);
         }
-    } catch (error) {
-        console.error('Map initialization error:', error);
-        alert('Fehler beim Laden der Karte: ' + error.message);
     }
-}
 
-function calculateRoute() {
-    // Check if map is loaded
-    if (!window.mapLoaded || !map) {
-        alert('Die Karte wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.');
-        return;
-    }
-    
-    const start = document.getElementById('routeStart').value;
-    const end = document.getElementById('routeEnd').value;
-    
-    if (!start || !end) {
-        alert('Bitte geben Sie Start- und Zieladresse ein.');
-        return;
-    }
-    
-    // Geocode addresses
-    Promise.all([
-        geocodeAddress(start),
-        geocodeAddress(end)
-    ]).then(([startCoords, endCoords]) => {
-        if (!startCoords || !endCoords) {
-            alert('Eine oder beide Adressen konnten nicht gefunden werden.');
+    function calculateRoute() {
+        // Check if map is loaded
+        if (!window.mapLoaded || !map) {
+            alert('Die Karte wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.');
             return;
         }
         
-        // Clear existing route
+        const start = document.getElementById('routeStart').value;
+        const end = document.getElementById('routeEnd').value;
+        
+        if (!start || !end) {
+            alert('Bitte geben Sie Start- und Zieladresse ein.');
+            return;
+        }
+        
+        // Geocode addresses
+        Promise.all([
+            geocodeAddress(start),
+            geocodeAddress(end)
+        ]).then(([startCoords, endCoords]) => {
+            if (!startCoords || !endCoords) {
+                alert('Eine oder beide Adressen konnten nicht gefunden werden.');
+                return;
+            }
+            
+            // Clear existing route
+            clearRouteLayer();
+            
+            // Add markers for start and end
+            const startMarker = new maplibregl.Marker({color: '#4caf50'})
+                .setLngLat(startCoords)
+                .setPopup(new maplibregl.Popup().setHTML('<strong>Start:</strong> ' + start))
+                .addTo(map);
+            
+            const endMarker = new maplibregl.Marker({color: '#f44336'})
+                .setLngLat(endCoords)
+                .setPopup(new maplibregl.Popup().setHTML('<strong>Ziel:</strong> ' + end))
+                .addTo(map);
+            
+            markers.push(startMarker, endMarker);
+            
+            // Get route from OSRM
+            getRoute(startCoords, endCoords).then(route => {
+                if (route) {
+                    displayRoute(route);
+                    
+                    // Fit map to route bounds
+                    const bounds = new maplibregl.LngLatBounds();
+                    route.geometry.coordinates.forEach(coord => {
+                        bounds.extend(coord);
+                    });
+                    map.fitBounds(bounds, { padding: 50 });
+                    
+                    // Show route info
+                    const distanceKm = (route.distance / 1000).toFixed(2);
+                    const durationMin = Math.round(route.duration / 60);
+                    
+                    document.getElementById('routeInfo').style.display = 'block';
+                    document.getElementById('routeDetails').innerHTML = `
+                        <p><strong>Entfernung:</strong> ${distanceKm} km</p>
+                        <p><strong>Dauer:</strong> ${durationMin} Minuten</p>
+                    `;
+                }
+            }).catch(error => {
+                console.error('Routing error:', error);
+                alert('Fehler bei der Routenberechnung. Bitte versuchen Sie es erneut.');
+            });
+        }).catch(error => {
+            console.error('Geocoding error:', error);
+            alert('Fehler bei der Adresssuche: ' + error.message);
+        });
+    }
+
+    function clearRoute() {
+        // Clear route layer
         clearRouteLayer();
         
-        // Add markers for start and end
-        const startMarker = new maplibregl.Marker({color: '#4caf50'})
-            .setLngLat(startCoords)
-            .setPopup(new maplibregl.Popup().setHTML('<strong>Start:</strong> ' + start))
-            .addTo(map);
+        // Clear markers
+        markers.forEach(marker => marker.remove());
+        markers = [];
         
-        const endMarker = new maplibregl.Marker({color: '#f44336'})
-            .setLngLat(endCoords)
-            .setPopup(new maplibregl.Popup().setHTML('<strong>Ziel:</strong> ' + end))
-            .addTo(map);
+        // Clear input fields
+        document.getElementById('routeStart').value = '';
+        document.getElementById('routeEnd').value = '';
+        document.getElementById('routeInfo').style.display = 'none';
+    }
+
+    function clearRouteLayer() {
+        if (map.getLayer('route')) {
+            map.removeLayer('route');
+        }
+        if (map.getSource('route')) {
+            map.removeSource('route');
+        }
+    }
+
+    function displayRoute(route) {
+        // Remove existing route if any
+        clearRouteLayer();
         
-        markers.push(startMarker, endMarker);
-        
-        // Get route from OSRM
-        getRoute(startCoords, endCoords).then(route => {
-            if (route) {
-                displayRoute(route);
-                
-                // Fit map to route bounds
-                const bounds = new maplibregl.LngLatBounds();
-                route.geometry.coordinates.forEach(coord => {
-                    bounds.extend(coord);
-                });
-                map.fitBounds(bounds, { padding: 50 });
-                
-                // Show route info
-                const distanceKm = (route.distance / 1000).toFixed(2);
-                const durationMin = Math.round(route.duration / 60);
-                
-                document.getElementById('routeInfo').style.display = 'block';
-                document.getElementById('routeDetails').innerHTML = `
-                    <p><strong>Entfernung:</strong> ${distanceKm} km</p>
-                    <p><strong>Dauer:</strong> ${durationMin} Minuten</p>
-                `;
+        // Add route to map
+        map.addSource('route', {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                properties: {},
+                geometry: route.geometry
             }
-        }).catch(error => {
-            console.error('Routing error:', error);
-            alert('Fehler bei der Routenberechnung. Bitte versuchen Sie es erneut.');
         });
-    }).catch(error => {
-        console.error('Geocoding error:', error);
-        alert('Fehler bei der Adresssuche: ' + error.message);
-    });
-}
-
-function clearRoute() {
-    // Clear route layer
-    clearRouteLayer();
-    
-    // Clear markers
-    markers.forEach(marker => marker.remove());
-    markers = [];
-    
-    // Clear input fields
-    document.getElementById('routeStart').value = '';
-    document.getElementById('routeEnd').value = '';
-    document.getElementById('routeInfo').style.display = 'none';
-}
-
-function clearRouteLayer() {
-    if (map.getLayer('route')) {
-        map.removeLayer('route');
+        
+        map.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            paint: {
+                'line-color': '#dc2626',
+                'line-width': 6,
+                'line-opacity': 0.8
+            }
+        });
     }
-    if (map.getSource('route')) {
-        map.removeSource('route');
-    }
-}
 
-function displayRoute(route) {
-    // Remove existing route if any
-    clearRouteLayer();
-    
-    // Add route to map
-    map.addSource('route', {
-        type: 'geojson',
-        data: {
-            type: 'Feature',
-            properties: {},
-            geometry: route.geometry
+    async function getRoute(start, end) {
+        try {
+            // start and end are already in [lon, lat] format
+            const url = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`Routing service returned status ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                return data.routes[0];
+            }
+            
+            throw new Error('Keine Route gefunden');
+        } catch (error) {
+            console.error('Routing API error:', error);
+            throw error;
         }
-    });
-    
-    map.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-        },
-        paint: {
-            'line-color': '#dc2626',
-            'line-width': 6,
-            'line-opacity': 0.8
-        }
-    });
-}
-
-async function getRoute(start, end) {
-    try {
-        // start and end are already in [lon, lat] format
-        const url = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error(`Routing service returned status ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-            return data.routes[0];
-        }
-        
-        throw new Error('Keine Route gefunden');
-    } catch (error) {
-        console.error('Routing API error:', error);
-        throw error;
     }
-}
 
-async function geocodeAddress(address) {
-    try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
-        
-        if (!response.ok) {
-            throw new Error(`Geocoding service returned status ${response.status}`);
+    async function geocodeAddress(address) {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+            
+            if (!response.ok) {
+                throw new Error(`Geocoding service returned status ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data && data.length > 0) {
+                // Return coordinates in [lon, lat] format (MapLibre format)
+                return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+            }
+            return null;
+        } catch (error) {
+            console.error('Geocoding error:', error);
+            return null;
         }
-        
-        const data = await response.json();
-        
-        if (data && data.length > 0) {
-            // Return coordinates in [lon, lat] format (MapLibre format)
-            return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
-        }
-        return null;
-    } catch (error) {
-        console.error('Geocoding error:', error);
-        return null;
     }
-}
+
+    // Expose functions to global scope for onclick handlers
+    window.calculateRoute = calculateRoute;
+    window.clearRoute = clearRoute;
+})();
 </script>
