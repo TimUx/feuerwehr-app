@@ -993,13 +993,6 @@ body {
     font-weight: bold;
 }
 
-.hazard-matrix-table .separator-row td {
-    height: 0.5rem;
-    padding: 0;
-    border: none;
-    background: transparent;
-}
-
 .hazard-matrix-table .separator-col {
     width: 1rem;
     min-width: 1rem;
