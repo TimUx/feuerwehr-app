@@ -253,25 +253,71 @@ class FeuerwehrApp {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = html;
         
-        // Extract and execute scripts
-        const scripts = tempDiv.querySelectorAll('script');
-        const scriptContents = [];
-        scripts.forEach(script => {
-          scriptContents.push(script.textContent);
-          script.remove(); // Remove script from HTML
+        // Extract stylesheets (link tags)
+        const links = tempDiv.querySelectorAll('link[rel="stylesheet"]');
+        const linkPromises = [];
+        links.forEach(link => {
+          // Check if this stylesheet is already loaded
+          const href = link.getAttribute('href');
+          if (!document.querySelector(`link[href="${href}"]`)) {
+            const newLink = document.createElement('link');
+            newLink.rel = 'stylesheet';
+            newLink.href = href;
+            if (link.integrity) newLink.integrity = link.integrity;
+            if (link.crossOrigin) newLink.crossOrigin = link.crossOrigin;
+            
+            const linkPromise = new Promise((resolve, reject) => {
+              newLink.onload = resolve;
+              newLink.onerror = reject;
+            });
+            linkPromises.push(linkPromise);
+            document.head.appendChild(newLink);
+          }
+          link.remove();
         });
         
-        // Set the HTML without scripts
+        // Extract scripts (both external and inline)
+        const scripts = tempDiv.querySelectorAll('script');
+        const scriptPromises = [];
+        const inlineScripts = [];
+        
+        scripts.forEach(script => {
+          const src = script.getAttribute('src');
+          if (src) {
+            // External script
+            // Check if this script is already loaded
+            if (!document.querySelector(`script[src="${src}"]`)) {
+              const newScript = document.createElement('script');
+              newScript.src = src;
+              if (script.integrity) newScript.integrity = script.integrity;
+              if (script.crossOrigin) newScript.crossOrigin = script.crossOrigin;
+              
+              const scriptPromise = new Promise((resolve, reject) => {
+                newScript.onload = resolve;
+                newScript.onerror = reject;
+              });
+              scriptPromises.push(scriptPromise);
+              document.head.appendChild(newScript);
+            }
+          } else if (script.textContent.trim()) {
+            // Inline script - save for later execution
+            inlineScripts.push(script.textContent);
+          }
+          script.remove();
+        });
+        
+        // Set the HTML without scripts and stylesheets
         mainContent.innerHTML = tempDiv.innerHTML;
         
-        // Execute scripts in order
-        scriptContents.forEach(scriptContent => {
+        // Wait for all external resources to load
+        await Promise.all([...linkPromises, ...scriptPromises]);
+        
+        // Execute inline scripts in order after external resources are loaded
+        inlineScripts.forEach(scriptContent => {
           try {
-            const scriptEl = document.createElement('script');
-            scriptEl.textContent = scriptContent;
-            document.body.appendChild(scriptEl);
-            // Clean up immediately after execution
-            document.body.removeChild(scriptEl);
+            // Use Function constructor to avoid redeclaration issues with let/const
+            const scriptFunc = new Function(scriptContent);
+            scriptFunc();
           } catch (error) {
             console.error('Error executing page script:', error);
           }
