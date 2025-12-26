@@ -315,9 +315,10 @@ class FeuerwehrApp {
         // Execute inline scripts in order after external resources are loaded
         inlineScripts.forEach(scriptContent => {
           try {
-            // Use Function constructor to avoid redeclaration issues with let/const
-            const scriptFunc = new Function(scriptContent);
-            scriptFunc();
+            // Create script element and append to head to execute in global scope
+            const scriptEl = document.createElement('script');
+            scriptEl.textContent = scriptContent;
+            document.head.appendChild(scriptEl);
           } catch (error) {
             console.error('Error executing page script:', error);
           }
