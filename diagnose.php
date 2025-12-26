@@ -786,6 +786,225 @@ function runAllTests() {
         ];
     }
     
+    // Test 18: Docker Container Detection
+    debugLog("Test 18: Checking if running in Docker container", 'INFO');
+    $isDocker = false;
+    $dockerHints = [];
+    
+    // Check for .dockerenv file
+    if (file_exists('/.dockerenv')) {
+        $isDocker = true;
+        $dockerHints[] = '/.dockerenv exists';
+        debugLog("Found /.dockerenv file - running in Docker", 'INFO');
+    }
+    
+    // Check cgroup for docker
+    if (file_exists('/proc/1/cgroup')) {
+        $cgroup = file_get_contents('/proc/1/cgroup');
+        if (strpos($cgroup, 'docker') !== false || strpos($cgroup, 'containerd') !== false) {
+            $isDocker = true;
+            $dockerHints[] = 'cgroup contains docker/containerd';
+            debugLog("Found docker/containerd in cgroup - running in Docker", 'INFO');
+        }
+    }
+    
+    // Check for container-specific environment variables
+    $containerEnvVars = ['CONTAINER', 'DOCKER_CONTAINER', 'KUBERNETES_SERVICE_HOST'];
+    foreach ($containerEnvVars as $envVar) {
+        if (getenv($envVar)) {
+            $isDocker = true;
+            $dockerHints[] = "Environment variable $envVar is set";
+            debugLog("Found environment variable $envVar - running in container", 'INFO');
+            break;
+        }
+    }
+    
+    $tests[] = [
+        'category' => 'Container',
+        'name' => 'Docker Container Erkennung',
+        'status' => 'info',
+        'message' => $isDocker ? 'Läuft in Docker Container: ' . implode(', ', $dockerHints) : 'Läuft nicht in Docker Container',
+        'critical' => false
+    ];
+    
+    // Test 19: DNS Resolution (wichtig für Docker)
+    debugLog("Test 19: Testing DNS resolution", 'INFO');
+    $dnsTestHosts = [
+        'tile.openstreetmap.org',
+        'nominatim.openstreetmap.org',
+        'router.project-osrm.org',
+        'unpkg.com'
+    ];
+    
+    $dnsResults = [];
+    foreach ($dnsTestHosts as $host) {
+        $resolved = @gethostbyname($host);
+        $success = ($resolved !== $host && filter_var($resolved, FILTER_VALIDATE_IP));
+        $dnsResults[$host] = ['success' => $success, 'ip' => $success ? $resolved : 'FAILED'];
+        debugLog("DNS resolution for $host: " . ($success ? "OK ($resolved)" : "FAILED"), $success ? 'INFO' : 'ERROR');
+    }
+    
+    $allDnsOk = array_reduce($dnsResults, function($carry, $item) {
+        return $carry && $item['success'];
+    }, true);
+    
+    $dnsMessage = $allDnsOk ? 'Alle Hosts erfolgreich aufgelöst' : 'Einige Hosts konnten nicht aufgelöst werden';
+    if (!$allDnsOk) {
+        $failedHosts = array_filter($dnsResults, function($item) { return !$item['success']; });
+        $dnsMessage .= ': ' . implode(', ', array_keys($failedHosts));
+    }
+    
+    $tests[] = [
+        'category' => 'Container',
+        'name' => 'DNS Auflösung',
+        'status' => $allDnsOk ? 'pass' : 'fail',
+        'message' => $dnsMessage,
+        'critical' => false,
+        'fix' => !$allDnsOk ? ($isDocker ? 'Docker DNS-Konfiguration überprüfen (docker run --dns 8.8.8.8)' : 'Netzwerk-Konfiguration oder Firewall überprüfen') : null
+    ];
+    
+    // Test 20: External API Connectivity (Map Dependencies)
+    debugLog("Test 20: Testing external API connectivity for map features", 'INFO');
+    
+    $apiTests = [
+        [
+            'name' => 'OpenStreetMap Tiles',
+            'url' => 'https://tile.openstreetmap.org/0/0/0.png',
+            'description' => 'Kartenkacheln'
+        ],
+        [
+            'name' => 'MapLibre GL JS',
+            'url' => 'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js',
+            'description' => 'Karten-Bibliothek'
+        ],
+        [
+            'name' => 'Nominatim Geocoding',
+            'url' => 'https://nominatim.openstreetmap.org/search?format=json&q=Berlin&limit=1',
+            'description' => 'Adresssuche'
+        ],
+        [
+            'name' => 'OSRM Routing',
+            'url' => 'https://router.project-osrm.org/route/v1/driving/13.388860,52.517037;13.397634,52.529407?overview=false',
+            'description' => 'Routenberechnung'
+        ]
+    ];
+    
+    $apiConnectivityOk = true;
+    foreach ($apiTests as $test) {
+        $testUrl = $test['url'];
+        $testName = $test['name'];
+        $testDescription = $test['description'];
+        
+        debugLog("Testing connectivity to $testName ($testUrl)", 'INFO');
+        
+        // Check if curl is available
+        if (!function_exists('curl_init')) {
+            debugLog("curl extension not available - cannot test $testName", 'WARN');
+            $tests[] = [
+                'category' => 'Karten-Funktionalität',
+                'name' => $testName,
+                'status' => 'warn',
+                'message' => 'curl-Extension nicht verfügbar - Test übersprungen',
+                'critical' => false
+            ];
+            continue;
+        }
+        
+        $ch = curl_init($testUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Feuerwehr-App-Diagnostics/1.0');
+        curl_setopt($ch, CURLOPT_NOBODY, true); // HEAD request only
+        
+        $result = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        $curlErrno = curl_errno($ch);
+        curl_close($ch);
+        
+        $success = ($httpCode >= 200 && $httpCode < 400);
+        
+        if ($success) {
+            debugLog("$testName: OK (HTTP $httpCode)", 'INFO');
+            $tests[] = [
+                'category' => 'Karten-Funktionalität',
+                'name' => $testName,
+                'status' => 'pass',
+                'message' => "$testDescription erreichbar (HTTP $httpCode)",
+                'critical' => false
+            ];
+        } else {
+            debugLog("$testName: FAILED (HTTP $httpCode, curl error: $curlErrno - $curlError)", 'ERROR');
+            $apiConnectivityOk = false;
+            
+            $errorMsg = "Nicht erreichbar";
+            if ($curlErrno) {
+                $errorMsg .= " (curl error $curlErrno: $curlError)";
+            } elseif ($httpCode) {
+                $errorMsg .= " (HTTP $httpCode)";
+            }
+            
+            $tests[] = [
+                'category' => 'Karten-Funktionalität',
+                'name' => $testName,
+                'status' => 'fail',
+                'message' => $errorMsg,
+                'critical' => false,
+                'fix' => $isDocker ? 
+                    'Docker Container hat keinen Internetzugang oder Firewall blockiert externe APIs. Überprüfen Sie Docker Netzwerk-Konfiguration.' :
+                    'Firewall oder Proxy blockiert möglicherweise externe Verbindungen. Überprüfen Sie Netzwerk-Konfiguration.'
+            ];
+        }
+    }
+    
+    // Test 21: JavaScript/MapLibre Loading Test
+    debugLog("Test 21: Adding JavaScript library loading information", 'INFO');
+    $tests[] = [
+        'category' => 'Karten-Funktionalität',
+        'name' => 'JavaScript Bibliotheken',
+        'status' => 'info',
+        'message' => 'MapLibre GL JS muss im Browser geladen werden. Öffnen Sie die Karten-Seite und prüfen Sie die Browser-Konsole auf Fehler (F12 → Console).',
+        'critical' => false
+    ];
+    
+    // Test 22: CSP/CORS Headers Check
+    debugLog("Test 22: Checking for Content Security Policy", 'INFO');
+    $cspHeader = null;
+    if (function_exists('apache_response_headers')) {
+        $headers = apache_response_headers();
+        $cspHeader = $headers['Content-Security-Policy'] ?? null;
+    }
+    
+    if ($cspHeader) {
+        debugLog("CSP header found: $cspHeader", 'INFO');
+        // Check if CSP allows external resources
+        $allowsExternal = (
+            strpos($cspHeader, 'unpkg.com') !== false ||
+            strpos($cspHeader, 'openstreetmap.org') !== false ||
+            strpos($cspHeader, '*') !== false
+        );
+        
+        $tests[] = [
+            'category' => 'Karten-Funktionalität',
+            'name' => 'Content Security Policy',
+            'status' => $allowsExternal ? 'pass' : 'warn',
+            'message' => $allowsExternal ? 'CSP erlaubt externe Ressourcen' : 'CSP könnte externe Ressourcen blockieren',
+            'critical' => false,
+            'fix' => !$allowsExternal ? 'CSP Header anpassen um externe Map-Ressourcen zu erlauben' : null
+        ];
+    } else {
+        debugLog("No CSP header found", 'INFO');
+        $tests[] = [
+            'category' => 'Karten-Funktionalität',
+            'name' => 'Content Security Policy',
+            'status' => 'pass',
+            'message' => 'Kein CSP Header gesetzt (externe Ressourcen erlaubt)',
+            'critical' => false
+        ];
+    }
+    
     return [
         'tests' => $tests,
         'criticalFailures' => $criticalFailures,
@@ -795,9 +1014,11 @@ function runAllTests() {
         'webserver' => $serverSoftware,
         'isNginx' => $isNginx,
         'isApache' => $isApache,
+        'isDocker' => $isDocker,
         'webserverErrorLog' => $webserverErrorLog ?? null,
         'phpProcessLog' => $phpProcessLog ?? null,
-        'detectedWebUser' => $detectedWebUser ?? null
+        'detectedWebUser' => $detectedWebUser ?? null,
+        'apiConnectivityOk' => $apiConnectivityOk
     ];
 }
 
@@ -1059,6 +1280,37 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                     <div>
                         <strong><?php echo $results['criticalFailures']; ?> kritische Fehler gefunden!</strong><br>
                         Beheben Sie die unten markierten Probleme, bevor Sie fortfahren.
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (isset($results['isDocker']) && $results['isDocker']): ?>
+                <div class="alert" style="background: #e3f2fd; border-left-color: #2196f3; color: #1565c0; margin-top: 20px;">
+                    <span class="material-icons">info</span>
+                    <div>
+                        <strong>🐳 Docker Container erkannt</strong><br>
+                        Die App läuft in einem Docker Container. Beachten Sie folgende Punkte:
+                        <ul style="margin: 10px 0 0 20px;">
+                            <li>Stellen Sie sicher, dass der Container Internetzugang hat</li>
+                            <li>DNS-Auflösung muss funktionieren (--dns 8.8.8.8 beim Start hinzufügen)</li>
+                            <li>Externe APIs (OpenStreetMap, OSRM) müssen erreichbar sein</li>
+                            <li>Prüfen Sie die Firewall-Regeln für ausgehende Verbindungen</li>
+                        </ul>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (isset($results['apiConnectivityOk']) && !$results['apiConnectivityOk']): ?>
+                <div class="alert" style="background: #fff3e0; border-left-color: #ff9800; color: #e65100; margin-top: 20px;">
+                    <span class="material-icons">warning</span>
+                    <div>
+                        <strong>⚠️ Karten-Funktionalität beeinträchtigt</strong><br>
+                        Einige externe APIs für die Karten-Funktion sind nicht erreichbar. Die Karte wird möglicherweise nicht korrekt angezeigt.
+                        <ul style="margin: 10px 0 0 20px;">
+                            <li><strong>Ursachen:</strong> Firewall, fehlender Internetzugang, DNS-Probleme, Docker Netzwerk-Konfiguration</li>
+                            <li><strong>Lösung:</strong> Prüfen Sie die Netzwerk-Konfiguration und stellen Sie sicher, dass externe APIs erreichbar sind</li>
+                            <li><strong>Browser-Test:</strong> Öffnen Sie die Browser-Konsole (F12) auf der Karten-Seite für detaillierte Fehler</li>
+                        </ul>
                     </div>
                 </div>
             <?php endif; ?>
