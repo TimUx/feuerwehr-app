@@ -732,6 +732,9 @@ body {
     color: var(--primary-color);
     text-align: center;
     line-height: 1.3;
+    word-wrap: break-word;
+    hyphens: auto;
+    overflow-wrap: break-word;
 }
 
 .menu-button-admin {
@@ -1026,6 +1029,11 @@ body {
 
 .search-form .form-group {
     flex: 1;
+}
+
+#unNumberSearch {
+    font-size: 1.25rem;
+    padding: 1rem;
 }
 
 .hazmat-details {
