@@ -104,13 +104,14 @@ class SMTPClient {
                 $context
             );
         } else {
-            // Regular connection for STARTTLS
+            // Regular connection for STARTTLS (context will be applied during crypto upgrade)
             $this->socket = @stream_socket_client(
                 "tcp://{$this->host}:{$this->port}",
                 $errno,
                 $errstr,
                 $this->timeout,
-                STREAM_CLIENT_CONNECT
+                STREAM_CLIENT_CONNECT,
+                $context
             );
         }
         
@@ -130,6 +131,7 @@ class SMTPClient {
         if ($this->secure === 'tls' && $this->port != 465) {
             $this->sendCommand("STARTTLS", 220);
             
+            // Apply SSL context during crypto upgrade for certificate validation
             if (!stream_socket_enable_crypto($this->socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
                 throw new Exception("Failed to enable TLS encryption");
             }
@@ -173,7 +175,9 @@ class SMTPClient {
      */
     private function readResponse(int $expectedCode): string {
         $response = '';
-        while ($line = fgets($this->socket, 515)) {
+        $maxLineLength = 515; // SMTP line length limit per RFC 5321
+        
+        while ($line = fgets($this->socket, $maxLineLength)) {
             $response .= $line;
             // Check if this is the last line (code without dash)
             if (preg_match('/^(\d{3}) /', $line, $matches)) {
@@ -232,10 +236,13 @@ class SMTPClient {
         
         // Attachments
         foreach ($attachments as $filename => $content) {
+            // Sanitize filename to prevent header injection
+            $safeFilename = $this->sanitizeFilename($filename);
+            
             $parts[] = "--{$boundary}";
-            $parts[] = "Content-Type: application/octet-stream; name=\"{$filename}\"";
+            $parts[] = "Content-Type: application/octet-stream; name=\"{$safeFilename}\"";
             $parts[] = "Content-Transfer-Encoding: base64";
-            $parts[] = "Content-Disposition: attachment; filename=\"{$filename}\"";
+            $parts[] = "Content-Disposition: attachment; filename=\"{$safeFilename}\"";
             $parts[] = "";
             $parts[] = chunk_split(base64_encode($content));
         }
@@ -243,6 +250,21 @@ class SMTPClient {
         $parts[] = "--{$boundary}--";
         
         return implode("\r\n", $parts);
+    }
+    
+    /**
+     * Sanitize filename to prevent header injection
+     */
+    private function sanitizeFilename(string $filename): string {
+        // Remove any control characters and limit to safe characters
+        $filename = preg_replace('/[\x00-\x1F\x7F]/', '', $filename);
+        // Remove path separators
+        $filename = str_replace(['/', '\\', '..'], '', $filename);
+        // Limit length
+        if (strlen($filename) > 255) {
+            $filename = substr($filename, 0, 255);
+        }
+        return $filename;
     }
     
     /**

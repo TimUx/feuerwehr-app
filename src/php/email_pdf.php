@@ -22,6 +22,13 @@ class EmailPDF {
     }
     
     /**
+     * Check if PHPMailer is available
+     */
+    private static function isPhpMailerAvailable(): bool {
+        return class_exists('PHPMailer\PHPMailer\PHPMailer');
+    }
+    
+    /**
      * Send email with HTML content and multiple attachments
      * Uses native PHP 8 SMTP by default, falls back to PHPMailer if configured
      */
@@ -46,7 +53,7 @@ class EmailPDF {
         $usePhpMailer = $emailConfig['use_phpmailer'] ?? false;
         
         // Use PHPMailer if explicitly requested AND available
-        if ($usePhpMailer && class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+        if ($usePhpMailer && self::isPhpMailerAvailable()) {
             return self::sendWithPhpMailer($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName);
         }
         
@@ -104,7 +111,7 @@ class EmailPDF {
      * Send email using PHPMailer (fallback)
      */
     private static function sendWithPhpMailer($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName) {
-        if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+        if (!self::isPhpMailerAvailable()) {
             error_log("PHPMailer not available");
             return false;
         }
