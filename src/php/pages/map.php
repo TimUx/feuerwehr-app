@@ -60,13 +60,13 @@ if (!empty($address)) {
 <!-- Leaflet Routing Machine CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
 
-<!-- Leaflet JS - Load with defer to ensure proper order -->
-<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin=""></script>
 
-<!-- Leaflet Routing Machine - Load with defer AFTER Leaflet -->
-<script defer src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<!-- Leaflet Routing Machine -->
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
 <div class="page-header">
     <h2>Online Karte</h2>
@@ -295,8 +295,15 @@ function initMaps() {
     initExploreMap();
 }
 
-// Start initialization when DOM is ready
-document.addEventListener('DOMContentLoaded', initMaps);
+// Start initialization immediately (works for both direct page load and AJAX load)
+// Check if DOM is already ready (for AJAX-loaded content)
+if (document.readyState === 'loading') {
+    // DOM is still loading, wait for it
+    document.addEventListener('DOMContentLoaded', initMaps);
+} else {
+    // DOM is already ready (AJAX case), initialize immediately
+    initMaps();
+}
 
 // Initialize explore map
 function initExploreMap() {
