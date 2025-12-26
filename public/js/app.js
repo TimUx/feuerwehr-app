@@ -268,13 +268,13 @@ class FeuerwehrApp {
         links.forEach(link => {
           // Check if this stylesheet is already loaded
           const href = link.getAttribute('href');
-          const existingLink = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).find(l => l.href === link.href);
+          const existingLink = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).find(l => l.getAttribute('href') === href);
           if (!existingLink) {
             const newLink = document.createElement('link');
             newLink.rel = 'stylesheet';
             newLink.href = href;
             if (link.integrity) newLink.integrity = link.integrity;
-            if (link.crossOrigin) newLink.crossOrigin = link.crossOrigin;
+            if (link.crossorigin) newLink.crossorigin = link.crossorigin;
             
             const linkPromise = new Promise((resolve, reject) => {
               newLink.onload = resolve;
@@ -296,12 +296,12 @@ class FeuerwehrApp {
           if (src) {
             // External script
             // Check if this script is already loaded
-            const existingScript = Array.from(document.querySelectorAll('script[src]')).find(s => s.src === script.src);
+            const existingScript = Array.from(document.querySelectorAll('script[src]')).find(s => s.getAttribute('src') === src);
             if (!existingScript) {
               const newScript = document.createElement('script');
               newScript.src = src;
               if (script.integrity) newScript.integrity = script.integrity;
-              if (script.crossOrigin) newScript.crossOrigin = script.crossOrigin;
+              if (script.crossorigin) newScript.crossorigin = script.crossorigin;
               
               const scriptPromise = new Promise((resolve, reject) => {
                 newScript.onload = resolve;
