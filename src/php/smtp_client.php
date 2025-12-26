@@ -161,8 +161,30 @@ class SMTPClient {
             $this->sendCommand(base64_encode($this->password), 235);
             return; // Success
         } catch (Exception $e) {
-            // AUTH LOGIN failed, try AUTH PLAIN as fallback
-            error_log("AUTH LOGIN fehlgeschlagen: " . $e->getMessage() . ". Versuche AUTH PLAIN...");
+            // AUTH LOGIN failed - connection may be in inconsistent state
+            // Close and reconnect before trying AUTH PLAIN
+            error_log("AUTH LOGIN fehlgeschlagen: " . $e->getMessage() . ". Verbinde erneut für AUTH PLAIN...");
+            
+            $this->disconnect();
+            
+            // Reconnect but skip authentication
+            $originalUsername = $this->username;
+            $originalPassword = $this->password;
+            $this->username = '';
+            $this->password = '';
+            
+            try {
+                $this->connect();
+            } catch (Exception $reconnectException) {
+                // Restore credentials and give up
+                $this->username = $originalUsername;
+                $this->password = $originalPassword;
+                throw new Exception("SMTP-Verbindung für AUTH PLAIN fehlgeschlagen: " . $reconnectException->getMessage());
+            }
+            
+            // Restore credentials
+            $this->username = $originalUsername;
+            $this->password = $originalPassword;
         }
         
         // Try AUTH PLAIN as fallback
@@ -207,7 +229,7 @@ class SMTPClient {
                 
                 if ($code !== $expectedCode) {
                     // Extract the error message from the response
-                    $errorMessage = trim(preg_replace('/^\d{3}(-| )/', '', $response));
+                    $errorMessage = trim(preg_replace('/^\d{3}[\s-]/', '', $response));
                     throw new Exception("SMTP-Fehler: Server antwortete mit Code {$code} (erwartet wurde {$expectedCode}). Server-Nachricht: {$errorMessage}");
                 }
                 return $response;
