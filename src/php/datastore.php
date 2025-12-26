@@ -215,15 +215,6 @@ class DataStore {
         
         return null;
     }
-                $vehicle['updated_at'] = date('Y-m-d H:i:s');
-                
-                self::save('vehicles.json', $vehicles);
-                return $vehicle;
-            }
-        }
-        
-        return null;
-    }
 
     /**
      * Delete vehicle
