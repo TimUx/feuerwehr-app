@@ -22,6 +22,9 @@ $configFile = __DIR__ . '/../../../config/config.php';
 // Handle test email
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'test') {
     try {
+        // Load email helper
+        require_once __DIR__ . '/../email_pdf.php';
+        
         // Load current config
         $config = file_exists($configFile) ? require $configFile : [];
         $emailConfig = $config['email'] ?? [];
@@ -33,44 +36,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         // Prepare test email
         $to = $emailConfig['to_address'];
         $subject = 'Test-E-Mail - Feuerwehr Management System';
-        $message = "Dies ist eine Test-E-Mail.\n\n";
-        $message .= "Die E-Mail-Konfiguration funktioniert korrekt.\n\n";
-        $message .= "Gesendet am: " . date('d.m.Y H:i:s') . "\n";
-        $message .= "Von: " . ($_SERVER['SERVER_NAME'] ?? 'Feuerwehr Management System');
+        $htmlBody = '<html><body style="font-family: Arial, sans-serif;">';
+        $htmlBody .= '<h2>Test-E-Mail</h2>';
+        $htmlBody .= '<p>Dies ist eine Test-E-Mail vom Feuerwehr Management System.</p>';
+        $htmlBody .= '<p><strong>Die E-Mail-Konfiguration funktioniert korrekt!</strong></p>';
+        $htmlBody .= '<hr>';
+        $htmlBody .= '<p><small>Gesendet am: ' . date('d.m.Y H:i:s') . '<br>';
+        $htmlBody .= 'Von: ' . htmlspecialchars($_SERVER['SERVER_NAME'] ?? 'Feuerwehr Management System') . '</small></p>';
+        $htmlBody .= '</body></html>';
         
-        $headers = [];
-        $headers[] = 'From: ' . ($emailConfig['from_name'] ?? 'Feuerwehr Management') . ' <' . ($emailConfig['from_address'] ?? 'noreply@feuerwehr.local') . '>';
-        $headers[] = 'X-Mailer: PHP/' . phpversion();
-        $headers[] = 'MIME-Version: 1.0';
-        $headers[] = 'Content-Type: text/plain; charset=UTF-8';
-        
-        // Configure SMTP if settings available
-        if (!empty($emailConfig['smtp_host'])) {
-            ini_set('SMTP', $emailConfig['smtp_host']);
-            ini_set('smtp_port', $emailConfig['smtp_port'] ?? 25);
-        }
-        
-        // Attempt to send the email
-        $result = mail($to, $subject, $message, implode("\r\n", $headers));
+        // Send test email using EmailPDF helper with PHPMailer
+        $result = EmailPDF::sendEmail($to, $subject, $htmlBody);
         
         if ($result) {
             echo json_encode(['success' => true, 'message' => 'Test-E-Mail erfolgreich versendet']);
         } else {
-            // Get detailed error information
-            $lastError = error_get_last();
-            $errorMsg = 'mail() Funktion hat false zurückgegeben. ';
-            
-            if ($lastError && isset($lastError['message'])) {
-                $errorMsg .= 'PHP Fehler: ' . $lastError['message'];
-            } else {
-                $errorMsg .= 'Mögliche Ursachen: ';
-                $errorMsg .= '1) SMTP-Server nicht konfiguriert oder nicht erreichbar. ';
-                $errorMsg .= '2) sendmail ist nicht installiert. ';
-                $errorMsg .= '3) Die E-Mail-Adresse ist ungültig. ';
-                $errorMsg .= 'Bitte überprüfen Sie die SMTP-Einstellungen oder installieren Sie einen Mail-Server (z.B. sendmail, postfix).';
-            }
-            
-            throw new Exception($errorMsg);
+            throw new Exception('E-Mail konnte nicht versendet werden. Bitte überprüfen Sie die SMTP-Einstellungen und stellen Sie sicher, dass der SMTP-Server erreichbar ist.');
         }
     } catch (Exception $e) {
         http_response_code(500);
