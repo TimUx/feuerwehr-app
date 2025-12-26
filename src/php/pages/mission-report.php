@@ -9,8 +9,12 @@ require_once __DIR__ . '/../datastore.php';
 
 Auth::requireOperator();
 
-$personnel = DataStore::getPersonnel();
-$vehicles = DataStore::getVehicles();
+$user = Auth::getUser();
+$hasGlobalAccess = Auth::hasGlobalAccess();
+$userLocationId = Auth::getUserLocationId();
+
+$personnel = DataStore::getPersonnelByLocation($hasGlobalAccess ? null : $userLocationId);
+$vehicles = DataStore::getVehiclesByLocation($hasGlobalAccess ? null : $userLocationId);
 $locations = DataStore::getLocations();
 
 // Function options from JSON
@@ -33,6 +37,7 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
             
             <h3 style="margin-top: 0;">Einsatzdaten</h3>
             
+            <?php if ($hasGlobalAccess): ?>
             <div class="form-group">
                 <label class="form-label" for="standort-filter">Einsatzabteilung / Standort *</label>
                 <select id="standort-filter" name="standort" class="form-input" required>
@@ -45,6 +50,16 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
                     Je nach Auswahl werden nur die Fahrzeuge und Einsatzkräfte dieses Standorts angezeigt
                 </small>
             </div>
+            <?php else: ?>
+            <input type="hidden" id="standort-filter" name="standort" value="<?php echo htmlspecialchars($userLocationId); ?>">
+            <div class="form-group">
+                <label class="form-label">Einsatzabteilung / Standort</label>
+                <input type="text" class="form-input" value="<?php echo htmlspecialchars(DataStore::getLocationById($userLocationId)['name'] ?? 'Unbekannt'); ?>" readonly>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Ihr zugewiesener Standort
+                </small>
+            </div>
+            <?php endif; ?>
             
             <div class="form-group">
                 <label class="form-label" for="einsatzgrund">Einsatzgrund *</label>

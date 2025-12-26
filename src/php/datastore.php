@@ -59,6 +59,19 @@ class DataStore {
     }
 
     /**
+     * Get personnel filtered by location (if locationId is null, returns all)
+     */
+    public static function getPersonnelByLocation($locationId = null) {
+        $personnel = self::getPersonnel();
+        if ($locationId === null) {
+            return $personnel;
+        }
+        return array_filter($personnel, function($person) use ($locationId) {
+            return !isset($person['location_id']) || $person['location_id'] === $locationId;
+        });
+    }
+
+    /**
      * Get single personnel by ID
      */
     public static function getPersonnelById($id) {
@@ -146,6 +159,19 @@ class DataStore {
      */
     public static function getVehicles() {
         return self::load('vehicles.json');
+    }
+
+    /**
+     * Get vehicles filtered by location (if locationId is null, returns all)
+     */
+    public static function getVehiclesByLocation($locationId = null) {
+        $vehicles = self::getVehicles();
+        if ($locationId === null) {
+            return $vehicles;
+        }
+        return array_filter($vehicles, function($vehicle) use ($locationId) {
+            return !isset($vehicle['location_id']) || $vehicle['location_id'] === $locationId;
+        });
     }
 
     /**
@@ -463,6 +489,41 @@ class DataStore {
             'missions' => count($personMissions),
             'mission_hours' => $missionHours,
             'total_hours' => $trainingHours + $missionHours
+        ];
+    }
+
+    /**
+     * Get statistics for a specific location
+     */
+    public static function getLocationStatistics($locationId, $year = null) {
+        if (!$year) {
+            $year = date('Y');
+        }
+
+        $attendance = self::getAttendanceRecords();
+        $missions = self::getMissionReports();
+
+        // Filter by year and location
+        $locationAttendance = array_filter($attendance, function($record) use ($year, $locationId) {
+            return strpos($record['date'], $year) === 0 && 
+                   isset($record['location_id']) && $record['location_id'] === $locationId;
+        });
+
+        $locationMissions = array_filter($missions, function($report) use ($year, $locationId) {
+            return strpos($report['date'], $year) === 0 && 
+                   isset($report['location_id']) && $report['location_id'] === $locationId;
+        });
+
+        $trainingHours = array_sum(array_column($locationAttendance, 'duration_hours'));
+        $missionHours = array_sum(array_column($locationMissions, 'duration_hours'));
+
+        return [
+            'location_id' => $locationId,
+            'year' => $year,
+            'total_training_sessions' => count($locationAttendance),
+            'total_training_hours' => $trainingHours,
+            'total_missions' => count($locationMissions),
+            'total_mission_hours' => $missionHours
         ];
     }
 
