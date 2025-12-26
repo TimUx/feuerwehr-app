@@ -31,6 +31,16 @@ class EmailPDF {
             // Get email configuration
             $emailConfig = self::$config['email'] ?? [];
             
+            // Validate email addresses
+            $fromAddress = $emailConfig['from_address'] ?? 'noreply@feuerwehr.local';
+            if (!filter_var($fromAddress, FILTER_VALIDATE_EMAIL)) {
+                throw new Exception('Invalid from address: ' . $fromAddress);
+            }
+            
+            if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+                throw new Exception('Invalid recipient address: ' . $to);
+            }
+            
             // Server settings
             if (!empty($emailConfig['smtp_host'])) {
                 // Use SMTP if configured
@@ -53,16 +63,13 @@ class EmailPDF {
                         $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
                     }
                 }
-                
-                // Enable verbose debug output for troubleshooting (disable in production)
-                // $mail->SMTPDebug = 2;
             } else {
                 // Fall back to PHP mail() function if no SMTP configured
                 $mail->isMail();
             }
             
             // Recipients
-            $mail->setFrom($emailConfig['from_address'] ?? 'noreply@feuerwehr.local', $emailConfig['from_name'] ?? 'Feuerwehr Management System');
+            $mail->setFrom($fromAddress, $emailConfig['from_name'] ?? 'Feuerwehr Management System');
             $mail->addAddress($to);
             
             // Content

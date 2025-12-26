@@ -1,7 +1,7 @@
 <?php
 /**
  * Map Page - Embedded OpenStreetMap
- * Verwendet eingebettete iframe-Lösung für bessere Kompatibilität
+ * Uses embedded iframe solution for better compatibility
  */
 
 require_once __DIR__ . '/../auth.php';
@@ -52,16 +52,15 @@ $defaultZoom = 12;
                 <iframe id="map-iframe-explore"
                     width="100%"
                     height="600"
-                    frameborder="0"
                     scrolling="no"
                     marginheight="0"
                     marginwidth="0"
-                    src="https://www.openstreetmap.org/export/embed.html?bbox=<?php echo ($defaultLon - 0.1); ?>%2C<?php echo ($defaultLat - 0.05); ?>%2C<?php echo ($defaultLon + 0.1); ?>%2C<?php echo ($defaultLat + 0.05); ?>&amp;layer=mapnik"
+                    src="https://www.openstreetmap.org/export/embed.html?bbox=<?php echo urlencode($defaultLon - 0.1); ?>%2C<?php echo urlencode($defaultLat - 0.05); ?>%2C<?php echo urlencode($defaultLon + 0.1); ?>%2C<?php echo urlencode($defaultLat + 0.05); ?>&amp;layer=mapnik"
                     style="border: 1px solid #ccc; border-radius: 8px;">
                 </iframe>
                 <br/>
                 <small>
-                    <a href="https://www.openstreetmap.org/#map=<?php echo $defaultZoom; ?>/<?php echo $defaultLat; ?>/<?php echo $defaultLon; ?>" target="_blank">
+                    <a href="https://www.openstreetmap.org/#map=<?php echo urlencode($defaultZoom); ?>/<?php echo urlencode($defaultLat); ?>/<?php echo urlencode($defaultLon); ?>" target="_blank">
                         Größere Karte anzeigen
                     </a>
                 </small>
@@ -117,7 +116,6 @@ $defaultZoom = 12;
                     <iframe id="map-iframe-route"
                         width="100%"
                         height="600"
-                        frameborder="0"
                         scrolling="no"
                         marginheight="0"
                         marginwidth="0"
@@ -163,7 +161,6 @@ $defaultZoom = 12;
                     <iframe id="map-iframe-search"
                         width="100%"
                         height="600"
-                        frameborder="0"
                         scrolling="no"
                         marginheight="0"
                         marginwidth="0"
