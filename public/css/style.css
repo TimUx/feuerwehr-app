@@ -676,6 +676,40 @@ body {
     min-height: 140px;
 }
 
+/* Improve button sizing on mobile devices */
+@media (max-width: 768px) {
+    .menu-button {
+        padding: 1.25rem 0.75rem;
+        min-height: 120px;
+        gap: 0.5rem;
+    }
+    
+    .menu-button .material-icons {
+        font-size: 36px;
+    }
+    
+    .menu-button-text {
+        font-size: 0.875rem;
+    }
+}
+
+/* Extra small devices (iPhone SE, etc.) */
+@media (max-width: 375px) {
+    .menu-button {
+        padding: 1rem 0.5rem;
+        min-height: 100px;
+        border-width: 2px;
+    }
+    
+    .menu-button .material-icons {
+        font-size: 32px;
+    }
+    
+    .menu-button-text {
+        font-size: 0.8rem;
+    }
+}
+
 .menu-button:hover:not(:disabled) {
     transform: translateY(-4px);
     box-shadow: 0 6px 12px rgba(220, 38, 38, 0.3);
@@ -1311,29 +1345,6 @@ body {
     .btn-call {
         flex: 1;
         justify-content: center;
-    }
-}
-
-/* Fix menu grid to ensure symmetry */
-.menu-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-}
-
-@media (max-width: 768px) {
-    .menu-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-/* Ensure all menu buttons have equal height */
-.menu-button {
-    min-height: 140px;
-    aspect-ratio: 1 / 1;
-}
-
-@media (min-width: 769px) {
-    .menu-button {
-        aspect-ratio: auto;
     }
 }
 

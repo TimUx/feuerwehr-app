@@ -111,7 +111,11 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
                 <?php else: ?>
                     <?php foreach ($vehicles as $vehicle): ?>
                     <div class="form-check">
-                        <input type="checkbox" id="vehicle-<?php echo $vehicle['id']; ?>" name="eingesetzte_fahrzeuge[]" value="<?php echo htmlspecialchars($vehicle['type']); ?>" class="form-check-input vehicle-checkbox">
+                        <input type="checkbox" id="vehicle-<?php echo $vehicle['id']; ?>" 
+                               name="eingesetzte_fahrzeuge[]" 
+                               value="<?php echo htmlspecialchars($vehicle['type']); ?>" 
+                               data-vehicle-id="<?php echo $vehicle['id']; ?>"
+                               class="form-check-input vehicle-checkbox">
                         <label for="vehicle-<?php echo $vehicle['id']; ?>" class="form-check-label">
                             <?php echo htmlspecialchars($vehicle['type']); ?>
                             <?php if (!empty($vehicle['radio_call_sign'])): ?>
@@ -281,7 +285,8 @@ function updateCrewSections() {
                 });
             }
         } else {
-            const vehicle = vehicles.find(v => v.type === cb.value);
+            const vehicleId = cb.dataset.vehicleId;
+            const vehicle = vehicles.find(v => v.id === vehicleId);
             if (vehicle) {
                 selectedVehicles.push({
                     id: vehicle.id,
@@ -362,9 +367,12 @@ document.querySelectorAll('.vehicle-checkbox').forEach(cb => {
 // Beteiligte Personen - Add/Remove functionality
 let personCounter = 0;
 
-document.getElementById('add-person-btn').addEventListener('click', function() {
-    addPersonEntry();
-});
+const addPersonBtn = document.getElementById('add-person-btn');
+if (addPersonBtn) {
+    addPersonBtn.addEventListener('click', function() {
+        addPersonEntry();
+    });
+}
 
 function addPersonEntry() {
     const personsContainer = document.getElementById('persons-container');
