@@ -273,7 +273,8 @@ class EmailPDF {
         try {
             // Get a secure temp directory within the application
             self::init();
-            $tempDir = self::$dataDir . '/tmp';
+            $dataDir = self::$config['data_dir'] ?? __DIR__ . '/../../data';
+            $tempDir = $dataDir . '/tmp';
             if (!file_exists($tempDir)) {
                 mkdir($tempDir, 0700, true);
             }
