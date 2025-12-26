@@ -169,8 +169,8 @@ class DataStore {
         
         $newVehicle = [
             'id' => uniqid('veh_'),
-            'location' => $data['location'] ?? null,
-            'location_id' => $data['location_id'] ?? null,
+            'location' => $data['location'] ?? null, // Legacy field for backward compatibility
+            'location_id' => $data['location_id'] ?? null, // New field - use this for filtering
             'type' => $data['type'],
             'radio_call_sign' => $data['radio_call_sign'],
             'crew_size' => $data['crew_size'] ?? null,
@@ -236,6 +236,22 @@ class DataStore {
      */
     public static function getLocations() {
         return self::load('locations.json');
+    }
+
+    /**
+     * Get location name by ID
+     * Helper function used in various pages
+     */
+    public static function getLocationNameById($locationId) {
+        if (empty($locationId)) return null;
+        
+        $locations = self::getLocations();
+        foreach ($locations as $location) {
+            if ($location['id'] === $locationId) {
+                return $location['name'];
+            }
+        }
+        return null;
     }
 
     /**

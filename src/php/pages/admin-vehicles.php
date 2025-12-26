@@ -10,17 +10,6 @@ Auth::requireAdmin();
 
 $vehicles = DataStore::getVehicles();
 $locations = DataStore::getLocations();
-
-// Helper function to get location name by ID
-function getLocationName($locationId, $locations) {
-    if (empty($locationId)) return null;
-    foreach ($locations as $location) {
-        if ($location['id'] === $locationId) {
-            return $location['name'];
-        }
-    }
-    return null;
-}
 ?>
 
 <div class="card">
@@ -90,7 +79,7 @@ function getLocationName($locationId, $locations) {
                             return strcasecmp($a['radio_call_sign'] ?? '', $b['radio_call_sign'] ?? '');
                         });
                         foreach ($vehicles as $vehicle): 
-                            $locationName = getLocationName($vehicle['location_id'] ?? null, $locations) ?? $vehicle['location'] ?? '-';
+                            $locationName = DataStore::getLocationNameById($vehicle['location_id'] ?? null) ?? $vehicle['location'] ?? '-';
                         ?>
                         <tr data-type="<?php echo htmlspecialchars($vehicle['type']); ?>" 
                             data-location-id="<?php echo htmlspecialchars($vehicle['location_id'] ?? ''); ?>"

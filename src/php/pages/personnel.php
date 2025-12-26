@@ -11,17 +11,6 @@ Auth::requireAuth();
 $personnel = DataStore::getPersonnel();
 $locations = DataStore::getLocations();
 $isAdmin = Auth::isAdmin();
-
-// Helper function to get location name by ID
-function getLocationName($locationId, $locations) {
-    if (empty($locationId)) return null;
-    foreach ($locations as $location) {
-        if ($location['id'] === $locationId) {
-            return $location['name'];
-        }
-    }
-    return null;
-}
 ?>
 
 <div class="card">
@@ -54,7 +43,7 @@ function getLocationName($locationId, $locations) {
                     </thead>
                     <tbody>
                         <?php foreach ($personnel as $person): 
-                            $locationName = getLocationName($person['location_id'] ?? null, $locations) ?? '-';
+                            $locationName = DataStore::getLocationNameById($person['location_id'] ?? null) ?? '-';
                         ?>
                         <tr>
                             <td><?php echo htmlspecialchars($person['name']); ?></td>

@@ -213,13 +213,13 @@ function filterByLocation() {
     // Update count after filtering
     updateTotalCount();
     
-    // Show message if no items are available for the selected location
-    if (selectedLocationId) {
+    // Show alert if no items are available for the selected location
+    if (selectedLocationId && window.feuerwehrApp) {
         if (visibleInstructors === 0) {
-            console.log('Keine Übungsleiter für den ausgewählten Standort verfügbar');
+            window.feuerwehrApp.showAlert('warning', 'Keine Übungsleiter für den ausgewählten Standort verfügbar. Bitte verwenden Sie das Freitext-Feld.');
         }
         if (visibleAttendees === 0) {
-            console.log('Keine Einsatzkräfte für den ausgewählten Standort verfügbar');
+            window.feuerwehrApp.showAlert('warning', 'Keine Einsatzkräfte für den ausgewählten Standort verfügbar. Bitte legen Sie zuerst Einsatzkräfte für diesen Standort an.');
         }
     }
 }
