@@ -91,7 +91,7 @@ class EmailPDF {
                 $attachments[$extraFileName] = $extraFileContent;
             }
             
-            return $smtp->sendEmail(
+            $result = $smtp->sendEmail(
                 $emailConfig['from_address'] ?? 'noreply@feuerwehr.local',
                 $emailConfig['from_name'] ?? 'Feuerwehr Management System',
                 $to,
@@ -101,9 +101,16 @@ class EmailPDF {
                 $attachments
             );
             
+            if (!$result) {
+                throw new Exception("SMTP sendEmail returned false. Last response: " . $smtp->getLastResponse());
+            }
+            
+            return true;
+            
         } catch (Exception $e) {
             error_log("Native SMTP failed: {$e->getMessage()}");
-            return false;
+            // Re-throw the exception so caller can handle it
+            throw new Exception("SMTP-Fehler: " . $e->getMessage());
         }
     }
     

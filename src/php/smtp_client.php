@@ -77,6 +77,8 @@ class SMTPClient {
         } catch (Exception $e) {
             error_log("SMTP Error: " . $e->getMessage());
             $this->disconnect();
+            // Store the exception message so it can be retrieved
+            $this->lastResponse = "Exception: " . $e->getMessage();
             return false;
         }
     }
