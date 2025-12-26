@@ -272,15 +272,19 @@ class FeuerwehrApp {
           if (!existingLink) {
             const newLink = document.createElement('link');
             newLink.rel = 'stylesheet';
-            newLink.href = href;
             if (link.integrity) newLink.integrity = link.integrity;
-            if (link.crossorigin) newLink.crossorigin = link.crossorigin;
+            if (link.hasAttribute('crossorigin')) {
+              newLink.setAttribute('crossorigin', link.getAttribute('crossorigin'));
+            }
             
             const linkPromise = new Promise((resolve, reject) => {
               newLink.onload = resolve;
               newLink.onerror = reject;
             });
             linkPromises.push(linkPromise);
+            
+            // Set href last to trigger loading after event handlers are attached
+            newLink.href = href;
             document.head.appendChild(newLink);
           }
           link.remove();
@@ -299,15 +303,19 @@ class FeuerwehrApp {
             const existingScript = Array.from(document.querySelectorAll('script[src]')).find(s => s.getAttribute('src') === src);
             if (!existingScript) {
               const newScript = document.createElement('script');
-              newScript.src = src;
               if (script.integrity) newScript.integrity = script.integrity;
-              if (script.crossorigin) newScript.crossorigin = script.crossorigin;
+              if (script.hasAttribute('crossorigin')) {
+                newScript.setAttribute('crossorigin', script.getAttribute('crossorigin'));
+              }
               
               const scriptPromise = new Promise((resolve, reject) => {
                 newScript.onload = resolve;
                 newScript.onerror = reject;
               });
               scriptPromises.push(scriptPromise);
+              
+              // Set src last to trigger loading after event handlers are attached
+              newScript.src = src;
               document.head.appendChild(newScript);
             }
           } else if (script.textContent.trim()) {
