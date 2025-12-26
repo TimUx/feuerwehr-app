@@ -67,6 +67,9 @@ $vehicles = DataStore::getVehicles();
                             <th onclick="sortVehicles('radio_call_sign')" style="cursor: pointer;">
                                 Funkrufname <span class="material-icons" style="font-size: 16px; vertical-align: middle;">unfold_more</span>
                             </th>
+                            <th onclick="sortVehicles('crew_size')" style="cursor: pointer;">
+                                Besatzung <span class="material-icons" style="font-size: 16px; vertical-align: middle;">unfold_more</span>
+                            </th>
                             <th style="width: 120px;">Aktionen</th>
                         </tr>
                     </thead>

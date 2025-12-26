@@ -197,6 +197,11 @@ $user = Auth::getUser();
                     <span>Statistiken</span>
                 </a>
                 
+                <a href="#" class="nav-item" data-page="admin-settings">
+                    <span class="material-icons">settings</span>
+                    <span>Allgemeine Einstellungen</span>
+                </a>
+                
                 <?php if (Auth::isAdmin()): ?>
                 <div class="nav-section-title">Administration</div>
                 

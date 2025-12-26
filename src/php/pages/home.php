@@ -60,6 +60,12 @@ $isAdmin = Auth::isAdmin();
             <span class="material-icons">bar_chart</span>
             <span class="menu-button-text">Statistiken</span>
         </button>
+        
+        <!-- Allgemeine Einstellungen (for all users) -->
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('admin-settings')">
+            <span class="material-icons">settings</span>
+            <span class="menu-button-text">Allgemeine Einstellungen</span>
+        </button>
     </div>
     
     <?php if ($isAdmin): ?>

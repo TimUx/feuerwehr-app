@@ -121,6 +121,17 @@ body {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Icon buttons in table or content areas should use theme colors */
+.table .icon-btn,
+.card-content .icon-btn {
+  color: var(--text-primary);
+}
+
+.table .icon-btn:hover,
+.card-content .icon-btn:hover {
+  background-color: var(--bg-secondary);
+}
+
 /* Navigation */
 .nav-drawer {
   position: fixed;
