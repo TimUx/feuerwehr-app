@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         }
         
         // Attempt to send the email
-        $result = @mail($to, $subject, $message, implode("\r\n", $headers));
+        $result = mail($to, $subject, $message, implode("\r\n", $headers));
         
         if ($result) {
             echo json_encode(['success' => true, 'message' => 'Test-E-Mail erfolgreich versendet']);
