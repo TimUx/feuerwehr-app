@@ -364,16 +364,17 @@ class DataStore {
     public static function createAttendanceRecord($data) {
         $records = self::getAttendanceRecords();
         
-        $newRecord = [
-            'id' => uniqid('att_'),
-            'date' => $data['date'],
-            'type' => $data['type'], // training, meeting, etc.
-            'description' => $data['description'] ?? '',
+        // Preserve all data fields from the input
+        $newRecord = array_merge($data, [
+            'id' => $data['id'] ?? uniqid('att_'),
+            'date' => $data['date'] ?? $data['datum'] ?? '',
+            'type' => $data['type'] ?? 'training',
+            'description' => $data['description'] ?? $data['thema'] ?? '',
             'duration_hours' => $data['duration_hours'] ?? 0,
             'attendees' => $data['attendees'] ?? [],
-            'created_at' => date('Y-m-d H:i:s'),
+            'created_at' => $data['created_at'] ?? date('Y-m-d H:i:s'),
             'created_by' => $data['created_by'] ?? null
-        ];
+        ]);
 
         $records[] = $newRecord;
         self::save('attendance.json', $records);
