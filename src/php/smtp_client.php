@@ -162,7 +162,7 @@ class SMTPClient {
             return; // Success
         } catch (Exception $e) {
             // AUTH LOGIN failed, try AUTH PLAIN as fallback
-            error_log("AUTH LOGIN failed: " . $e->getMessage() . ". Trying AUTH PLAIN...");
+            error_log("AUTH LOGIN fehlgeschlagen: " . $e->getMessage() . ". Versuche AUTH PLAIN...");
         }
         
         // Try AUTH PLAIN as fallback
@@ -171,7 +171,7 @@ class SMTPClient {
             $this->sendCommand("AUTH PLAIN {$auth}", 235);
         } catch (Exception $e) {
             // Both methods failed
-            throw new Exception("SMTP authentication failed with both AUTH LOGIN and AUTH PLAIN: " . $e->getMessage());
+            throw new Exception("SMTP-Authentifizierung fehlgeschlagen mit AUTH LOGIN und AUTH PLAIN: " . $e->getMessage());
         }
     }
     

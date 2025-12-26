@@ -46,17 +46,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         $htmlBody .= '</body></html>';
         
         // Send test email using EmailPDF helper
-        try {
-            $result = EmailPDF::sendEmail($to, $subject, $htmlBody);
-            
-            if ($result) {
-                echo json_encode(['success' => true, 'message' => 'Test-E-Mail erfolgreich versendet']);
+        $result = EmailPDF::sendEmail($to, $subject, $htmlBody);
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Test-E-Mail erfolgreich versendet']);
+        } else {
+            $errorDetails = EmailPDF::getLastError();
+            $errorMessage = 'E-Mail konnte nicht versendet werden. ';
+            if (!empty($errorDetails)) {
+                $errorMessage .= $errorDetails;
             } else {
-                throw new Exception('E-Mail konnte nicht versendet werden. Bitte überprüfen Sie die SMTP-Einstellungen und stellen Sie sicher, dass der SMTP-Server erreichbar ist.');
+                $errorMessage .= 'Bitte überprüfen Sie die SMTP-Einstellungen und stellen Sie sicher, dass der SMTP-Server erreichbar ist.';
             }
-        } catch (Exception $emailException) {
-            // Pass through the detailed exception from EmailPDF
-            throw $emailException;
+            throw new Exception($errorMessage);
         }
     } catch (Exception $e) {
         http_response_code(500);
