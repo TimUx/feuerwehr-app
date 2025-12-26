@@ -91,7 +91,8 @@ class SMTPClient {
             'ssl' => [
                 'verify_peer' => true,
                 'verify_peer_name' => true,
-                'allow_self_signed' => false
+                'allow_self_signed' => false,
+                'capture_peer_cert' => true
             ]
         ]);
         
@@ -118,7 +119,7 @@ class SMTPClient {
         }
         
         if (!$this->socket) {
-            throw new Exception("Failed to connect to SMTP server: {$errstr} ({$errno})");
+            throw new Exception("Verbindung zu SMTP-Server fehlgeschlagen: {$errstr} (Fehlercode: {$errno})");
         }
         
         stream_set_timeout($this->socket, $this->timeout);
@@ -135,7 +136,9 @@ class SMTPClient {
             
             // Apply SSL context during crypto upgrade for certificate validation
             if (!stream_socket_enable_crypto($this->socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
-                throw new Exception("Failed to enable TLS encryption");
+                $error = error_get_last();
+                $errorMsg = $error ? $error['message'] : 'Unbekannter Fehler';
+                throw new Exception("TLS-Verschlüsselung konnte nicht aktiviert werden: {$errorMsg}");
             }
             
             // Send EHLO again after STARTTLS
@@ -203,12 +206,14 @@ class SMTPClient {
                 $this->lastResponse = $response;
                 
                 if ($code !== $expectedCode) {
-                    throw new Exception("SMTP Error: Expected {$expectedCode}, got {$code}. Response: {$response}");
+                    // Extract the error message from the response
+                    $errorMessage = trim(preg_replace('/^\d{3}(-| )/', '', $response));
+                    throw new Exception("SMTP-Fehler: Server antwortete mit Code {$code} (erwartet wurde {$expectedCode}). Server-Nachricht: {$errorMessage}");
                 }
                 return $response;
             }
         }
-        throw new Exception("Failed to read SMTP response");
+        throw new Exception("Fehler beim Lesen der SMTP-Antwort vom Server");
     }
     
     /**
