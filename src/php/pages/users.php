@@ -4,10 +4,12 @@
  */
 
 require_once __DIR__ . '/../auth.php';
+require_once __DIR__ . '/../datastore.php';
 
 Auth::requireAdmin();
 
 $users = Auth::listUsers();
+$locations = DataStore::getLocations();
 ?>
 
 <div class="card">
@@ -25,18 +27,32 @@ $users = Auth::listUsers();
                     <tr>
                         <th>Benutzername</th>
                         <th>Rolle</th>
+                        <th>Standort</th>
                         <th>Erstellt am</th>
                         <th style="width: 120px;">Aktionen</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($users as $user): ?>
+                    <?php 
+                    $userLocation = null;
+                    if (!empty($user['location_id'])) {
+                        $userLocation = DataStore::getLocationById($user['location_id']);
+                    }
+                    ?>
                     <tr>
                         <td><?php echo htmlspecialchars($user['username']); ?></td>
                         <td>
                             <span class="badge badge-<?php echo $user['role'] === 'admin' ? 'primary' : 'info'; ?>">
                                 <?php echo htmlspecialchars($user['role']); ?>
                             </span>
+                        </td>
+                        <td>
+                            <?php if ($userLocation): ?>
+                                <?php echo htmlspecialchars($userLocation['name']); ?>
+                            <?php else: ?>
+                                <span class="badge badge-success">Global</span>
+                            <?php endif; ?>
                         </td>
                         <td><?php echo htmlspecialchars($user['created_at']); ?></td>
                         <td>
@@ -88,6 +104,22 @@ $users = Auth::listUsers();
                 </select>
             </div>
             
+            <div class="form-group">
+                <label class="form-label" for="location_id">Standort</label>
+                <select id="location_id" name="location_id" class="form-select">
+                    <option value="">Global (alle Standorte)</option>
+                    <?php foreach ($locations as $location): ?>
+                        <option value="<?php echo htmlspecialchars($location['id']); ?>">
+                            <?php echo htmlspecialchars($location['name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Global: Benutzer kann alle Standorte sehen und bearbeiten<br>
+                    Standort-spezifisch: Benutzer sieht nur Fahrzeuge und Einsatzkräfte des zugewiesenen Standorts
+                </small>
+            </div>
+            
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Abbrechen</button>
                 <button type="submit" class="btn btn-primary">Speichern</button>
@@ -119,6 +151,7 @@ function editUser(user) {
     document.getElementById('password').required = false;
     document.getElementById('password-hint').style.display = 'block';
     document.getElementById('role').value = user.role;
+    document.getElementById('location_id').value = user.location_id || '';
 }
 
 async function deleteUser(id, username) {
@@ -159,6 +192,13 @@ document.getElementById('user-form').addEventListener('submit', async (e) => {
     const password = formData.get('password');
     if (password) {
         data.password = password;
+    }
+    
+    const locationId = formData.get('location_id');
+    if (locationId) {
+        data.location_id = locationId;
+    } else {
+        data.location_id = null; // Explicitly set null for global access
     }
     
     const id = formData.get('id');

@@ -51,6 +51,7 @@ class Auth {
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
+                $_SESSION['location_id'] = $user['location_id'] ?? null;
                 $_SESSION['login_time'] = time();
                 $_SESSION['last_activity'] = time();
                 
@@ -184,8 +185,23 @@ class Auth {
         return [
             'id' => $_SESSION['user_id'],
             'username' => $_SESSION['username'],
-            'role' => $_SESSION['role']
+            'role' => $_SESSION['role'],
+            'location_id' => $_SESSION['location_id'] ?? null
         ];
+    }
+
+    /**
+     * Check if user has global access (no location restriction)
+     */
+    public static function hasGlobalAccess() {
+        return self::isAuthenticated() && (!isset($_SESSION['location_id']) || $_SESSION['location_id'] === null);
+    }
+
+    /**
+     * Get user's location ID (null if global)
+     */
+    public static function getUserLocationId() {
+        return self::isAuthenticated() ? ($_SESSION['location_id'] ?? null) : null;
     }
 
     /**
@@ -228,7 +244,7 @@ class Auth {
     /**
      * Create new user
      */
-    public static function createUser($username, $password, $role = 'operator') {
+    public static function createUser($username, $password, $role = 'operator', $locationId = null) {
         $users = self::loadUsers();
         
         // Check if username already exists
@@ -243,6 +259,7 @@ class Auth {
             'username' => $username,
             'password' => password_hash($password, PASSWORD_DEFAULT),
             'role' => $role,
+            'location_id' => $locationId, // null means global access
             'created_at' => date('Y-m-d H:i:s')
         ];
 
@@ -267,6 +284,9 @@ class Auth {
                 }
                 if (isset($data['role'])) {
                     $user['role'] = $data['role'];
+                }
+                if (isset($data['location_id'])) {
+                    $user['location_id'] = $data['location_id'];
                 }
                 $user['updated_at'] = date('Y-m-d H:i:s');
                 

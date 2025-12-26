@@ -33,7 +33,8 @@ try {
             }
 
             $role = $data['role'] ?? 'operator';
-            $success = Auth::createUser($data['username'], $data['password'], $role);
+            $locationId = isset($data['location_id']) && $data['location_id'] !== '' ? $data['location_id'] : null;
+            $success = Auth::createUser($data['username'], $data['password'], $role, $locationId);
             
             if ($success) {
                 echo json_encode(['success' => true, 'message' => 'Benutzer erstellt']);
@@ -62,6 +63,9 @@ try {
             }
             if (isset($data['role'])) {
                 $updateData['role'] = $data['role'];
+            }
+            if (isset($data['location_id'])) {
+                $updateData['location_id'] = $data['location_id'] !== '' ? $data['location_id'] : null;
             }
 
             $success = Auth::updateUser($data['id'], $updateData);

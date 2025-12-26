@@ -9,9 +9,23 @@ require_once __DIR__ . '/../datastore.php';
 
 Auth::requireOperator();
 
+$user = Auth::getUser();
+$hasGlobalAccess = Auth::hasGlobalAccess();
+$userLocationId = Auth::getUserLocationId();
+
 $personnel = DataStore::getPersonnel();
 $vehicles = DataStore::getVehicles();
 $locations = DataStore::getLocations();
+
+// Filter personnel and vehicles by user's location if not global
+if (!$hasGlobalAccess && $userLocationId) {
+    $personnel = array_filter($personnel, function($person) use ($userLocationId) {
+        return !isset($person['location_id']) || $person['location_id'] === $userLocationId;
+    });
+    $vehicles = array_filter($vehicles, function($vehicle) use ($userLocationId) {
+        return !isset($vehicle['location_id']) || $vehicle['location_id'] === $userLocationId;
+    });
+}
 
 // Function options from JSON
 $functions = [
@@ -33,6 +47,7 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
             
             <h3 style="margin-top: 0;">Einsatzdaten</h3>
             
+            <?php if ($hasGlobalAccess): ?>
             <div class="form-group">
                 <label class="form-label" for="standort-filter">Einsatzabteilung / Standort *</label>
                 <select id="standort-filter" name="standort" class="form-input" required>
@@ -45,6 +60,16 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
                     Je nach Auswahl werden nur die Fahrzeuge und Einsatzkräfte dieses Standorts angezeigt
                 </small>
             </div>
+            <?php else: ?>
+            <input type="hidden" id="standort-filter" name="standort" value="<?php echo htmlspecialchars($userLocationId); ?>">
+            <div class="form-group">
+                <label class="form-label">Einsatzabteilung / Standort</label>
+                <input type="text" class="form-input" value="<?php echo htmlspecialchars(DataStore::getLocationById($userLocationId)['name'] ?? 'Unbekannt'); ?>" readonly>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Ihr zugewiesener Standort
+                </small>
+            </div>
+            <?php endif; ?>
             
             <div class="form-group">
                 <label class="form-label" for="einsatzgrund">Einsatzgrund *</label>
