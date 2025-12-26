@@ -14,11 +14,19 @@ if (file_exists(__DIR__ . '/../../vendor/autoload.php')) {
 
 class EmailPDF {
     private static $config;
+    private static $lastError = '';
     
     private static function init() {
         if (!self::$config) {
             self::$config = require __DIR__ . '/../../config/config.php';
         }
+    }
+    
+    /**
+     * Get the last error message from email sending
+     */
+    public static function getLastError(): string {
+        return self::$lastError;
     }
     
     /**
@@ -41,11 +49,13 @@ class EmailPDF {
         $fromAddress = $emailConfig['from_address'] ?? 'noreply@feuerwehr.local';
         if (!filter_var($fromAddress, FILTER_VALIDATE_EMAIL)) {
             error_log("Invalid from address: {$fromAddress}");
+            self::$lastError = "Ungültige Absender-Adresse: {$fromAddress}";
             return false;
         }
         
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
             error_log("Invalid recipient address: {$to}");
+            self::$lastError = "Ungültige Empfänger-Adresse: {$to}";
             return false;
         }
         
@@ -73,6 +83,15 @@ class EmailPDF {
             return self::sendWithPhpMail($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName);
         }
         
+        // Validate authentication configuration
+        if (!empty($emailConfig['smtp_auth'])) {
+            if (empty($emailConfig['smtp_username']) || empty($emailConfig['smtp_password'])) {
+                self::$lastError = "SMTP-Authentifizierung ist aktiviert, aber Benutzername oder Passwort fehlt in der Konfiguration.";
+                error_log("Native SMTP failed: " . self::$lastError);
+                return false;
+            }
+        }
+        
         try {
             $smtp = new SMTPClient(
                 $emailConfig['smtp_host'],
@@ -91,7 +110,7 @@ class EmailPDF {
                 $attachments[$extraFileName] = $extraFileContent;
             }
             
-            return $smtp->sendEmail(
+            if (!$smtp->sendEmail(
                 $emailConfig['from_address'] ?? 'noreply@feuerwehr.local',
                 $emailConfig['from_name'] ?? 'Feuerwehr Management System',
                 $to,
@@ -99,10 +118,18 @@ class EmailPDF {
                 $htmlBody,
                 true, // HTML email
                 $attachments
-            );
+            )) {
+                self::$lastError = "SMTP-Fehler: " . $smtp->getLastResponse();
+                error_log("Native SMTP failed: " . self::$lastError);
+                return false;
+            }
+            
+            self::$lastError = '';
+            return true;
             
         } catch (Exception $e) {
-            error_log("Native SMTP failed: {$e->getMessage()}");
+            self::$lastError = "SMTP-Fehler: " . $e->getMessage();
+            error_log("Native SMTP failed: " . self::$lastError);
             return false;
         }
     }

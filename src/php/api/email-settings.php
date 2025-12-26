@@ -45,13 +45,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         $htmlBody .= 'Von: ' . htmlspecialchars($_SERVER['SERVER_NAME'] ?? 'Feuerwehr Management System') . '</small></p>';
         $htmlBody .= '</body></html>';
         
-        // Send test email using EmailPDF helper with PHPMailer
+        // Send test email using EmailPDF helper
         $result = EmailPDF::sendEmail($to, $subject, $htmlBody);
         
         if ($result) {
             echo json_encode(['success' => true, 'message' => 'Test-E-Mail erfolgreich versendet']);
         } else {
-            throw new Exception('E-Mail konnte nicht versendet werden. Bitte überprüfen Sie die SMTP-Einstellungen und stellen Sie sicher, dass der SMTP-Server erreichbar ist.');
+            $errorDetails = EmailPDF::getLastError();
+            $errorMessage = 'E-Mail konnte nicht versendet werden. ';
+            if (!empty($errorDetails)) {
+                $errorMessage .= $errorDetails;
+            } else {
+                $errorMessage .= 'Bitte überprüfen Sie die SMTP-Einstellungen und stellen Sie sicher, dass der SMTP-Server erreichbar ist.';
+            }
+            throw new Exception($errorMessage);
         }
     } catch (Exception $e) {
         http_response_code(500);

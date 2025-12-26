@@ -77,6 +77,8 @@ class SMTPClient {
         } catch (Exception $e) {
             error_log("SMTP Error: " . $e->getMessage());
             $this->disconnect();
+            // Store the exception message so it can be retrieved
+            $this->lastResponse = "Exception: " . $e->getMessage();
             return false;
         }
     }
@@ -89,7 +91,8 @@ class SMTPClient {
             'ssl' => [
                 'verify_peer' => true,
                 'verify_peer_name' => true,
-                'allow_self_signed' => false
+                'allow_self_signed' => false,
+                'capture_peer_cert' => true
             ]
         ]);
         
@@ -116,7 +119,7 @@ class SMTPClient {
         }
         
         if (!$this->socket) {
-            throw new Exception("Failed to connect to SMTP server: {$errstr} ({$errno})");
+            throw new Exception("Verbindung zu SMTP-Server fehlgeschlagen: {$errstr} (Fehlercode: {$errno})");
         }
         
         stream_set_timeout($this->socket, $this->timeout);
@@ -133,7 +136,9 @@ class SMTPClient {
             
             // Apply SSL context during crypto upgrade for certificate validation
             if (!stream_socket_enable_crypto($this->socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
-                throw new Exception("Failed to enable TLS encryption");
+                $error = error_get_last();
+                $errorMsg = $error ? $error['message'] : 'Unbekannter Fehler';
+                throw new Exception("TLS-Verschlüsselung konnte nicht aktiviert werden: {$errorMsg}");
             }
             
             // Send EHLO again after STARTTLS
@@ -149,9 +154,47 @@ class SMTPClient {
             return; // No authentication required
         }
         
-        $this->sendCommand("AUTH LOGIN", 334);
-        $this->sendCommand(base64_encode($this->username), 334);
-        $this->sendCommand(base64_encode($this->password), 235);
+        // Try AUTH LOGIN first (most common)
+        try {
+            $this->sendCommand("AUTH LOGIN", 334);
+            $this->sendCommand(base64_encode($this->username), 334);
+            $this->sendCommand(base64_encode($this->password), 235);
+            return; // Success
+        } catch (Exception $e) {
+            // AUTH LOGIN failed - connection may be in inconsistent state
+            // Don't log the error message as it may contain sensitive info
+            error_log("AUTH LOGIN fehlgeschlagen. Verbinde erneut für AUTH PLAIN...");
+            
+            $this->disconnect();
+            
+            // Reconnect but skip authentication
+            $originalUsername = $this->username;
+            $originalPassword = $this->password;
+            $this->username = '';
+            $this->password = '';
+            
+            try {
+                $this->connect();
+            } catch (Exception $reconnectException) {
+                // Restore credentials and give up
+                $this->username = $originalUsername;
+                $this->password = $originalPassword;
+                throw new Exception("SMTP-Verbindung für AUTH PLAIN fehlgeschlagen: " . $reconnectException->getMessage());
+            }
+            
+            // Restore credentials
+            $this->username = $originalUsername;
+            $this->password = $originalPassword;
+        }
+        
+        // Try AUTH PLAIN as fallback
+        try {
+            $auth = base64_encode("\0" . $this->username . "\0" . $this->password);
+            $this->sendCommand("AUTH PLAIN {$auth}", 235);
+        } catch (Exception $e) {
+            // Both methods failed - don't log details to avoid credential exposure
+            throw new Exception("SMTP-Authentifizierung fehlgeschlagen. Bitte überprüfen Sie Benutzername und Passwort.");
+        }
     }
     
     /**
@@ -185,12 +228,14 @@ class SMTPClient {
                 $this->lastResponse = $response;
                 
                 if ($code !== $expectedCode) {
-                    throw new Exception("SMTP Error: Expected {$expectedCode}, got {$code}. Response: {$response}");
+                    // Extract the error message from the response
+                    $errorMessage = trim(preg_replace('/^\d{3}[\s-]/', '', $response));
+                    throw new Exception("SMTP-Fehler: Server antwortete mit Code {$code} (erwartet wurde {$expectedCode}). Server-Nachricht: {$errorMessage}");
                 }
                 return $response;
             }
         }
-        throw new Exception("Failed to read SMTP response");
+        throw new Exception("Fehler beim Lesen der SMTP-Antwort vom Server");
     }
     
     /**
