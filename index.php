@@ -42,14 +42,20 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
+    $rememberMe = isset($_POST['remember_me']) && $_POST['remember_me'] === '1';
     
-    if (Auth::login($username, $password)) {
+    if (Auth::login($username, $password, $rememberMe)) {
         // Login successful - redirect to home
         header('Location: ' . getSafeRedirectUrl('/index.php'));
         exit;
     } else {
         $loginError = 'Ungültiger Benutzername oder Passwort';
     }
+}
+
+// Try auto-login with remember me token before checking authentication
+if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
+    Auth::tryAutoLogin();
 }
 
 // Check authentication status
@@ -72,6 +78,12 @@ $user = Auth::getUser();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Feuerwehr Management App">
     <meta name="theme-color" content="#d32f2f">
+    
+    <!-- iOS Safari PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Feuerwehr">
+    
     <title>Feuerwehr Management</title>
     
     <!-- PWA Manifest -->
@@ -80,6 +92,9 @@ $user = Auth::getUser();
     <!-- Icons -->
     <link rel="icon" type="image/png" sizes="192x192" href="/public/icons/icon-192x192.png">
     <link rel="apple-touch-icon" href="/public/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/public/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/public/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/public/icons/icon-192x192.png">
     
     <!-- Styles -->
     <link rel="stylesheet" href="/public/css/style.css">
@@ -111,6 +126,11 @@ $user = Auth::getUser();
                     <div class="form-group">
                         <label class="form-label" for="password">Passwort</label>
                         <input type="password" id="password" name="password" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+                        <input type="checkbox" id="remember_me" name="remember_me" value="1" style="width: auto; height: 18px; margin: 0;">
+                        <label for="remember_me" style="margin: 0; font-weight: normal; cursor: pointer;">Angemeldet bleiben</label>
                     </div>
                     
                     <button type="submit" class="btn btn-primary" style="width: 100%;">

@@ -38,7 +38,7 @@ class Auth {
     /**
      * Authenticate user with username and password
      */
-    public static function login($username, $password) {
+    public static function login($username, $password, $rememberMe = false) {
         self::init();
         
         $users = self::loadUsers();
@@ -58,6 +58,11 @@ class Auth {
                 // Regenerate session ID (keep old session temporarily for safety)
                 session_regenerate_id(false);
                 
+                // Handle "Remember Me" functionality
+                if ($rememberMe) {
+                    self::setRememberMeCookie($user['id']);
+                }
+                
                 return true;
             }
         }
@@ -70,6 +75,9 @@ class Auth {
      */
     public static function logout() {
         self::init();
+        
+        // Clear remember me cookie if exists
+        self::clearRememberMeCookie();
         
         // Clear all session variables
         $_SESSION = array();
@@ -322,5 +330,187 @@ class Auth {
             unset($user['password']);
             return $user;
         }, $users);
+    }
+
+    /**
+     * Set remember me cookie with secure token
+     */
+    private static function setRememberMeCookie($userId) {
+        self::init();
+        
+        // Generate a secure random token
+        $token = bin2hex(random_bytes(32));
+        $expiry = time() + (30 * 24 * 60 * 60); // 30 days
+        
+        // Store token in encrypted file
+        $rememberTokensFile = self::$dataDir . '/remember_tokens.json';
+        $tokens = [];
+        
+        if (file_exists($rememberTokensFile)) {
+            $encrypted = file_get_contents($rememberTokensFile);
+            $decrypted = Encryption::decrypt($encrypted);
+            $tokens = json_decode($decrypted, true) ?: [];
+        }
+        
+        // Clean up expired tokens
+        $tokens = array_filter($tokens, function($item) {
+            return $item['expiry'] > time();
+        });
+        
+        // Add new token
+        $tokens[] = [
+            'token' => password_hash($token, PASSWORD_DEFAULT),
+            'user_id' => $userId,
+            'expiry' => $expiry,
+            'created' => time()
+        ];
+        
+        // Save tokens
+        $json = json_encode($tokens, JSON_PRETTY_PRINT);
+        $encrypted = Encryption::encrypt($json);
+        file_put_contents($rememberTokensFile, $encrypted);
+        chmod($rememberTokensFile, 0600);
+        
+        // Determine if HTTPS is enabled
+        $isSecure = self::isHttps();
+        
+        // Set cookie with plain token
+        setcookie(
+            'remember_me',
+            $token,
+            $expiry,
+            '/',
+            '',
+            $isSecure, // secure flag (only over HTTPS)
+            true       // httponly flag
+        );
+    }
+
+    /**
+     * Clear remember me cookie and token
+     */
+    private static function clearRememberMeCookie() {
+        if (isset($_COOKIE['remember_me'])) {
+            // Determine if HTTPS is enabled
+            $isSecure = self::isHttps();
+            
+            // Delete cookie
+            setcookie('remember_me', '', time() - 3600, '/', '', $isSecure, true);
+            
+            // Remove token from storage
+            self::init();
+            $rememberTokensFile = self::$dataDir . '/remember_tokens.json';
+            
+            if (file_exists($rememberTokensFile)) {
+                $encrypted = file_get_contents($rememberTokensFile);
+                $decrypted = Encryption::decrypt($encrypted);
+                $tokens = json_decode($decrypted, true) ?: [];
+                
+                // Remove tokens that match this cookie
+                $token = $_COOKIE['remember_me'];
+                $tokens = array_filter($tokens, function($item) use ($token) {
+                    return !password_verify($token, $item['token']);
+                });
+                
+                // Save remaining tokens
+                $json = json_encode(array_values($tokens), JSON_PRETTY_PRINT);
+                $encrypted = Encryption::encrypt($json);
+                file_put_contents($rememberTokensFile, $encrypted);
+            }
+        }
+    }
+
+    /**
+     * Check if connection is over HTTPS
+     */
+    private static function isHttps() {
+        // Check standard HTTPS variable
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            return true;
+        }
+        
+        // Check if using standard HTTPS port
+        if (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) {
+            return true;
+        }
+        
+        // Check for proxy/load balancer forwarded protocol
+        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+            return true;
+        }
+        
+        // Check alternative forwarded SSL header
+        if (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on') {
+            return true;
+        }
+        
+        // Check for CloudFlare
+        if (!empty($_SERVER['HTTP_CF_VISITOR'])) {
+            $visitor = json_decode($_SERVER['HTTP_CF_VISITOR'], true);
+            if (isset($visitor['scheme']) && $visitor['scheme'] === 'https') {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Try to auto-login using remember me cookie
+     */
+    public static function tryAutoLogin() {
+        self::init();
+        
+        // Check if remember me cookie exists
+        if (!isset($_COOKIE['remember_me'])) {
+            return false;
+        }
+        
+        $token = $_COOKIE['remember_me'];
+        $rememberTokensFile = self::$dataDir . '/remember_tokens.json';
+        
+        if (!file_exists($rememberTokensFile)) {
+            return false;
+        }
+        
+        // Load and decrypt tokens
+        $encrypted = file_get_contents($rememberTokensFile);
+        $decrypted = Encryption::decrypt($encrypted);
+        $tokens = json_decode($decrypted, true) ?: [];
+        
+        // Find matching token
+        foreach ($tokens as $storedToken) {
+            if (password_verify($token, $storedToken['token'])) {
+                // Check if token is still valid
+                if ($storedToken['expiry'] < time()) {
+                    // Token expired - remove it
+                    self::clearRememberMeCookie();
+                    return false;
+                }
+                
+                // Load user
+                $users = self::loadUsers();
+                foreach ($users as $user) {
+                    if ($user['id'] === $storedToken['user_id']) {
+                        // Set session data
+                        $_SESSION['authenticated'] = true;
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['username'] = $user['username'];
+                        $_SESSION['role'] = $user['role'];
+                        $_SESSION['location_id'] = $user['location_id'] ?? null;
+                        $_SESSION['login_time'] = time();
+                        $_SESSION['last_activity'] = time();
+                        $_SESSION['auto_login'] = true; // Mark as auto-login
+                        
+                        // Regenerate session ID
+                        session_regenerate_id(false);
+                        
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
     }
 }

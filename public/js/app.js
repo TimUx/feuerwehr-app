@@ -37,8 +37,17 @@ class FeuerwehrApp {
     const installBtn = document.getElementById('install-btn');
     
     if (!installBtn) return;
+    
+    // Check if already installed
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                        window.navigator.standalone || 
+                        document.referrer.includes('android-app://');
+    
+    // Detect iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isIOSSafari = isIOS && !navigator.standalone && !window.MSStream;
 
-    // Listen for the beforeinstallprompt event
+    // Listen for the beforeinstallprompt event (works on Android/Chrome)
     window.addEventListener('beforeinstallprompt', (e) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
@@ -57,6 +66,17 @@ class FeuerwehrApp {
     installBtn.addEventListener('click', async () => {
       await this.installPWA();
     });
+    
+    // For iOS Safari - show instructions instead of install prompt
+    if (isIOSSafari && !isStandalone) {
+      // Show install button for iOS users
+      installBtn.style.display = 'block';
+      // Show home install button if available
+      const homeInstallBtn = document.getElementById('home-install-btn');
+      if (homeInstallBtn) {
+        homeInstallBtn.style.display = 'flex';
+      }
+    }
 
     // Listen for the appinstalled event
     window.addEventListener('appinstalled', () => {
@@ -87,6 +107,54 @@ class FeuerwehrApp {
 
   // Install PWA - can be called from buttons
   async installPWA() {
+    // Detect iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isIOSSafari = isIOS && !navigator.standalone;
+    
+    // For iOS Safari - show manual installation instructions
+    if (isIOSSafari) {
+      const message = `
+        <div style="text-align: left; padding: 10px;">
+          <h3 style="margin-top: 0;">📱 Installation auf iOS</h3>
+          <ol style="line-height: 1.8;">
+            <li>Tippen Sie auf das <strong>Teilen-Symbol</strong> 
+                <svg style="width: 20px; height: 20px; vertical-align: middle;" viewBox="0 0 50 50">
+                  <path fill="currentColor" d="M30.3 13.7L25 8.4l-5.3 5.3-1.4-1.4L25 5.6l6.7 6.7z"/>
+                  <path fill="currentColor" d="M24 7h2v21h-2z"/>
+                  <path fill="currentColor" d="M35 40H15c-1.7 0-3-1.3-3-3V19c0-1.7 1.3-3 3-3h7v2h-7c-.6 0-1 .4-1 1v18c0 .6.4 1 1 1h20c.6 0 1-.4 1-1V19c0-.6-.4-1-1-1h-7v-2h7c1.7 0 3 1.3 3 3v18c0 1.7-1.3 3-3 3z"/>
+                </svg> 
+                (unten in der Mitte der Safari-Leiste)
+            </li>
+            <li>Scrollen Sie nach unten und wählen Sie<br>
+                <strong>"Zum Home-Bildschirm"</strong></li>
+            <li>Tippen Sie auf <strong>"Hinzufügen"</strong></li>
+          </ol>
+          <p style="margin-top: 15px; color: #666;">
+            Die App erscheint dann als Icon auf Ihrem Home-Bildschirm.
+          </p>
+        </div>
+      `;
+      
+      // Create a modal for iOS instructions
+      const modal = document.createElement('div');
+      modal.className = 'modal show';
+      modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+      modal.innerHTML = `
+        <div style="background: white; border-radius: 12px; max-width: 400px; margin: 20px; max-height: 80vh; overflow-y: auto;">
+          ${message}
+          <div style="padding: 10px; border-top: 1px solid #eee;">
+            <button onclick="this.closest('.modal').remove()" 
+                    style="width: 100%; padding: 12px; background: #d32f2f; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;">
+              Verstanden
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      return;
+    }
+    
+    // For Android/Chrome - use standard install prompt
     if (!this.deferredPrompt) {
       // Check if already installed (with iOS fallback)
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
