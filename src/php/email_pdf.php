@@ -249,17 +249,50 @@ class EmailPDF {
     
     /**
      * Generate PDF from HTML content
-     * Simple implementation using wkhtmltopdf if available, or HTML2PDF
+     * Uses mPDF library to convert HTML to PDF with full styling support
      */
     public static function generatePDF($html) {
+        // Try to use mPDF if available
+        if (class_exists('\Mpdf\Mpdf')) {
+            return self::generatePDFWithMpdf($html);
+        }
+        
         // Try to use wkhtmltopdf if available
         if (self::isCommandAvailable('wkhtmltopdf')) {
             return self::generatePDFWithWkhtmltopdf($html);
         }
         
-        // Fallback: Return HTML content with note
-        // In production, you would use a library like mPDF, TCPDF, or Dompdf
+        // Fallback: Return basic PDF
         return self::generateSimplePDF($html);
+    }
+    
+    /**
+     * Generate PDF using mPDF library
+     */
+    private static function generatePDFWithMpdf($html) {
+        try {
+            // Create mPDF instance with A4 paper size
+            $mpdf = new \Mpdf\Mpdf([
+                'mode' => 'utf-8',
+                'format' => 'A4',
+                'margin_left' => 15,
+                'margin_right' => 15,
+                'margin_top' => 15,
+                'margin_bottom' => 15,
+                'margin_header' => 0,
+                'margin_footer' => 0,
+                'tempDir' => sys_get_temp_dir()
+            ]);
+            
+            // Write HTML to PDF
+            $mpdf->WriteHTML($html);
+            
+            // Return PDF as string
+            return $mpdf->Output('', 'S');
+        } catch (Exception $e) {
+            error_log("mPDF generation failed: " . $e->getMessage());
+            return false;
+        }
     }
     
     /**
@@ -537,7 +570,12 @@ class EmailPDF {
      * Create attendance list HTML from template
      */
     public static function generateAttendanceHTML($data) {
-        $logo = self::getLogoPath();
+        require_once __DIR__ . '/datastore.php';
+        $settings = DataStore::getSettings();
+        
+        $logo = self::getLogoPathFromSettings($settings);
+        $fireDepartmentName = htmlspecialchars($settings['fire_department_name'] ?? 'Freiwillige Feuerwehr');
+        $fireDepartmentCity = !empty($settings['fire_department_city']) ? '<br>' . htmlspecialchars($settings['fire_department_city']) : '';
         
         // Format date
         $datum = date('d.m.Y', strtotime($data['datum']));
@@ -641,8 +679,8 @@ class EmailPDF {
 </head>
 <body>
     <div class="header-container">
-        <h1>Freiwillige Feuerwehr<br>Willingshausen</h1>
-        ' . ($logo ? '<img src="' . $logo . '" alt="Logo Feuerwehr Willingshausen">' : '') . '
+        <h1>' . $fireDepartmentName . $fireDepartmentCity . '</h1>
+        ' . ($logo ? '<img src="' . $logo . '" alt="Logo ' . $fireDepartmentName . '">' : '') . '
     </div>
     <hr class="header-line">
     <h2>Anwesenheitsliste</h2>
