@@ -90,8 +90,7 @@ class FeuerwehrApp {
     if (!this.deferredPrompt) {
       // Check if already installed (with iOS fallback)
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                          window.navigator.standalone || 
-                          document.referrer.includes('android-app://');
+                          window.navigator.standalone;
       
       if (isStandalone) {
         this.showAlert('info', 'Die App ist bereits installiert.');

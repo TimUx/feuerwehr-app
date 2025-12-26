@@ -10,6 +10,7 @@ Auth::requireAuth();
 
 $settings = DataStore::getSettings();
 $isAdmin = Auth::isAdmin();
+$readonlyAttr = $isAdmin ? '' : 'readonly';
 ?>
 
 <div class="card">
@@ -37,7 +38,7 @@ $isAdmin = Auth::isAdmin();
                        class="form-input" 
                        value="<?php echo htmlspecialchars($settings['fire_department_city'] ?? ''); ?>" 
                        placeholder="z.B. Willingshausen"
-                       <?php echo $isAdmin ? '' : 'readonly'; ?>>
+                       <?php echo $readonlyAttr; ?>>
                 <small style="color: var(--text-secondary);">Optional: Wird auf separater Zeile angezeigt</small>
             </div>
             
@@ -88,7 +89,7 @@ $isAdmin = Auth::isAdmin();
                        class="form-input" 
                        value="<?php echo htmlspecialchars($settings['email_recipient'] ?? ''); ?>" 
                        placeholder="z.B. berichte@feuerwehr-beispiel.de"
-                       <?php echo $isAdmin ? '' : 'readonly'; ?>>
+                       <?php echo $readonlyAttr; ?>>
                 <small style="color: var(--text-secondary);">E-Mail-Adresse, an die Einsatzberichte automatisch gesendet werden.</small>
             </div>
             
@@ -100,7 +101,7 @@ $isAdmin = Auth::isAdmin();
                        class="form-input" 
                        value="<?php echo htmlspecialchars($settings['contact_phone'] ?? ''); ?>" 
                        placeholder="z.B. 06691 12345"
-                       <?php echo $isAdmin ? '' : 'readonly'; ?>>
+                       <?php echo $readonlyAttr; ?>>
             </div>
             
             <div class="form-group">
@@ -109,14 +110,14 @@ $isAdmin = Auth::isAdmin();
                        class="form-input" 
                        value="<?php echo htmlspecialchars($settings['contact_email'] ?? ''); ?>" 
                        placeholder="z.B. info@feuerwehr-beispiel.de"
-                       <?php echo $isAdmin ? '' : 'readonly'; ?>>
+                       <?php echo $readonlyAttr; ?>>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="address">Adresse</label>
                 <textarea id="address" name="address" class="form-textarea" rows="3" 
                           placeholder="Straße, PLZ, Ort"
-                          <?php echo $isAdmin ? '' : 'readonly'; ?>><?php echo htmlspecialchars($settings['address'] ?? ''); ?></textarea>
+                          <?php echo $readonlyAttr; ?>><?php echo htmlspecialchars($settings['address'] ?? ''); ?></textarea>
             </div>
             
             <?php if ($isAdmin): ?>

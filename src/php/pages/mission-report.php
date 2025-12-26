@@ -287,7 +287,8 @@ function updateCrewSections() {
             }
         } else {
             const vehicleId = cb.dataset.vehicleId;
-            const vehicle = vehicles.find(v => v.id === vehicleId);
+            // Use loose equality (==) to handle string vs number comparison
+            const vehicle = vehicles.find(v => v.id == vehicleId);
             if (vehicle) {
                 selectedVehicles.push({
                     id: vehicle.id,
