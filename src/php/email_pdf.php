@@ -271,6 +271,13 @@ class EmailPDF {
      */
     private static function generatePDFWithMpdf($html) {
         try {
+            // Get a secure temp directory within the application
+            self::init();
+            $tempDir = self::$dataDir . '/tmp';
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0700, true);
+            }
+            
             // Create mPDF instance with A4 paper size
             $mpdf = new \Mpdf\Mpdf([
                 'mode' => 'utf-8',
@@ -281,7 +288,7 @@ class EmailPDF {
                 'margin_bottom' => 15,
                 'margin_header' => 0,
                 'margin_footer' => 0,
-                'tempDir' => sys_get_temp_dir()
+                'tempDir' => $tempDir
             ]);
             
             // Write HTML to PDF
@@ -289,8 +296,11 @@ class EmailPDF {
             
             // Return PDF as string
             return $mpdf->Output('', 'S');
-        } catch (Exception $e) {
+        } catch (\Mpdf\MpdfException $e) {
             error_log("mPDF generation failed: " . $e->getMessage());
+            return false;
+        } catch (Exception $e) {
+            error_log("PDF generation error: " . $e->getMessage());
             return false;
         }
     }
