@@ -66,6 +66,12 @@ $isAdmin = Auth::isAdmin();
             <span class="material-icons">settings</span>
             <span class="menu-button-text">Allgemeine Einstellungen</span>
         </button>
+        
+        <!-- PWA Install Button (only show if app can be installed) -->
+        <button class="menu-button" id="home-install-btn" style="display: none;" onclick="window.feuerwehrApp.installPWA()">
+            <span class="material-icons">get_app</span>
+            <span class="menu-button-text">App installieren</span>
+        </button>
     </div>
     
     <?php if ($isAdmin): ?>
@@ -73,18 +79,6 @@ $isAdmin = Auth::isAdmin();
         <h3 class="menu-title">Administration</h3>
         
         <div class="menu-grid">
-            <!-- Fahrzeugverwaltung -->
-            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-vehicles')">
-                <span class="material-icons">local_shipping</span>
-                <span class="menu-button-text">Fahrzeugverwaltung</span>
-            </button>
-            
-            <!-- Telefonnummernverwaltung -->
-            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-phone-numbers')">
-                <span class="material-icons">phone</span>
-                <span class="menu-button-text">Telefonnummern</span>
-            </button>
-            
             <!-- Allgemeine Einstellungen -->
             <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-settings')">
                 <span class="material-icons">settings</span>
@@ -97,16 +91,22 @@ $isAdmin = Auth::isAdmin();
                 <span class="menu-button-text">Einsatzkräfte</span>
             </button>
             
+            <!-- Fahrzeugverwaltung -->
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-vehicles')">
+                <span class="material-icons">local_shipping</span>
+                <span class="menu-button-text">Fahrzeugverwaltung</span>
+            </button>
+            
+            <!-- Telefonnummernverwaltung -->
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-phone-numbers')">
+                <span class="material-icons">phone</span>
+                <span class="menu-button-text">Telefonnummern</span>
+            </button>
+            
             <!-- Email Settings -->
             <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('email-settings')">
                 <span class="material-icons">email</span>
                 <span class="menu-button-text">Email Settings</span>
-            </button>
-            
-            <!-- Formulardaten -->
-            <button class="menu-button menu-button-admin menu-button-disabled" disabled title="Demnächst verfügbar">
-                <span class="material-icons">folder</span>
-                <span class="menu-button-text">Formulardaten</span>
             </button>
             
             <!-- Benutzerverwaltung -->
@@ -114,7 +114,39 @@ $isAdmin = Auth::isAdmin();
                 <span class="material-icons">admin_panel_settings</span>
                 <span class="menu-button-text">Benutzer</span>
             </button>
+            
+            <!-- Formulardaten -->
+            <button class="menu-button menu-button-admin menu-button-disabled" disabled title="Demnächst verfügbar">
+                <span class="material-icons">folder</span>
+                <span class="menu-button-text">Formulardaten</span>
+            </button>
         </div>
     </div>
     <?php endif; ?>
 </div>
+
+<script>
+// Show PWA install button if available
+if (window.feuerwehrApp && window.feuerwehrApp.deferredPrompt) {
+    const homeInstallBtn = document.getElementById('home-install-btn');
+    if (homeInstallBtn) {
+        homeInstallBtn.style.display = 'flex';
+    }
+}
+
+// Listen for deferred prompt to show button
+window.addEventListener('beforeinstallprompt', (e) => {
+    const homeInstallBtn = document.getElementById('home-install-btn');
+    if (homeInstallBtn) {
+        homeInstallBtn.style.display = 'flex';
+    }
+});
+
+// Hide button after installation
+window.addEventListener('appinstalled', () => {
+    const homeInstallBtn = document.getElementById('home-install-btn');
+    if (homeInstallBtn) {
+        homeInstallBtn.style.display = 'none';
+    }
+});
+</script>

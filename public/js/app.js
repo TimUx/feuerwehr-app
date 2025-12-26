@@ -44,36 +44,27 @@ class FeuerwehrApp {
       e.preventDefault();
       // Stash the event so it can be triggered later
       this.deferredPrompt = e;
-      // Show the install button
+      // Show the install button in header
       installBtn.style.display = 'block';
+      // Show the install button on home page if it exists
+      const homeInstallBtn = document.getElementById('home-install-btn');
+      if (homeInstallBtn) {
+        homeInstallBtn.style.display = 'flex';
+      }
     });
 
-    // Handle install button click
+    // Handle install button click in header
     installBtn.addEventListener('click', async () => {
-      if (!this.deferredPrompt) {
-        return;
-      }
-
-      // Show the install prompt
-      this.deferredPrompt.prompt();
-      
-      // Wait for the user to respond to the prompt
-      const { outcome } = await this.deferredPrompt.userChoice;
-      
-      console.log(`User response to the install prompt: ${outcome}`);
-      
-      // Clear the deferredPrompt
-      this.deferredPrompt = null;
-      
-      // Hide the install button
-      installBtn.style.display = 'none';
+      await this.installPWA();
     });
 
     // Listen for the appinstalled event
     window.addEventListener('appinstalled', () => {
       console.log('PWA was installed');
-      // Hide the install button
+      // Hide the install buttons
       installBtn.style.display = 'none';
+      const homeInstallBtn = document.getElementById('home-install-btn');
+      if (homeInstallBtn) homeInstallBtn.style.display = 'none';
       // Clear the deferredPrompt
       this.deferredPrompt = null;
     });
@@ -92,6 +83,35 @@ class FeuerwehrApp {
     this.theme = this.theme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', this.theme);
     localStorage.setItem('theme', this.theme);
+  }
+
+  // Install PWA - can be called from buttons
+  async installPWA() {
+    if (!this.deferredPrompt) {
+      this.showAlert('info', 'Die App ist bereits installiert oder kann auf diesem Gerät nicht installiert werden.');
+      return;
+    }
+
+    // Show the install prompt
+    this.deferredPrompt.prompt();
+    
+    // Wait for the user to respond to the prompt
+    const { outcome } = await this.deferredPrompt.userChoice;
+    
+    console.log(`User response to the install prompt: ${outcome}`);
+    
+    if (outcome === 'accepted') {
+      this.showAlert('success', 'App wird installiert...');
+    }
+    
+    // Clear the deferredPrompt
+    this.deferredPrompt = null;
+    
+    // Hide all install buttons
+    const installBtn = document.getElementById('install-btn');
+    if (installBtn) installBtn.style.display = 'none';
+    const homeInstallBtn = document.getElementById('home-install-btn');
+    if (homeInstallBtn) homeInstallBtn.style.display = 'none';
   }
 
   // Navigation

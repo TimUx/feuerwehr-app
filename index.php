@@ -197,13 +197,18 @@ $user = Auth::getUser();
                     <span>Statistiken</span>
                 </a>
                 
+                <?php if (Auth::isAdmin()): ?>
+                <div class="nav-section-title">Administration</div>
+                
                 <a href="#" class="nav-item" data-page="admin-settings">
                     <span class="material-icons">settings</span>
                     <span>Allgemeine Einstellungen</span>
                 </a>
                 
-                <?php if (Auth::isAdmin()): ?>
-                <div class="nav-section-title">Administration</div>
+                <a href="#" class="nav-item" data-page="personnel">
+                    <span class="material-icons">people</span>
+                    <span>Einsatzkräfte</span>
+                </a>
                 
                 <a href="#" class="nav-item" data-page="admin-vehicles">
                     <span class="material-icons">local_shipping</span>
@@ -213,11 +218,6 @@ $user = Auth::getUser();
                 <a href="#" class="nav-item" data-page="admin-phone-numbers">
                     <span class="material-icons">phone</span>
                     <span>Telefonnummernverwaltung</span>
-                </a>
-                
-                <a href="#" class="nav-item" data-page="personnel">
-                    <span class="material-icons">people</span>
-                    <span>Einsatzkräfte</span>
                 </a>
                 
                 <a href="#" class="nav-item" data-page="email-settings">
