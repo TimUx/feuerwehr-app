@@ -7,6 +7,9 @@ require_once __DIR__ . '/../auth.php';
 
 header('Content-Type: application/json');
 
+// Initialize authentication
+Auth::init();
+
 // Check authentication and admin role
 if (!Auth::isAuthenticated() || !Auth::isAdmin()) {
     http_response_code(403);
