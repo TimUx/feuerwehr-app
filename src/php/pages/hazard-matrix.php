@@ -315,7 +315,7 @@ function updateHazardMatrix() {
     tableContainer.style.display = 'block';
     
     // Map hazard items to their data-item values
-    // These correspond to the data-hazard attributes in the table rows
+    // These correspond to rows in the transposed table (hazards are now rows)
     const activeHazardItems = new Set();
     activeHazards.forEach(item => {
         activeHazardItems.add(item.dataset.item);

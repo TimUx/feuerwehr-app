@@ -72,12 +72,16 @@ $user = Auth::getUser();
 let map;
 let routingControl;
 
+// Constants
+const MAP_SIZE_INVALIDATION_DELAY = 100; // milliseconds
+const LEAFLET_CHECK_INTERVAL = 100; // milliseconds
+
 // Wait for Leaflet to be available before initializing
 function waitForLeaflet(callback) {
     if (typeof L !== 'undefined') {
         callback();
     } else {
-        setTimeout(() => waitForLeaflet(callback), 100);
+        setTimeout(() => waitForLeaflet(callback), LEAFLET_CHECK_INTERVAL);
     }
 }
 
@@ -107,7 +111,7 @@ function initMap() {
             if (map) {
                 map.invalidateSize();
             }
-        }, 100);
+        }, MAP_SIZE_INVALIDATION_DELAY);
         
         // Try to get user's location
         if (navigator.geolocation) {

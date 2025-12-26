@@ -1041,20 +1041,10 @@ body {
     flex: 1;
 }
 
+/* Larger font for UN number search input for better readability */
 .search-form #unNumberSearch {
     font-size: 1.25rem;
     padding: 1rem;
-    width: 100%;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
-    transition: border-color 0.2s;
-}
-
-.search-form #unNumberSearch:focus {
-    outline: none;
-    border-color: var(--primary-color);
 }
 
 .hazmat-details {
