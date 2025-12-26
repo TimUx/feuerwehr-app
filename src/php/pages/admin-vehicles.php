@@ -9,6 +9,7 @@ require_once __DIR__ . '/../datastore.php';
 Auth::requireAdmin();
 
 $vehicles = DataStore::getVehicles();
+$locations = DataStore::getLocations();
 ?>
 
 <div class="card">
@@ -27,13 +28,11 @@ $vehicles = DataStore::getVehicles();
             </div>
             <div class="form-group" style="flex: 0 0 150px; margin: 0;">
                 <select id="filterLocation" class="form-input">
-                    <option value="">Alle Orte</option>
+                    <option value="">Alle Standorte</option>
                     <?php
-                    $locations = array_unique(array_filter(array_column($vehicles, 'location')));
-                    sort($locations);
                     foreach ($locations as $location):
                     ?>
-                    <option value="<?php echo htmlspecialchars($location); ?>"><?php echo htmlspecialchars($location); ?></option>
+                    <option value="<?php echo htmlspecialchars($location['id']); ?>"><?php echo htmlspecialchars($location['name']); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -80,13 +79,15 @@ $vehicles = DataStore::getVehicles();
                             return strcasecmp($a['radio_call_sign'] ?? '', $b['radio_call_sign'] ?? '');
                         });
                         foreach ($vehicles as $vehicle): 
+                            $locationName = DataStore::getLocationNameById($vehicle['location_id'] ?? null) ?? $vehicle['location'] ?? '-';
                         ?>
                         <tr data-type="<?php echo htmlspecialchars($vehicle['type']); ?>" 
-                            data-location="<?php echo htmlspecialchars($vehicle['location'] ?? ''); ?>"
+                            data-location-id="<?php echo htmlspecialchars($vehicle['location_id'] ?? ''); ?>"
+                            data-location="<?php echo htmlspecialchars($locationName); ?>"
                             data-radio="<?php echo htmlspecialchars($vehicle['radio_call_sign'] ?? ''); ?>"
                             data-crew="<?php echo htmlspecialchars($vehicle['crew_size'] ?? ''); ?>">
                             <td><strong><?php echo htmlspecialchars($vehicle['type']); ?></strong></td>
-                            <td><?php echo htmlspecialchars($vehicle['location'] ?? '-'); ?></td>
+                            <td><?php echo htmlspecialchars($locationName); ?></td>
                             <td><?php echo htmlspecialchars($vehicle['radio_call_sign'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($vehicle['crew_size'] ?? '-'); ?></td>
                             <td>
@@ -140,8 +141,16 @@ $vehicles = DataStore::getVehicles();
             </div>
             
             <div class="form-group">
-                <label class="form-label" for="vehicle-location">Ort/Standort</label>
-                <input type="text" id="vehicle-location" name="location" class="form-input" placeholder="z.B. Feuerwehrhaus Willingshausen">
+                <label class="form-label" for="vehicle-location">Standort *</label>
+                <select id="vehicle-location" name="location_id" class="form-input" required>
+                    <option value="">-- Standort auswählen --</option>
+                    <?php foreach ($locations as $location): ?>
+                    <option value="<?php echo htmlspecialchars($location['id']); ?>"><?php echo htmlspecialchars($location['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Keine Standorte vorhanden? <a href="#" onclick="window.feuerwehrApp.loadPage('admin-locations'); return false;" style="color: var(--primary);">Standorte verwalten</a>
+                </small>
             </div>
             
             <div class="form-group">
@@ -190,7 +199,7 @@ function editVehicle(vehicle) {
     document.getElementById('modal-title').textContent = 'Fahrzeug bearbeiten';
     document.getElementById('vehicle-id').value = vehicle.id;
     document.getElementById('vehicle-type').value = vehicle.type;
-    document.getElementById('vehicle-location').value = vehicle.location || '';
+    document.getElementById('vehicle-location').value = vehicle.location_id || '';
     document.getElementById('vehicle-radio').value = vehicle.radio_call_sign || '';
     
     // Set crew size from existing data or trigger update
@@ -233,7 +242,7 @@ document.getElementById('vehicle-form').addEventListener('submit', async (e) => 
     const formData = new FormData(e.target);
     const data = {
         type: formData.get('type'),
-        location: formData.get('location'),
+        location_id: formData.get('location_id'),
         radio_call_sign: formData.get('radio_call_sign'),
         crew_size: formData.get('crew_size')
     };
@@ -276,18 +285,18 @@ document.getElementById('filterType')?.addEventListener('change', filterVehicles
 
 function filterVehicles() {
     const searchTerm = document.getElementById('searchVehicles')?.value.toLowerCase() || '';
-    const locationFilter = document.getElementById('filterLocation')?.value.toLowerCase() || '';
+    const locationFilter = document.getElementById('filterLocation')?.value || '';
     const typeFilter = document.getElementById('filterType')?.value.toLowerCase() || '';
     
     const rows = document.querySelectorAll('#vehiclesTableBody tr');
     
     rows.forEach(row => {
         const type = row.dataset.type?.toLowerCase() || '';
-        const location = row.dataset.location?.toLowerCase() || '';
+        const locationId = row.dataset.locationId || '';
         const radio = row.dataset.radio?.toLowerCase() || '';
         
         const matchesSearch = !searchTerm || type.includes(searchTerm) || radio.includes(searchTerm);
-        const matchesLocation = !locationFilter || location === locationFilter;
+        const matchesLocation = !locationFilter || locationId === locationFilter;
         const matchesType = !typeFilter || type === typeFilter;
         
         if (matchesSearch && matchesLocation && matchesType) {

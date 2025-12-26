@@ -9,6 +9,7 @@ require_once __DIR__ . '/../datastore.php';
 Auth::requireAuth();
 
 $personnel = DataStore::getPersonnel();
+$locations = DataStore::getLocations();
 $isAdmin = Auth::isAdmin();
 ?>
 
@@ -31,6 +32,7 @@ $isAdmin = Auth::isAdmin();
                     <thead>
                         <tr>
                             <th>Name</th>
+                            <th>Standort</th>
                             <th>Ausbildungen</th>
                             <th>Führungsrollen</th>
                             <th>Ausbilder</th>
@@ -40,9 +42,12 @@ $isAdmin = Auth::isAdmin();
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($personnel as $person): ?>
+                        <?php foreach ($personnel as $person): 
+                            $locationName = DataStore::getLocationNameById($person['location_id'] ?? null) ?? '-';
+                        ?>
                         <tr>
                             <td><?php echo htmlspecialchars($person['name']); ?></td>
+                            <td><?php echo htmlspecialchars($locationName); ?></td>
                             <td>
                                 <?php 
                                 $qualifications = $person['qualifications'] ?? [];
@@ -108,6 +113,19 @@ $isAdmin = Auth::isAdmin();
             <div class="form-group">
                 <label class="form-label" for="personnel-name">Name *</label>
                 <input type="text" id="personnel-name" name="name" class="form-input" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="personnel-location">Standort</label>
+                <select id="personnel-location" name="location_id" class="form-input">
+                    <option value="">-- Standort auswählen --</option>
+                    <?php foreach ($locations as $location): ?>
+                    <option value="<?php echo htmlspecialchars($location['id']); ?>"><?php echo htmlspecialchars($location['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Keine Standorte vorhanden? <a href="#" onclick="window.feuerwehrApp.loadPage('admin-locations'); return false;" style="color: var(--primary);">Standorte verwalten</a>
+                </small>
             </div>
             
             <div class="form-group">
@@ -182,6 +200,7 @@ function editPersonnel(person) {
     document.getElementById('modal-title').textContent = 'Einsatzkraft bearbeiten';
     document.getElementById('personnel-id').value = person.id;
     document.getElementById('personnel-name').value = person.name;
+    document.getElementById('personnel-location').value = person.location_id || '';
     
     // Clear all checkboxes
     document.querySelectorAll('#personnel-form input[type="checkbox"]').forEach(cb => cb.checked = false);
@@ -240,6 +259,7 @@ document.getElementById('personnel-form').addEventListener('submit', async (e) =
     const formData = new FormData(e.target);
     const data = {
         name: formData.get('name'),
+        location_id: formData.get('location_id') || null,
         qualifications: formData.getAll('qualifications[]'),
         leadership_roles: formData.getAll('leadership_roles[]'),
         is_instructor: formData.get('is_instructor') === '1'
