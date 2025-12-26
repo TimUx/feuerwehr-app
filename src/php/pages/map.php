@@ -45,49 +45,42 @@ $user = Auth::getUser();
     </div>
 </div>
 
-<!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-      crossorigin=""/>
+<!-- MapLibre GL JS CSS -->
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" crossorigin="anonymous">
 
-<!-- Leaflet Routing Machine CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-
-<!-- Leaflet JavaScript -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-        crossorigin=""></script>
-
-<!-- Leaflet Routing Machine JavaScript -->
-<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<!-- MapLibre GL JS JavaScript -->
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js" crossorigin="anonymous"></script>
 
 <style>
-/* Ensure Leaflet CSS overrides are applied */
 #map {
     z-index: 1;
+}
+.maplibregl-ctrl-logo {
+    display: none !important;
 }
 </style>
 
 <script>
 let map;
-let routingControl;
+let routeLayer;
+let markers = [];
 
 // Constants
-const MAP_SIZE_INVALIDATION_DELAY = 100; // milliseconds
-const LEAFLET_CHECK_INTERVAL = 100; // milliseconds
+const MAP_INIT_DELAY = 100; // milliseconds
+const MAPLIBRE_CHECK_INTERVAL = 100; // milliseconds
 
-// Wait for Leaflet to be available before initializing
-function waitForLeaflet(callback) {
-    if (typeof L !== 'undefined') {
+// Wait for MapLibre GL to be available before initializing
+function waitForMapLibre(callback) {
+    if (typeof maplibregl !== 'undefined') {
         callback();
     } else {
-        setTimeout(() => waitForLeaflet(callback), LEAFLET_CHECK_INTERVAL);
+        setTimeout(() => waitForMapLibre(callback), MAPLIBRE_CHECK_INTERVAL);
     }
 }
 
 // Initialize map when the page is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
-    waitForLeaflet(initMap);
+    waitForMapLibre(initMap);
 });
 
 // Initialize map
@@ -98,35 +91,65 @@ function initMap() {
         }
         
         // Default center: Germany (can be customized)
-        map = L.map('map').setView([50.9787, 9.7632], 13);
+        map = new maplibregl.Map({
+            container: 'map',
+            style: {
+                version: 8,
+                sources: {
+                    'osm-tiles': {
+                        type: 'raster',
+                        tiles: [
+                            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                        ],
+                        tileSize: 256,
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }
+                },
+                layers: [
+                    {
+                        id: 'osm-tiles',
+                        type: 'raster',
+                        source: 'osm-tiles',
+                        minzoom: 0,
+                        maxzoom: 19
+                    }
+                ]
+            },
+            center: [9.7632, 50.9787], // [longitude, latitude] - Germany
+            zoom: 12
+        });
         
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }).addTo(map);
+        // Add navigation controls
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+        
+        // Add scale control
+        map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
         
         // Mark map as loaded
         window.mapLoaded = true;
-        
-        // Force map to invalidate size after initialization
-        setTimeout(function() {
-            if (map) {
-                map.invalidateSize();
-            }
-        }, MAP_SIZE_INVALIDATION_DELAY);
         
         // Try to get user's location
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                map.setView([lat, lon], 13);
+                
+                // Center map on user location
+                map.flyTo({
+                    center: [lon, lat],
+                    zoom: 14
+                });
                 
                 // Add marker for current position
-                L.marker([lat, lon]).addTo(map)
-                    .bindPopup('Ihr aktueller Standort')
-                    .openPopup();
+                const marker = new maplibregl.Marker({color: '#d32f2f'})
+                    .setLngLat([lon, lat])
+                    .setPopup(new maplibregl.Popup().setHTML('<strong>Ihr aktueller Standort</strong>'))
+                    .addTo(map);
+                
+                marker.togglePopup();
+                markers.push(marker);
             }, function(error) {
                 console.log('Geolocation error:', error);
             });
@@ -141,11 +164,6 @@ function calculateRoute() {
     // Check if map is loaded
     if (!window.mapLoaded || !map) {
         alert('Die Karte wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.');
-        return;
-    }
-    
-    if (typeof L === 'undefined' || typeof L.Routing === 'undefined') {
-        alert('Die Routing-Bibliothek wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.');
         return;
     }
     
@@ -167,49 +185,122 @@ function calculateRoute() {
             return;
         }
         
-        // Remove existing route
-        if (routingControl) {
-            map.removeControl(routingControl);
-        }
+        // Clear existing route
+        clearRouteLayer();
         
-        // Create new route
-        routingControl = L.Routing.control({
-            waypoints: [
-                L.latLng(startCoords[0], startCoords[1]),
-                L.latLng(endCoords[0], endCoords[1])
-            ],
-            routeWhileDragging: true,
-            language: 'de',
-            lineOptions: {
-                styles: [{color: '#dc2626', opacity: 0.8, weight: 6}]
+        // Add markers for start and end
+        const startMarker = new maplibregl.Marker({color: '#4caf50'})
+            .setLngLat([startCoords[1], startCoords[0]])
+            .setPopup(new maplibregl.Popup().setHTML('<strong>Start:</strong> ' + start))
+            .addTo(map);
+        
+        const endMarker = new maplibregl.Marker({color: '#f44336'})
+            .setLngLat([endCoords[1], endCoords[0]])
+            .setPopup(new maplibregl.Popup().setHTML('<strong>Ziel:</strong> ' + end))
+            .addTo(map);
+        
+        markers.push(startMarker, endMarker);
+        
+        // Get route from OSRM
+        getRoute(startCoords, endCoords).then(route => {
+            if (route) {
+                displayRoute(route);
+                
+                // Fit map to route bounds
+                const bounds = new maplibregl.LngLatBounds();
+                route.geometry.coordinates.forEach(coord => {
+                    bounds.extend(coord);
+                });
+                map.fitBounds(bounds, { padding: 50 });
+                
+                // Show route info
+                const distanceKm = (route.distance / 1000).toFixed(2);
+                const durationMin = Math.round(route.duration / 60);
+                
+                document.getElementById('routeInfo').style.display = 'block';
+                document.getElementById('routeDetails').innerHTML = `
+                    <p><strong>Entfernung:</strong> ${distanceKm} km</p>
+                    <p><strong>Dauer:</strong> ${durationMin} Minuten</p>
+                `;
             }
-        }).addTo(map);
-        
-        // Show route info
-        routingControl.on('routesfound', function(e) {
-            const routes = e.routes;
-            const summary = routes[0].summary;
-            
-            document.getElementById('routeInfo').style.display = 'block';
-            document.getElementById('routeDetails').innerHTML = `
-                <p><strong>Entfernung:</strong> ${(summary.totalDistance / 1000).toFixed(2)} km</p>
-                <p><strong>Dauer:</strong> ${Math.round(summary.totalTime / 60)} Minuten</p>
-            `;
+        }).catch(error => {
+            console.error('Routing error:', error);
+            alert('Fehler bei der Routenberechnung. Bitte versuchen Sie es erneut.');
         });
     }).catch(error => {
-        console.error('Routing error:', error);
-        alert('Fehler bei der Routenberechnung: ' + error.message);
+        console.error('Geocoding error:', error);
+        alert('Fehler bei der Adresssuche: ' + error.message);
     });
 }
 
 function clearRoute() {
-    if (routingControl) {
-        map.removeControl(routingControl);
-        routingControl = null;
-    }
+    // Clear route layer
+    clearRouteLayer();
+    
+    // Clear markers
+    markers.forEach(marker => marker.remove());
+    markers = [];
+    
+    // Clear input fields
     document.getElementById('routeStart').value = '';
     document.getElementById('routeEnd').value = '';
     document.getElementById('routeInfo').style.display = 'none';
+}
+
+function clearRouteLayer() {
+    if (map.getLayer('route')) {
+        map.removeLayer('route');
+    }
+    if (map.getSource('route')) {
+        map.removeSource('route');
+    }
+}
+
+function displayRoute(route) {
+    // Remove existing route if any
+    clearRouteLayer();
+    
+    // Add route to map
+    map.addSource('route', {
+        type: 'geojson',
+        data: {
+            type: 'Feature',
+            properties: {},
+            geometry: route.geometry
+        }
+    });
+    
+    map.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        paint: {
+            'line-color': '#dc2626',
+            'line-width': 6,
+            'line-opacity': 0.8
+        }
+    });
+}
+
+async function getRoute(start, end) {
+    try {
+        // Use OSRM public API for routing
+        const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+            return data.routes[0];
+        }
+        return null;
+    } catch (error) {
+        console.error('Routing API error:', error);
+        throw error;
+    }
 }
 
 async function geocodeAddress(address) {
