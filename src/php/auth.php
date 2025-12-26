@@ -371,10 +371,10 @@ class Auth {
         file_put_contents($rememberTokensFile, $encrypted);
         chmod($rememberTokensFile, 0600);
         
-        // Set cookie with plain token
-        $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
-                    (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+        // Determine if HTTPS is enabled
+        $isSecure = self::isHttps();
         
+        // Set cookie with plain token
         setcookie(
             'remember_me',
             $token,
@@ -391,8 +391,11 @@ class Auth {
      */
     private static function clearRememberMeCookie() {
         if (isset($_COOKIE['remember_me'])) {
+            // Determine if HTTPS is enabled
+            $isSecure = self::isHttps();
+            
             // Delete cookie
-            setcookie('remember_me', '', time() - 3600, '/', '', false, true);
+            setcookie('remember_me', '', time() - 3600, '/', '', $isSecure, true);
             
             // Remove token from storage
             self::init();
@@ -415,6 +418,41 @@ class Auth {
                 file_put_contents($rememberTokensFile, $encrypted);
             }
         }
+    }
+
+    /**
+     * Check if connection is over HTTPS
+     */
+    private static function isHttps() {
+        // Check standard HTTPS variable
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            return true;
+        }
+        
+        // Check if using standard HTTPS port
+        if (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) {
+            return true;
+        }
+        
+        // Check for proxy/load balancer forwarded protocol
+        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+            return true;
+        }
+        
+        // Check alternative forwarded SSL header
+        if (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on') {
+            return true;
+        }
+        
+        // Check for CloudFlare
+        if (!empty($_SERVER['HTTP_CF_VISITOR'])) {
+            $visitor = json_decode($_SERVER['HTTP_CF_VISITOR'], true);
+            if (isset($visitor['scheme']) && $visitor['scheme'] === 'https') {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**

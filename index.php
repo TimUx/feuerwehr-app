@@ -96,9 +96,6 @@ $user = Auth::getUser();
     <link rel="apple-touch-icon" sizes="180x180" href="/public/icons/icon-192x192.png">
     <link rel="apple-touch-icon" sizes="167x167" href="/public/icons/icon-192x192.png">
     
-    <!-- iOS Splash Screens (optional, for better UX) -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    
     <!-- Styles -->
     <link rel="stylesheet" href="/public/css/style.css">
     
