@@ -411,11 +411,13 @@ Umfangreiches Formular basierend auf JetForm-Spezifikation:
 ### Einsatztools
 
 #### 🗺️ Online Karte
-OpenStreetMap-Integration mit Leaflet.js:
+OpenStreetMap-Integration mit MapLibre GL JS:
 - 📍 Aktuelle Position ermitteln
-- 🛣️ Routenberechnung zwischen zwei Adressen
+- 🛣️ Routenberechnung zwischen zwei Adressen (OSRM)
 - 📏 Entfernungs- und Zeitanzeige
 - 📱 Touch-optimierte Bedienung
+- 🗺️ Hardware-beschleunigte Kartendarstellung
+- 🎯 Interaktive Marker für Start- und Zielpunkte
 
 #### ⚠️ Gefahrenmatrix
 Interaktive AAAA-CCCC-EEEE Einsatzstellengefahren-Matrix:
@@ -685,9 +687,9 @@ Wenn Sie nach dem Installations-Wizard die Fehlermeldung **"Ungültiger Benutzer
 - **IndexedDB**: Lokaler Speicher (zukünftig)
 
 ### Externe Bibliotheken
-- **Leaflet.js**: Karten-Darstellung
-- **OpenStreetMap**: Kartenmaterial
-- **OpenRouteService**: Routing-API
+- **MapLibre GL JS**: Hardware-beschleunigte Karten-Darstellung
+- **OpenStreetMap**: Kartenmaterial (Raster-Tiles)
+- **OSRM**: Routing-API (Open Source Routing Machine)
 
 ### Architektur
 ```
