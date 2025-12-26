@@ -197,12 +197,17 @@ $user = Auth::getUser();
                     <span>Statistiken</span>
                 </a>
                 
+                <a href="#" class="nav-item" data-page="form-data">
+                    <span class="material-icons">folder</span>
+                    <span>Formulardaten</span>
+                </a>
+                
                 <?php if (Auth::isAdmin()): ?>
                 <div class="nav-section-title">Administration</div>
                 
-                <a href="#" class="nav-item" data-page="personnel">
-                    <span class="material-icons">people</span>
-                    <span>Einsatzkräfte</span>
+                <a href="#" class="nav-item" data-page="admin-locations">
+                    <span class="material-icons">location_city</span>
+                    <span>Standorte</span>
                 </a>
                 
                 <a href="#" class="nav-item" data-page="admin-vehicles">
@@ -210,9 +215,9 @@ $user = Auth::getUser();
                     <span>Fahrzeuge</span>
                 </a>
                 
-                <a href="#" class="nav-item" data-page="admin-locations">
-                    <span class="material-icons">location_city</span>
-                    <span>Standorte</span>
+                <a href="#" class="nav-item" data-page="personnel">
+                    <span class="material-icons">people</span>
+                    <span>Einsatzkräfte</span>
                 </a>
                 
                 <a href="#" class="nav-item" data-page="admin-phone-numbers">

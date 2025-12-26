@@ -17,10 +17,16 @@ $isAdmin = Auth::isAdmin();
     <div class="card-header">
         <span>Einsatzkräfte</span>
         <?php if ($isAdmin): ?>
-        <button class="btn btn-primary" onclick="openPersonnelModal()">
-            <span class="material-icons">add</span>
-            Hinzufügen
-        </button>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-primary" onclick="openPersonnelModal()">
+                <span class="material-icons">add</span>
+                Hinzufügen
+            </button>
+            <button class="btn btn-secondary" onclick="openImportModal()">
+                <span class="material-icons">upload_file</span>
+                CSV Import
+            </button>
+        </div>
         <?php endif; ?>
     </div>
     <div class="card-content">
@@ -183,6 +189,55 @@ $isAdmin = Auth::isAdmin();
     </div>
 </div>
 
+<!-- CSV Import Modal -->
+<div id="import-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Einsatzkräfte via CSV importieren</h2>
+            <button class="modal-close" onclick="closeImportModal()">&times;</button>
+        </div>
+        <div style="padding: 1.5rem;">
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Laden Sie eine CSV-Datei hoch, um mehrere Einsatzkräfte auf einmal zu importieren.
+            </p>
+            
+            <div style="background-color: var(--bg-secondary); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                <strong>CSV-Format:</strong>
+                <pre style="margin: 0.5rem 0; overflow-x: auto;">Name,Standort,Ausbildungen,Führungsrollen,Ausbilder</pre>
+                <p style="margin: 0.5rem 0; font-size: 0.875rem;">
+                    <strong>Beispiel:</strong>
+                </p>
+                <pre style="margin: 0; font-size: 0.875rem; overflow-x: auto;">Max Mustermann,Hauptwache,"AGT,Maschinist","Truppführer,Gruppenführer",Ja
+Erika Musterfrau,Feuerwehrhaus,"Sanitäter","Truppführer",Nein</pre>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: var(--text-secondary);">
+                    <strong>Hinweise:</strong><br>
+                    • Erste Zeile = Kopfzeile (wird übersprungen)<br>
+                    • Mehrere Werte in Anführungszeichen und durch Komma getrennt<br>
+                    • Ausbilder: "Ja" oder "Nein"<br>
+                    • Standortname muss exakt mit einem vorhandenen Standort übereinstimmen
+                </p>
+            </div>
+            
+            <form id="import-form">
+                <div class="form-group">
+                    <label class="form-label" for="csv-file">CSV-Datei auswählen</label>
+                    <input type="file" id="csv-file" accept=".csv" class="form-input" required>
+                </div>
+                
+                <div id="import-preview" style="display: none; margin-top: 1rem;">
+                    <h4>Vorschau:</h4>
+                    <div id="preview-content"></div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeImportModal()">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Importieren</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function openPersonnelModal() {
     document.getElementById('personnel-modal').classList.add('show');
@@ -291,5 +346,174 @@ document.getElementById('personnel-form').addEventListener('submit', async (e) =
     } catch (error) {
         window.feuerwehrApp.showAlert('error', 'Fehler beim Speichern');
     }
+});
+
+// CSV Import Functions
+function openImportModal() {
+    document.getElementById('import-modal').classList.add('show');
+    document.getElementById('import-form').reset();
+    document.getElementById('import-preview').style.display = 'none';
+}
+
+function closeImportModal() {
+    document.getElementById('import-modal').classList.remove('show');
+}
+
+// Parse CSV file
+function parseCSV(text) {
+    const lines = text.split('\n').filter(line => line.trim());
+    const result = [];
+    
+    for (let i = 1; i < lines.length; i++) { // Skip header
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        const values = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let j = 0; j < line.length; j++) {
+            const char = line[j];
+            
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                values.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        values.push(current.trim());
+        
+        if (values.length >= 5) {
+            result.push({
+                name: values[0],
+                location: values[1],
+                qualifications: values[2] ? values[2].split(',').map(q => q.trim()) : [],
+                leadership_roles: values[3] ? values[3].split(',').map(r => r.trim()) : [],
+                is_instructor: values[4].toLowerCase() === 'ja' || values[4].toLowerCase() === 'yes'
+            });
+        }
+    }
+    
+    return result;
+}
+
+// Handle CSV file selection
+document.getElementById('csv-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            const personnel = parseCSV(event.target.result);
+            
+            if (personnel.length === 0) {
+                window.feuerwehrApp.showAlert('error', 'Keine gültigen Daten in der CSV-Datei gefunden');
+                return;
+            }
+            
+            // Show preview
+            const preview = document.getElementById('import-preview');
+            const previewContent = document.getElementById('preview-content');
+            previewContent.innerHTML = `
+                <p><strong>${personnel.length}</strong> Einsatzkräfte gefunden:</p>
+                <ul style="max-height: 200px; overflow-y: auto;">
+                    ${personnel.map(p => `<li>${p.name} (${p.location || 'Kein Standort'})</li>`).join('')}
+                </ul>
+            `;
+            preview.style.display = 'block';
+            
+            // Store parsed data for submission
+            document.getElementById('import-form').dataset.personnel = JSON.stringify(personnel);
+        } catch (error) {
+            window.feuerwehrApp.showAlert('error', 'Fehler beim Lesen der CSV-Datei');
+            console.error(error);
+        }
+    };
+    reader.readAsText(file);
+});
+
+// Handle import form submission
+document.getElementById('import-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const personnelData = JSON.parse(this.dataset.personnel || '[]');
+    
+    if (personnelData.length === 0) {
+        window.feuerwehrApp.showAlert('error', 'Keine Daten zum Importieren');
+        return;
+    }
+    
+    // Get locations to map names to IDs
+    const locationsResponse = await fetch('/src/php/api/locations.php');
+    const locationsResult = await locationsResponse.json();
+    const locations = locationsResult.data || [];
+    
+    const locationMap = {};
+    locations.forEach(loc => {
+        locationMap[loc.name.toLowerCase()] = loc.id;
+    });
+    
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+    
+    for (const person of personnelData) {
+        try {
+            // Map location name to ID
+            let locationId = null;
+            if (person.location) {
+                locationId = locationMap[person.location.toLowerCase()] || null;
+                if (!locationId) {
+                    errors.push(`${person.name}: Standort "${person.location}" nicht gefunden`);
+                }
+            }
+            
+            const data = {
+                name: person.name,
+                location_id: locationId,
+                qualifications: person.qualifications,
+                leadership_roles: person.leadership_roles,
+                is_instructor: person.is_instructor
+            };
+            
+            const response = await fetch('/src/php/api/personnel.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                successCount++;
+            } else {
+                errorCount++;
+                errors.push(`${person.name}: ${result.message}`);
+            }
+        } catch (error) {
+            errorCount++;
+            errors.push(`${person.name}: Fehler beim Importieren`);
+        }
+    }
+    
+    // Show results
+    let message = `Import abgeschlossen: ${successCount} erfolgreich`;
+    if (errorCount > 0) {
+        message += `, ${errorCount} fehlgeschlagen`;
+    }
+    
+    if (errors.length > 0 && errors.length <= 5) {
+        message += '\n\nFehler:\n' + errors.join('\n');
+    } else if (errors.length > 5) {
+        message += '\n\nErste 5 Fehler:\n' + errors.slice(0, 5).join('\n');
+    }
+    
+    window.feuerwehrApp.showAlert(errorCount === 0 ? 'success' : 'warning', message);
+    closeImportModal();
+    window.feuerwehrApp.loadPage('personnel');
 });
 </script>
