@@ -1,14 +1,16 @@
 <?php
 /**
  * Email and PDF Generation Helper
- * Uses PHPMailer for email and mPDF for PDF generation
+ * Uses native PHP 8 SMTP or PHPMailer for email and mPDF for PDF generation
  */
 
-// Load PHPMailer
-require_once __DIR__ . '/../../vendor/autoload.php';
+// Load native SMTP client
+require_once __DIR__ . '/smtp_client.php';
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
+// Try to load PHPMailer if available (fallback)
+if (file_exists(__DIR__ . '/../../vendor/autoload.php')) {
+    require_once __DIR__ . '/../../vendor/autoload.php';
+}
 
 class EmailPDF {
     private static $config;
@@ -20,84 +22,188 @@ class EmailPDF {
     }
     
     /**
-     * Send email with HTML content and multiple attachments using PHPMailer with SMTP
+     * Send email with HTML content and multiple attachments
+     * Uses native PHP 8 SMTP by default, falls back to PHPMailer if configured
      */
     public static function sendEmailWithAttachments($to, $subject, $htmlBody, $pdfContent = null, $pdfFilename = 'document.pdf', $extraFileContent = null, $extraFileName = null) {
         self::init();
         
-        $mail = new PHPMailer(true);
+        $emailConfig = self::$config['email'] ?? [];
+        
+        // Validate email addresses
+        $fromAddress = $emailConfig['from_address'] ?? 'noreply@feuerwehr.local';
+        if (!filter_var($fromAddress, FILTER_VALIDATE_EMAIL)) {
+            error_log("Invalid from address: {$fromAddress}");
+            return false;
+        }
+        
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            error_log("Invalid recipient address: {$to}");
+            return false;
+        }
+        
+        // Check if user prefers PHPMailer (use_phpmailer config option)
+        $usePhpMailer = $emailConfig['use_phpmailer'] ?? false;
+        
+        // Use PHPMailer if explicitly requested AND available
+        if ($usePhpMailer && class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+            return self::sendWithPhpMailer($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName);
+        }
+        
+        // Use native PHP 8 SMTP (default)
+        return self::sendWithNativeSMTP($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName);
+    }
+    
+    /**
+     * Send email using native PHP 8 SMTP client
+     */
+    private static function sendWithNativeSMTP($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName) {
+        $emailConfig = self::$config['email'] ?? [];
+        
+        // Check if SMTP is configured
+        if (empty($emailConfig['smtp_host'])) {
+            // Fall back to PHP mail() function
+            return self::sendWithPhpMail($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName);
+        }
         
         try {
-            // Get email configuration
-            $emailConfig = self::$config['email'] ?? [];
+            $smtp = new SMTPClient(
+                $emailConfig['smtp_host'],
+                $emailConfig['smtp_port'] ?? 587,
+                $emailConfig['smtp_secure'] ?? 'tls',
+                $emailConfig['smtp_username'] ?? '',
+                $emailConfig['smtp_password'] ?? ''
+            );
             
-            // Validate email addresses
-            $fromAddress = $emailConfig['from_address'] ?? 'noreply@feuerwehr.local';
-            if (!filter_var($fromAddress, FILTER_VALIDATE_EMAIL)) {
-                throw new Exception('Invalid from address: ' . $fromAddress);
+            // Prepare attachments
+            $attachments = [];
+            if ($pdfContent) {
+                $attachments[$pdfFilename] = $pdfContent;
+            }
+            if ($extraFileContent && $extraFileName) {
+                $attachments[$extraFileName] = $extraFileContent;
             }
             
-            if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
-                throw new Exception('Invalid recipient address: ' . $to);
-            }
+            return $smtp->sendEmail(
+                $emailConfig['from_address'] ?? 'noreply@feuerwehr.local',
+                $emailConfig['from_name'] ?? 'Feuerwehr Management System',
+                $to,
+                $subject,
+                $htmlBody,
+                true, // HTML email
+                $attachments
+            );
             
+        } catch (Exception $e) {
+            error_log("Native SMTP failed: {$e->getMessage()}");
+            return false;
+        }
+    }
+    
+    /**
+     * Send email using PHPMailer (fallback)
+     */
+    private static function sendWithPhpMailer($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName) {
+        if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+            error_log("PHPMailer not available");
+            return false;
+        }
+        
+        $emailConfig = self::$config['email'] ?? [];
+        $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+        
+        try {
             // Server settings
             if (!empty($emailConfig['smtp_host'])) {
-                // Use SMTP if configured
                 $mail->isSMTP();
                 $mail->Host = $emailConfig['smtp_host'];
                 $mail->Port = $emailConfig['smtp_port'] ?? 587;
                 
-                // Enable SMTP authentication if configured
                 if (!empty($emailConfig['smtp_auth'])) {
                     $mail->SMTPAuth = true;
                     $mail->Username = $emailConfig['smtp_username'] ?? '';
                     $mail->Password = $emailConfig['smtp_password'] ?? '';
                 }
                 
-                // Enable TLS/SSL encryption if configured
                 if (!empty($emailConfig['smtp_secure'])) {
                     if ($emailConfig['smtp_secure'] === 'tls') {
-                        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                        $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
                     } elseif ($emailConfig['smtp_secure'] === 'ssl') {
-                        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+                        $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
                     }
                 }
             } else {
-                // Fall back to PHP mail() function if no SMTP configured
                 $mail->isMail();
             }
             
-            // Recipients
-            $mail->setFrom($fromAddress, $emailConfig['from_name'] ?? 'Feuerwehr Management System');
+            $mail->setFrom($emailConfig['from_address'] ?? 'noreply@feuerwehr.local', $emailConfig['from_name'] ?? 'Feuerwehr Management System');
             $mail->addAddress($to);
-            
-            // Content
             $mail->isHTML(true);
             $mail->CharSet = 'UTF-8';
             $mail->Subject = $subject;
             $mail->Body = $htmlBody;
-            $mail->AltBody = strip_tags($htmlBody); // Plain text alternative
+            $mail->AltBody = strip_tags($htmlBody);
             
-            // Attach PDF if provided
             if ($pdfContent) {
                 $mail->addStringAttachment($pdfContent, $pdfFilename, 'base64', 'application/pdf');
             }
             
-            // Attach extra file if provided
             if ($extraFileContent && $extraFileName) {
                 $finfo = new finfo(FILEINFO_MIME_TYPE);
                 $mimeType = $finfo->buffer($extraFileContent);
                 $mail->addStringAttachment($extraFileContent, $extraFileName, 'base64', $mimeType);
             }
             
-            // Send email
             $mail->send();
             return true;
         } catch (Exception $e) {
-            error_log("Email sending failed: {$mail->ErrorInfo}");
+            error_log("PHPMailer failed: {$mail->ErrorInfo}");
             return false;
         }
+    }
+    
+    /**
+     * Send email using PHP mail() function (last resort fallback)
+     */
+    private static function sendWithPhpMail($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName) {
+        $emailConfig = self::$config['email'] ?? [];
+        
+        $from = $emailConfig['from_address'] ?? 'noreply@feuerwehr.local';
+        $fromName = $emailConfig['from_name'] ?? 'Feuerwehr Management System';
+        
+        $boundary = md5(time());
+        $headers = [];
+        $headers[] = "From: {$fromName} <{$from}>";
+        $headers[] = "MIME-Version: 1.0";
+        $headers[] = "Content-Type: multipart/mixed; boundary=\"{$boundary}\"";
+        
+        $message = "--{$boundary}\r\n";
+        $message .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+        $message .= $htmlBody . "\r\n\r\n";
+        
+        if ($pdfContent) {
+            $message .= "--{$boundary}\r\n";
+            $message .= "Content-Type: application/pdf; name=\"{$pdfFilename}\"\r\n";
+            $message .= "Content-Transfer-Encoding: base64\r\n";
+            $message .= "Content-Disposition: attachment; filename=\"{$pdfFilename}\"\r\n\r\n";
+            $message .= chunk_split(base64_encode($pdfContent)) . "\r\n";
+        }
+        
+        if ($extraFileContent && $extraFileName) {
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->buffer($extraFileContent);
+            
+            $message .= "--{$boundary}\r\n";
+            $message .= "Content-Type: {$mimeType}; name=\"{$extraFileName}\"\r\n";
+            $message .= "Content-Transfer-Encoding: base64\r\n";
+            $message .= "Content-Disposition: attachment; filename=\"{$extraFileName}\"\r\n\r\n";
+            $message .= chunk_split(base64_encode($extraFileContent)) . "\r\n";
+        }
+        
+        $message .= "--{$boundary}--";
+        
+        return mail($to, $subject, $message, implode("\r\n", $headers));
     }
     
     /**
