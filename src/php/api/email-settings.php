@@ -50,12 +50,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             ini_set('smtp_port', $emailConfig['smtp_port'] ?? 25);
         }
         
+        // Attempt to send the email
         $result = mail($to, $subject, $message, implode("\r\n", $headers));
         
         if ($result) {
             echo json_encode(['success' => true, 'message' => 'Test-E-Mail erfolgreich versendet']);
         } else {
-            throw new Exception('mail() Funktion hat false zurückgegeben');
+            // Get detailed error information
+            $lastError = error_get_last();
+            $errorMsg = 'mail() Funktion hat false zurückgegeben. ';
+            
+            if ($lastError && isset($lastError['message'])) {
+                $errorMsg .= 'PHP Fehler: ' . $lastError['message'];
+            } else {
+                $errorMsg .= 'Mögliche Ursachen: ';
+                $errorMsg .= '1) SMTP-Server nicht konfiguriert oder nicht erreichbar. ';
+                $errorMsg .= '2) sendmail ist nicht installiert. ';
+                $errorMsg .= '3) Die E-Mail-Adresse ist ungültig. ';
+                $errorMsg .= 'Bitte überprüfen Sie die SMTP-Einstellungen oder installieren Sie einen Mail-Server (z.B. sendmail, postfix).';
+            }
+            
+            throw new Exception($errorMsg);
         }
     } catch (Exception $e) {
         http_response_code(500);
