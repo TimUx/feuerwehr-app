@@ -88,8 +88,12 @@ class FeuerwehrApp {
   // Install PWA - can be called from buttons
   async installPWA() {
     if (!this.deferredPrompt) {
-      // Check if already installed
-      if (window.matchMedia('(display-mode: standalone)').matches) {
+      // Check if already installed (with iOS fallback)
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                          window.navigator.standalone || 
+                          document.referrer.includes('android-app://');
+      
+      if (isStandalone) {
         this.showAlert('info', 'Die App ist bereits installiert.');
       } else {
         this.showAlert('info', 'Die App kann auf diesem Gerät oder Browser leider nicht installiert werden.');
