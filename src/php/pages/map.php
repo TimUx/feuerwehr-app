@@ -283,11 +283,15 @@ const defaultLon = <?php echo $defaultLon; ?>;
 const defaultZoom = <?php echo $defaultZoom; ?>;
 
 // Initialize maps when page loads and Leaflet is ready
-function initMaps() {
+function initMaps(retryCount = 0) {
     // Check if Leaflet is loaded
     if (typeof L === 'undefined') {
-        console.log('Waiting for Leaflet to load...');
-        setTimeout(initMaps, 100);
+        if (retryCount < 50) { // Max 5 seconds (50 * 100ms)
+            console.log('Waiting for Leaflet to load...');
+            setTimeout(() => initMaps(retryCount + 1), 100);
+        } else {
+            console.error('Leaflet failed to load after 5 seconds');
+        }
         return;
     }
     
@@ -347,7 +351,7 @@ function initExploreMap() {
 }
 
 // Initialize route map
-function initRouteMap() {
+function initRouteMap(retryCount = 0) {
     if (mapRoute) {
         // Map already initialized, just invalidate size
         mapRoute.invalidateSize();
@@ -356,8 +360,12 @@ function initRouteMap() {
     
     // Check if Leaflet is loaded
     if (typeof L === 'undefined') {
-        console.error('Leaflet not loaded yet');
-        setTimeout(initRouteMap, 100);
+        if (retryCount < 50) { // Max 5 seconds (50 * 100ms)
+            console.log('Waiting for Leaflet to load for route map...');
+            setTimeout(() => initRouteMap(retryCount + 1), 100);
+        } else {
+            console.error('Leaflet failed to load for route map after 5 seconds');
+        }
         return;
     }
     
@@ -376,7 +384,7 @@ function initRouteMap() {
 }
 
 // Initialize search map
-function initSearchMap() {
+function initSearchMap(retryCount = 0) {
     if (mapSearch) {
         // Map already initialized, just invalidate size
         mapSearch.invalidateSize();
@@ -385,8 +393,12 @@ function initSearchMap() {
     
     // Check if Leaflet is loaded
     if (typeof L === 'undefined') {
-        console.error('Leaflet not loaded yet');
-        setTimeout(initSearchMap, 100);
+        if (retryCount < 50) { // Max 5 seconds (50 * 100ms)
+            console.log('Waiting for Leaflet to load for search map...');
+            setTimeout(() => initSearchMap(retryCount + 1), 100);
+        } else {
+            console.error('Leaflet failed to load for search map after 5 seconds');
+        }
         return;
     }
     
