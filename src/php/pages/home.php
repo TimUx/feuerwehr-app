@@ -126,15 +126,7 @@ $isAdmin = Auth::isAdmin();
 </div>
 
 <script>
-// Show PWA install button if available
-if (window.feuerwehrApp && window.feuerwehrApp.deferredPrompt) {
-    const homeInstallBtn = document.getElementById('home-install-btn');
-    if (homeInstallBtn) {
-        homeInstallBtn.style.display = 'flex';
-    }
-}
-
-// Listen for deferred prompt to show button
+// Listen for deferred prompt to show PWA install button
 window.addEventListener('beforeinstallprompt', (e) => {
     const homeInstallBtn = document.getElementById('home-install-btn');
     if (homeInstallBtn) {

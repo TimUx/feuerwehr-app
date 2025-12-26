@@ -111,6 +111,7 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
                 <?php else: ?>
                     <?php foreach ($vehicles as $vehicle): ?>
                     <div class="form-check">
+                        <!-- value = vehicle type (for form submission), data-vehicle-id = vehicle ID (for JS lookup) -->
                         <input type="checkbox" id="vehicle-<?php echo $vehicle['id']; ?>" 
                                name="eingesetzte_fahrzeuge[]" 
                                value="<?php echo htmlspecialchars($vehicle['type']); ?>" 
