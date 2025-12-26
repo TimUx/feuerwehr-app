@@ -304,7 +304,8 @@ body {
 
 .form-input,
 .form-select,
-.form-textarea {
+.form-textarea,
+.form-control {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
@@ -317,7 +318,8 @@ body {
 
 .form-input:focus,
 .form-select:focus,
-.form-textarea:focus {
+.form-textarea:focus,
+.form-control:focus {
   outline: none;
   border-color: var(--primary-color);
 }
@@ -732,6 +734,9 @@ body {
     color: var(--primary-color);
     text-align: center;
     line-height: 1.3;
+    word-wrap: break-word;
+    hyphens: auto;
+    overflow-wrap: break-word;
 }
 
 .menu-button-admin {
@@ -988,8 +993,9 @@ body {
     font-weight: bold;
 }
 
-.hazard-matrix-table .separator-row td {
-    height: 0.5rem;
+.hazard-matrix-table .separator-col {
+    width: 1rem;
+    min-width: 1rem;
     padding: 0;
     border: none;
     background: transparent;
@@ -1026,6 +1032,12 @@ body {
 
 .search-form .form-group {
     flex: 1;
+}
+
+/* Larger font for UN number search input for better readability */
+.search-form #unNumberSearch {
+    font-size: 1.25rem;
+    padding: 1rem;
 }
 
 .hazmat-details {

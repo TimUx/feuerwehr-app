@@ -61,53 +61,78 @@ $user = Auth::getUser();
 <!-- Leaflet Routing Machine JavaScript -->
 <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
+<style>
+/* Ensure Leaflet CSS overrides are applied */
+#map {
+    z-index: 1;
+}
+</style>
+
 <script>
 let map;
 let routingControl;
+
+// Constants
+const MAP_SIZE_INVALIDATION_DELAY = 100; // milliseconds
+const LEAFLET_CHECK_INTERVAL = 100; // milliseconds
 
 // Wait for Leaflet to be available before initializing
 function waitForLeaflet(callback) {
     if (typeof L !== 'undefined') {
         callback();
     } else {
-        setTimeout(() => waitForLeaflet(callback), 100);
+        setTimeout(() => waitForLeaflet(callback), LEAFLET_CHECK_INTERVAL);
     }
 }
+
+// Initialize map when the page is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    waitForLeaflet(initMap);
+});
 
 // Initialize map
 function initMap() {
-    if (map) {
-        map.remove(); // Clean up existing map
-    }
-    
-    // Default center: Germany (can be customized)
-    map = L.map('map').setView([50.9787, 9.7632], 13);
-    
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(map);
-    
-    // Try to get user's location
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            map.setView([lat, lon], 13);
-            
-            // Add marker for current position
-            L.marker([lat, lon]).addTo(map)
-                .bindPopup('Ihr aktueller Standort')
-                .openPopup();
-        }, function(error) {
-            console.log('Geolocation error:', error);
-        });
+    try {
+        if (map) {
+            map.remove(); // Clean up existing map
+        }
+        
+        // Default center: Germany (can be customized)
+        map = L.map('map').setView([50.9787, 9.7632], 13);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Force map to invalidate size after initialization
+        setTimeout(function() {
+            if (map) {
+                map.invalidateSize();
+            }
+        }, MAP_SIZE_INVALIDATION_DELAY);
+        
+        // Try to get user's location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                map.setView([lat, lon], 13);
+                
+                // Add marker for current position
+                L.marker([lat, lon]).addTo(map)
+                    .bindPopup('Ihr aktueller Standort')
+                    .openPopup();
+            }, function(error) {
+                console.log('Geolocation error:', error);
+            });
+        }
+    } catch (error) {
+        console.error('Map initialization error:', error);
+        alert('Fehler beim Laden der Karte: ' + error.message);
     }
 }
-
-// Initialize map after scripts are loaded
-waitForLeaflet(initMap);
 
 function calculateRoute() {
     if (typeof L === 'undefined' || typeof L.Routing === 'undefined') {

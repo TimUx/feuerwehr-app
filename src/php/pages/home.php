@@ -79,40 +79,46 @@ $isAdmin = Auth::isAdmin();
         <h3 class="menu-title">Administration</h3>
         
         <div class="menu-grid">
-            <!-- Einsatzkräfte verwalten -->
+            <!-- Einsatzkräfte -->
             <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('personnel')">
                 <span class="material-icons">people</span>
                 <span class="menu-button-text">Einsatzkräfte</span>
             </button>
             
-            <!-- Fahrzeugverwaltung -->
+            <!-- Fahrzeuge -->
             <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-vehicles')">
                 <span class="material-icons">local_shipping</span>
-                <span class="menu-button-text">Fahrzeugverwaltung</span>
+                <span class="menu-button-text">Fahrzeuge</span>
             </button>
             
-            <!-- Telefonnummernverwaltung -->
+            <!-- Telefonnummern -->
             <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-phone-numbers')">
                 <span class="material-icons">phone</span>
                 <span class="menu-button-text">Telefonnummern</span>
-            </button>
-            
-            <!-- Email Settings -->
-            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('email-settings')">
-                <span class="material-icons">email</span>
-                <span class="menu-button-text">Email Settings</span>
-            </button>
-            
-            <!-- Benutzerverwaltung -->
-            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('users')">
-                <span class="material-icons">admin_panel_settings</span>
-                <span class="menu-button-text">Benutzer</span>
             </button>
             
             <!-- Formulardaten -->
             <button class="menu-button menu-button-admin menu-button-disabled" disabled title="Demnächst verfügbar">
                 <span class="material-icons">folder</span>
                 <span class="menu-button-text">Formulardaten</span>
+            </button>
+            
+            <!-- Benutzer -->
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('users')">
+                <span class="material-icons">admin_panel_settings</span>
+                <span class="menu-button-text">Benutzer</span>
+            </button>
+            
+            <!-- Allgemeine Einstellungen -->
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-settings')">
+                <span class="material-icons">settings</span>
+                <span class="menu-button-text">Allgemeine Einstellungen</span>
+            </button>
+            
+            <!-- Email Einstellungen -->
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('email-settings')">
+                <span class="material-icons">email</span>
+                <span class="menu-button-text">Email Einstellungen</span>
             </button>
         </div>
     </div>
