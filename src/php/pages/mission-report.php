@@ -239,23 +239,43 @@ const functions = <?php echo json_encode($functions); ?>;
 const involvementTypes = <?php echo json_encode($involvement_types); ?>;
 
 // Set default date to today
-document.getElementById('einsatzdatum').valueAsDate = new Date();
+const einsatzdatumField = document.getElementById('einsatzdatum');
+if (einsatzdatumField) {
+    einsatzdatumField.valueAsDate = new Date();
+}
 
 // Calculate duration when start/end times change
 function calculateDuration() {
-    const start = document.getElementById('beginn').value;
-    const end = document.getElementById('ende').value;
+    const startField = document.getElementById('beginn');
+    const endField = document.getElementById('ende');
+    const durationField = document.getElementById('dauer');
+    
+    if (!startField || !endField || !durationField) return;
+    
+    const start = startField.value;
+    const end = endField.value;
     
     if (start && end) {
         const startDate = new Date(start);
         const endDate = new Date(end);
         const durationMinutes = Math.round((endDate - startDate) / 1000 / 60);
-        document.getElementById('dauer').value = durationMinutes;
+        durationField.value = durationMinutes;
+    } else {
+        // Clear duration if either field is empty
+        durationField.value = '';
     }
 }
 
-document.getElementById('beginn').addEventListener('change', calculateDuration);
-document.getElementById('ende').addEventListener('change', calculateDuration);
+const beginnField = document.getElementById('beginn');
+const endeField = document.getElementById('ende');
+
+if (beginnField) {
+    beginnField.addEventListener('change', calculateDuration);
+}
+
+if (endeField) {
+    endeField.addEventListener('change', calculateDuration);
+}
 
 // Handle custom vehicle input
 document.getElementById('vehicle-custom').addEventListener('change', function() {
