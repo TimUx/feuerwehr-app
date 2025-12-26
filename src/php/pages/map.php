@@ -57,14 +57,16 @@ if (!empty($address)) {
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
       crossorigin=""/>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+<!-- Leaflet Routing Machine CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+<!-- Leaflet JS - Load with defer to ensure proper order -->
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin=""></script>
 
-<!-- Leaflet Routing Machine -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<!-- Leaflet Routing Machine - Load with defer AFTER Leaflet -->
+<script defer src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
 <div class="page-header">
     <h2>Online Karte</h2>
@@ -280,53 +282,119 @@ const defaultLat = <?php echo $defaultLat; ?>;
 const defaultLon = <?php echo $defaultLon; ?>;
 const defaultZoom = <?php echo $defaultZoom; ?>;
 
-// Initialize maps when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize explore map
+// Initialize maps when page loads and Leaflet is ready
+function initMaps() {
+    // Check if Leaflet is loaded
+    if (typeof L === 'undefined') {
+        console.log('Waiting for Leaflet to load...');
+        setTimeout(initMaps, 100);
+        return;
+    }
+    
+    // Initialize explore map (default view)
     initExploreMap();
-});
+}
+
+// Start initialization when DOM is ready
+document.addEventListener('DOMContentLoaded', initMaps);
 
 // Initialize explore map
 function initExploreMap() {
-    if (mapExplore) return;
+    if (mapExplore) {
+        // Map already initialized, just invalidate size
+        mapExplore.invalidateSize();
+        return;
+    }
     
-    mapExplore = L.map('map-explore').setView([defaultLat, defaultLon], defaultZoom);
+    // Check if Leaflet is loaded
+    if (typeof L === 'undefined') {
+        console.error('Leaflet not loaded yet');
+        return;
+    }
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(mapExplore);
+    const mapContainer = document.getElementById('map-explore');
+    if (!mapContainer) {
+        console.error('Map container not found');
+        return;
+    }
     
-    // Add marker if address is configured
-    <?php if ($defaultZoom > 10): ?>
-    L.marker([defaultLat, defaultLon]).addTo(mapExplore)
-        .bindPopup(<?php echo json_encode($address, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)
-        .openPopup();
-    <?php endif; ?>
+    try {
+        mapExplore = L.map('map-explore').setView([defaultLat, defaultLon], defaultZoom);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(mapExplore);
+        
+        // Add marker if address is configured
+        <?php if ($defaultZoom > 10): ?>
+        L.marker([defaultLat, defaultLon]).addTo(mapExplore)
+            .bindPopup(<?php echo json_encode($address, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)
+            .openPopup();
+        <?php endif; ?>
+        
+        console.log('Explore map initialized successfully');
+    } catch (error) {
+        console.error('Error initializing explore map:', error);
+    }
 }
 
 // Initialize route map
 function initRouteMap() {
-    if (mapRoute) return;
+    if (mapRoute) {
+        // Map already initialized, just invalidate size
+        mapRoute.invalidateSize();
+        return;
+    }
     
-    mapRoute = L.map('map-route').setView([defaultLat, defaultLon], defaultZoom);
+    // Check if Leaflet is loaded
+    if (typeof L === 'undefined') {
+        console.error('Leaflet not loaded yet');
+        setTimeout(initRouteMap, 100);
+        return;
+    }
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(mapRoute);
+    try {
+        mapRoute = L.map('map-route').setView([defaultLat, defaultLon], defaultZoom);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(mapRoute);
+        
+        console.log('Route map initialized successfully');
+    } catch (error) {
+        console.error('Error initializing route map:', error);
+    }
 }
 
 // Initialize search map
 function initSearchMap() {
-    if (mapSearch) return;
+    if (mapSearch) {
+        // Map already initialized, just invalidate size
+        mapSearch.invalidateSize();
+        return;
+    }
     
-    mapSearch = L.map('map-search').setView([defaultLat, defaultLon], defaultZoom);
+    // Check if Leaflet is loaded
+    if (typeof L === 'undefined') {
+        console.error('Leaflet not loaded yet');
+        setTimeout(initSearchMap, 100);
+        return;
+    }
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(mapSearch);
+    try {
+        mapSearch = L.map('map-search').setView([defaultLat, defaultLon], defaultZoom);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(mapSearch);
+        
+        console.log('Search map initialized successfully');
+    } catch (error) {
+        console.error('Error initializing search map:', error);
+    }
 }
 
 // Switch between map modes
@@ -361,6 +429,13 @@ async function calculateRoute() {
     
     if (!start || !end) {
         alert('Bitte geben Sie Start- und Zieladresse ein.');
+        return;
+    }
+    
+    // Check if Leaflet Routing Machine is loaded
+    if (typeof L === 'undefined' || typeof L.Routing === 'undefined') {
+        alert('Routing-Bibliothek lädt noch. Bitte versuchen Sie es in einem Moment erneut.');
+        console.error('Leaflet or Leaflet Routing Machine not loaded yet');
         return;
     }
     
@@ -448,6 +523,7 @@ async function calculateRoute() {
         
     } catch (error) {
         alert('Fehler bei der Routenberechnung: ' + error.message);
+        console.error('Route calculation error:', error);
     }
 }
 
