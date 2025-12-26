@@ -73,6 +73,13 @@ class EmailPDF {
             return self::sendWithPhpMail($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName);
         }
         
+        // Validate authentication configuration
+        if (!empty($emailConfig['smtp_auth'])) {
+            if (empty($emailConfig['smtp_username']) || empty($emailConfig['smtp_password'])) {
+                throw new Exception("SMTP-Authentifizierung ist aktiviert, aber Benutzername oder Passwort fehlt in der Konfiguration.");
+            }
+        }
+        
         try {
             $smtp = new SMTPClient(
                 $emailConfig['smtp_host'],

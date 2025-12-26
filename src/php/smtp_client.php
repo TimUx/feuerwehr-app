@@ -151,9 +151,25 @@ class SMTPClient {
             return; // No authentication required
         }
         
-        $this->sendCommand("AUTH LOGIN", 334);
-        $this->sendCommand(base64_encode($this->username), 334);
-        $this->sendCommand(base64_encode($this->password), 235);
+        // Try AUTH LOGIN first (most common)
+        try {
+            $this->sendCommand("AUTH LOGIN", 334);
+            $this->sendCommand(base64_encode($this->username), 334);
+            $this->sendCommand(base64_encode($this->password), 235);
+            return; // Success
+        } catch (Exception $e) {
+            // AUTH LOGIN failed, try AUTH PLAIN as fallback
+            error_log("AUTH LOGIN failed: " . $e->getMessage() . ". Trying AUTH PLAIN...");
+        }
+        
+        // Try AUTH PLAIN as fallback
+        try {
+            $auth = base64_encode("\0" . $this->username . "\0" . $this->password);
+            $this->sendCommand("AUTH PLAIN {$auth}", 235);
+        } catch (Exception $e) {
+            // Both methods failed
+            throw new Exception("SMTP authentication failed with both AUTH LOGIN and AUTH PLAIN: " . $e->getMessage());
+        }
     }
     
     /**
