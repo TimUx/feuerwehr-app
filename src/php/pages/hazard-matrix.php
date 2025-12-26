@@ -148,92 +148,105 @@ $user = Auth::getUser();
                 <thead>
                     <tr>
                         <th></th>
-                        <th>Atemgifte</th>
-                        <th>Angstreaktion</th>
-                        <th>Ausbreitung</th>
-                        <th>Atomare Strahlung</th>
-                        <th>Chemische/Biologische Stoffe</th>
-                        <th>Erkrankung/Verletzung</th>
-                        <th>Explosion</th>
-                        <th>Elektrizität</th>
-                        <th>Einsturz/Absturz</th>
+                        <th>Menschen</th>
+                        <th>Tiere</th>
+                        <th>Umwelt</th>
+                        <th>Sachwerte</th>
+                        <th class="separator-col"></th>
+                        <th>Mannschaft</th>
+                        <th>Gerät</th>
                     </tr>
                 </thead>
                 <tbody id="hazardMatrixTableBody">
-                    <tr data-entity="menschen">
-                        <th>Menschen</th>
-                        <td data-hazard="atemgifte"></td>
-                        <td data-hazard="angstreaktion"></td>
-                        <td data-hazard="ausbreitung"></td>
-                        <td data-hazard="atomare"></td>
-                        <td data-hazard="chemische"></td>
-                        <td data-hazard="erkrankung"></td>
-                        <td data-hazard="explosion"></td>
-                        <td data-hazard="elektrizitat"></td>
-                        <td data-hazard="einsturz"></td>
+                    <tr data-hazard="atemgifte">
+                        <th>Atemgifte</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt"></td>
+                        <td data-entity="sachwerte" class="not-applicable">–</td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet" class="not-applicable">–</td>
                     </tr>
-                    <tr data-entity="tiere">
-                        <th>Tiere</th>
-                        <td data-hazard="atemgifte"></td>
-                        <td data-hazard="angstreaktion"></td>
-                        <td data-hazard="ausbreitung"></td>
-                        <td data-hazard="atomare"></td>
-                        <td data-hazard="chemische"></td>
-                        <td data-hazard="erkrankung"></td>
-                        <td data-hazard="explosion"></td>
-                        <td data-hazard="elektrizitat"></td>
-                        <td data-hazard="einsturz"></td>
+                    <tr data-hazard="angstreaktion">
+                        <th>Angstreaktion</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt" class="not-applicable">–</td>
+                        <td data-entity="sachwerte" class="not-applicable">–</td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet" class="not-applicable">–</td>
                     </tr>
-                    <tr data-entity="umwelt">
-                        <th>Umwelt</th>
-                        <td data-hazard="atemgifte"></td>
-                        <td data-hazard="angstreaktion" class="not-applicable">–</td>
-                        <td data-hazard="ausbreitung"></td>
-                        <td data-hazard="atomare"></td>
-                        <td data-hazard="chemische"></td>
-                        <td data-hazard="erkrankung" class="not-applicable">–</td>
-                        <td data-hazard="explosion"></td>
-                        <td data-hazard="elektrizitat" class="not-applicable">–</td>
-                        <td data-hazard="einsturz" class="not-applicable">–</td>
+                    <tr data-hazard="ausbreitung">
+                        <th>Ausbreitung</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt"></td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
                     </tr>
-                    <tr data-entity="sachwerte">
-                        <th>Sachwerte</th>
-                        <td data-hazard="atemgifte" class="not-applicable">–</td>
-                        <td data-hazard="angstreaktion" class="not-applicable">–</td>
-                        <td data-hazard="ausbreitung"></td>
-                        <td data-hazard="atomare"></td>
-                        <td data-hazard="chemische"></td>
-                        <td data-hazard="erkrankung" class="not-applicable">–</td>
-                        <td data-hazard="explosion"></td>
-                        <td data-hazard="elektrizitat"></td>
-                        <td data-hazard="einsturz"></td>
+                    <tr data-hazard="atomare">
+                        <th>Atomare Strahlung</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt"></td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
                     </tr>
-                    <tr class="separator-row">
-                        <td colspan="10"></td>
+                    <tr data-hazard="chemische">
+                        <th>Chemische/Biologische Stoffe</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt"></td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
                     </tr>
-                    <tr data-entity="mannschaft">
-                        <th>Mannschaft</th>
-                        <td data-hazard="atemgifte"></td>
-                        <td data-hazard="angstreaktion"></td>
-                        <td data-hazard="ausbreitung"></td>
-                        <td data-hazard="atomare"></td>
-                        <td data-hazard="chemische"></td>
-                        <td data-hazard="erkrankung"></td>
-                        <td data-hazard="explosion"></td>
-                        <td data-hazard="elektrizitat"></td>
-                        <td data-hazard="einsturz"></td>
+                    <tr data-hazard="erkrankung">
+                        <th>Erkrankung/Verletzung</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt" class="not-applicable">–</td>
+                        <td data-entity="sachwerte" class="not-applicable">–</td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet" class="not-applicable">–</td>
                     </tr>
-                    <tr data-entity="geraet">
-                        <th>Gerät</th>
-                        <td data-hazard="atemgifte" class="not-applicable">–</td>
-                        <td data-hazard="angstreaktion" class="not-applicable">–</td>
-                        <td data-hazard="ausbreitung"></td>
-                        <td data-hazard="atomare"></td>
-                        <td data-hazard="chemische"></td>
-                        <td data-hazard="erkrankung" class="not-applicable">–</td>
-                        <td data-hazard="explosion"></td>
-                        <td data-hazard="elektrizitat"></td>
-                        <td data-hazard="einsturz"></td>
+                    <tr data-hazard="explosion">
+                        <th>Explosion</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt"></td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
+                    </tr>
+                    <tr data-hazard="elektrizitat">
+                        <th>Elektrizität</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt" class="not-applicable">–</td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
+                    </tr>
+                    <tr data-hazard="einsturz">
+                        <th>Einsturz/Absturz</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt" class="not-applicable">–</td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
                     </tr>
                 </tbody>
             </table>
@@ -302,26 +315,29 @@ function updateHazardMatrix() {
     tableContainer.style.display = 'block';
     
     // Map hazard items to their data-item values
-    // These correspond to the data-hazard attributes in the table columns
+    // These correspond to the data-hazard attributes in the table rows
     const activeHazardItems = new Set();
     activeHazards.forEach(item => {
         activeHazardItems.add(item.dataset.item);
     });
     
     // Reset all cells
-    const allCells = document.querySelectorAll('#hazardMatrixTableBody td:not(.not-applicable)');
+    const allCells = document.querySelectorAll('#hazardMatrixTableBody td:not(.not-applicable):not(.separator-col)');
     allCells.forEach(cell => {
         cell.classList.remove('hazard-present');
         cell.textContent = '';
     });
     
-    // Mark cells with active hazards
+    // Mark rows (hazards) that are active
     activeHazardItems.forEach(hazardItem => {
-        const cells = document.querySelectorAll(`#hazardMatrixTableBody td[data-hazard="${hazardItem}"]:not(.not-applicable)`);
-        cells.forEach(cell => {
-            cell.classList.add('hazard-present');
-            cell.textContent = '✓';
-        });
+        const row = document.querySelector(`#hazardMatrixTableBody tr[data-hazard="${hazardItem}"]`);
+        if (row) {
+            const cells = row.querySelectorAll('td:not(.not-applicable):not(.separator-col)');
+            cells.forEach(cell => {
+                cell.classList.add('hazard-present');
+                cell.textContent = '✓';
+            });
+        }
     });
 }
 
