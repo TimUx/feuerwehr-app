@@ -61,6 +61,12 @@ $isAdmin = Auth::isAdmin();
             <span class="menu-button-text">Statistiken</span>
         </button>
         
+        <!-- Formulardaten (moved from admin section - visible to operators) -->
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('form-data')">
+            <span class="material-icons">folder</span>
+            <span class="menu-button-text">Formulardaten</span>
+        </button>
+        
         <!-- PWA Install Button (only show if app can be installed) -->
         <button class="menu-button" id="home-install-btn" style="display: none;" onclick="window.feuerwehrApp.installPWA()">
             <span class="material-icons">get_app</span>
@@ -73,10 +79,10 @@ $isAdmin = Auth::isAdmin();
         <h3 class="menu-title">Administration</h3>
         
         <div class="menu-grid">
-            <!-- Einsatzkräfte -->
-            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('personnel')">
-                <span class="material-icons">people</span>
-                <span class="menu-button-text">Einsatzkräfte</span>
+            <!-- Standorte (new button added) -->
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-locations')">
+                <span class="material-icons">location_city</span>
+                <span class="menu-button-text">Standorte</span>
             </button>
             
             <!-- Fahrzeuge -->
@@ -85,16 +91,16 @@ $isAdmin = Auth::isAdmin();
                 <span class="menu-button-text">Fahrzeuge</span>
             </button>
             
+            <!-- Einsatzkräfte -->
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('personnel')">
+                <span class="material-icons">people</span>
+                <span class="menu-button-text">Einsatzkräfte</span>
+            </button>
+            
             <!-- Telefonnummern -->
             <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-phone-numbers')">
                 <span class="material-icons">phone</span>
                 <span class="menu-button-text">Telefonnummern</span>
-            </button>
-            
-            <!-- Formulardaten -->
-            <button class="menu-button menu-button-admin menu-button-disabled" disabled title="Demnächst verfügbar">
-                <span class="material-icons">folder</span>
-                <span class="menu-button-text">Formulardaten</span>
             </button>
             
             <!-- Benutzer -->
