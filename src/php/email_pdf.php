@@ -537,10 +537,21 @@ class EmailPDF {
      * Create attendance list HTML from template
      */
     public static function generateAttendanceHTML($data) {
+        require_once __DIR__ . '/datastore.php';
         $logo = self::getLogoPath();
         
         // Format date
         $datum = date('d.m.Y', strtotime($data['datum']));
+        
+        // Get location name
+        $locationName = '-';
+        if (!empty($data['standort']) || !empty($data['location_id'])) {
+            $locationId = $data['standort'] ?? $data['location_id'];
+            $location = DataStore::getLocationById($locationId);
+            if ($location) {
+                $locationName = $location['name'];
+            }
+        }
         
         // Handle leaders - they might be names directly or IDs
         $uebungsleiter = [];
@@ -647,6 +658,10 @@ class EmailPDF {
     <hr class="header-line">
     <h2>Anwesenheitsliste</h2>
     <table>
+        <tr>
+            <th>Standort</th>
+            <td>' . htmlspecialchars($locationName) . '</td>
+        </tr>
         <tr>
             <th>Datum</th>
             <td>' . htmlspecialchars($datum) . '</td>

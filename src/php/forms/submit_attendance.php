@@ -56,7 +56,8 @@ try {
         'anmerkungen' => $_POST['anmerkungen'] ?? '',
         'datei' => $uploadedFile,
         'uebungsleiter' => $allLeaders,
-        'teilnehmer' => $_POST['teilnehmer'] ?? []
+        'teilnehmer' => $_POST['teilnehmer'] ?? [],
+        'standort' => $_POST['standort'] ?? ''
     ];
     
     // Validate required fields
@@ -96,6 +97,7 @@ try {
         'duration_hours' => $durationHours,
         'attendees' => $data['teilnehmer'],
         'total_participants' => $totalParticipants,
+        'location_id' => $data['standort'],
         'created_by' => $user['id'],
         'created_at' => date('Y-m-d H:i:s')
     ]);

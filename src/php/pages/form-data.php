@@ -13,6 +13,7 @@ $attendanceRecords = DataStore::getAttendanceRecords();
 $missionReports = DataStore::getMissionReports();
 $personnel = DataStore::getPersonnel();
 $vehicles = DataStore::getVehicles();
+$locations = DataStore::getLocations();
 
 // Sort by date, most recent first
 usort($attendanceRecords, function($a, $b) {
@@ -50,6 +51,19 @@ function getVehicleNames($vehicleIds, $allVehicles) {
     }
     return $names;
 }
+
+// Helper function to get location name by ID
+function getLocationName($locationId, $allLocations) {
+    if (empty($locationId)) {
+        return '-';
+    }
+    foreach ($allLocations as $location) {
+        if ($location['id'] === $locationId) {
+            return $location['name'];
+        }
+    }
+    return '-';
+}
 ?>
 
 <div class="card">
@@ -83,21 +97,37 @@ function getVehicleNames($vehicleIds, $allVehicles) {
                         <thead>
                             <tr>
                                 <th>Datum</th>
-                                <th>Art</th>
-                                <th>Beschreibung</th>
+                                <th>Von</th>
+                                <th>Bis</th>
                                 <th>Dauer</th>
+                                <th>Standort</th>
+                                <th>Thema</th>
+                                <th>Übungsleiter</th>
                                 <th>Teilnehmer</th>
+                                <th>Anmerkungen</th>
+                                <th>Aktionen</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($attendanceRecords as $record): 
                                 $attendeeNames = getPersonnelNames($record['attendees'] ?? [], $personnel);
+                                $locationName = getLocationName($record['location_id'] ?? '', $locations);
+                                $instructors = $record['uebungsleiter'] ?? [];
                             ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($record['date'] ?? '-'); ?></td>
-                                <td><?php echo htmlspecialchars($record['type'] ?? '-'); ?></td>
-                                <td><?php echo htmlspecialchars($record['description'] ?? '-'); ?></td>
-                                <td><?php echo htmlspecialchars($record['duration_hours'] ?? 0); ?> h</td>
+                                <td><?php echo htmlspecialchars($record['datum'] ?? $record['date'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($record['von'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($record['bis'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($record['dauer'] ?? ($record['duration_hours'] ?? 0) * 60); ?> min</td>
+                                <td><?php echo htmlspecialchars($locationName); ?></td>
+                                <td><?php echo htmlspecialchars($record['thema'] ?? $record['description'] ?? '-'); ?></td>
+                                <td>
+                                    <?php if (!empty($instructors) && is_array($instructors)): ?>
+                                        <?php echo implode(', ', array_map('htmlspecialchars', $instructors)); ?>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?php if (!empty($attendeeNames)): ?>
                                         <details>
@@ -111,6 +141,31 @@ function getVehicleNames($vehicleIds, $allVehicles) {
                                     <?php else: ?>
                                         -
                                     <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php 
+                                    $anmerkungen = $record['anmerkungen'] ?? '';
+                                    if (!empty($anmerkungen)): 
+                                        $preview = mb_substr($anmerkungen, 0, 50);
+                                        if (mb_strlen($anmerkungen) > 50) {
+                                            $preview .= '...';
+                                        }
+                                    ?>
+                                        <details>
+                                            <summary><?php echo htmlspecialchars($preview); ?></summary>
+                                            <div style="margin-top: 0.5rem; white-space: pre-wrap;"><?php echo htmlspecialchars($anmerkungen); ?></div>
+                                        </details>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="resendAttendanceEmail('<?php echo htmlspecialchars($record['id']); ?>')" title="E-Mail erneut versenden">
+                                        <span class="material-icons" style="font-size: 1rem;">email</span>
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary" onclick="downloadAttendancePDF('<?php echo htmlspecialchars($record['id']); ?>')" title="PDF herunterladen">
+                                        <span class="material-icons" style="font-size: 1rem;">download</span>
+                                    </button>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -137,6 +192,7 @@ function getVehicleNames($vehicleIds, $allVehicles) {
                                 <th>Dauer</th>
                                 <th>Fahrzeuge</th>
                                 <th>Teilnehmer</th>
+                                <th>Aktionen</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -178,6 +234,14 @@ function getVehicleNames($vehicleIds, $allVehicles) {
                                         -
                                     <?php endif; ?>
                                 </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="resendMissionEmail('<?php echo htmlspecialchars($report['id']); ?>')" title="E-Mail erneut versenden">
+                                        <span class="material-icons" style="font-size: 1rem;">email</span>
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary" onclick="downloadMissionPDF('<?php echo htmlspecialchars($report['id']); ?>')" title="PDF herunterladen">
+                                        <span class="material-icons" style="font-size: 1rem;">download</span>
+                                    </button>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -187,6 +251,26 @@ function getVehicleNames($vehicleIds, $allVehicles) {
         </div>
     </div>
 </div>
+
+<style>
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    margin: 0.125rem;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.table th, .table td {
+    white-space: nowrap;
+}
+
+.table td[colspan] {
+    white-space: normal;
+}
+</style>
 
 <script>
 function switchTab(tabName) {
@@ -210,5 +294,133 @@ function switchTab(tabName) {
     activeBtn.classList.add('active');
     activeBtn.style.borderBottom = '3px solid var(--primary)';
     activeBtn.style.color = 'var(--text-primary)';
+}
+
+async function resendAttendanceEmail(recordId) {
+    if (!confirm('Möchten Sie die E-Mail für diese Anwesenheitsliste erneut versenden?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/src/php/api/resend_form_email.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'attendance',
+                id: recordId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.feuerwehrApp.showAlert('success', result.message || 'E-Mail wurde erfolgreich versendet');
+        } else {
+            window.feuerwehrApp.showAlert('error', result.message || 'Fehler beim Versenden der E-Mail');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Versenden der E-Mail');
+    }
+}
+
+async function downloadAttendancePDF(recordId) {
+    try {
+        const response = await fetch('/src/php/api/generate_form_pdf.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'attendance',
+                id: recordId
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Server error');
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Anwesenheitsliste_${recordId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        window.feuerwehrApp.showAlert('success', 'PDF wurde heruntergeladen');
+    } catch (error) {
+        console.error('Error:', error);
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Herunterladen des PDFs');
+    }
+}
+
+async function resendMissionEmail(reportId) {
+    if (!confirm('Möchten Sie die E-Mail für diesen Einsatzbericht erneut versenden?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/src/php/api/resend_form_email.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'mission',
+                id: reportId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.feuerwehrApp.showAlert('success', result.message || 'E-Mail wurde erfolgreich versendet');
+        } else {
+            window.feuerwehrApp.showAlert('error', result.message || 'Fehler beim Versenden der E-Mail');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Versenden der E-Mail');
+    }
+}
+
+async function downloadMissionPDF(reportId) {
+    try {
+        const response = await fetch('/src/php/api/generate_form_pdf.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'mission',
+                id: reportId
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Server error');
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Einsatzbericht_${reportId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        window.feuerwehrApp.showAlert('success', 'PDF wurde heruntergeladen');
+    } catch (error) {
+        console.error('Error:', error);
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Herunterladen des PDFs');
+    }
 }
 </script>
