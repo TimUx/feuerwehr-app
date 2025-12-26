@@ -252,8 +252,8 @@ class EmailPDF {
      * Uses mPDF library to convert HTML to PDF with full styling support
      */
     public static function generatePDF($html) {
-        // Try to use mPDF if available (don't autoload for performance)
-        if (class_exists('\Mpdf\Mpdf', false) || class_exists('\Mpdf\Mpdf')) {
+        // Try to use mPDF if available
+        if (class_exists('\Mpdf\Mpdf')) {
             return self::generatePDFWithMpdf($html);
         }
         
@@ -276,7 +276,10 @@ class EmailPDF {
             $dataDir = self::$config['data_dir'] ?? __DIR__ . '/../../data';
             $tempDir = $dataDir . '/tmp';
             if (!file_exists($tempDir)) {
-                mkdir($tempDir, 0700, true);
+                if (!mkdir($tempDir, 0700, true)) {
+                    error_log("Failed to create temp directory: {$tempDir}");
+                    return false;
+                }
             }
             
             // Create mPDF instance with A4 paper size
