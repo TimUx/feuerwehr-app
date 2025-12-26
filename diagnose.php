@@ -1280,7 +1280,7 @@ function runAllTests() {
         'phpProcessLog' => $phpProcessLog ?? null,
         'detectedWebUser' => $detectedWebUser ?? null,
         'apiConnectivityOk' => $apiConnectivityOk,
-        'smtpConfigured' => !empty($emailConfig['smtp_host'])
+        'smtpConfigured' => !empty($emailConfig['smtp_host']) && !empty($emailConfig['smtp_port'])
     ];
 }
 

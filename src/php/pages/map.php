@@ -25,19 +25,28 @@ if (!empty($address)) {
     // Use Nominatim API to geocode the address
     $geocodeUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' . urlencode($address) . '&limit=1';
     $ch = curl_init($geocodeUrl);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_USERAGENT, 'Feuerwehr-App/1.0');
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    if ($httpCode === 200 && $response) {
-        $data = json_decode($response, true);
-        if (!empty($data) && isset($data[0]['lat']) && isset($data[0]['lon'])) {
-            $defaultLat = floatval($data[0]['lat']);
-            $defaultLon = floatval($data[0]['lon']);
-            $defaultZoom = 15; // Closer zoom for specific address
+    if ($ch === false) {
+        error_log('Failed to initialize cURL for geocoding');
+    } else {
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Feuerwehr-App/1.0');
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+        
+        if ($response === false) {
+            error_log('Geocoding failed: ' . $curlError);
+        } else if ($httpCode === 200 && $response) {
+            $data = json_decode($response, true);
+            if (!empty($data) && isset($data[0]['lat']) && isset($data[0]['lon'])) {
+                $defaultLat = floatval($data[0]['lat']);
+                $defaultLon = floatval($data[0]['lon']);
+                $defaultZoom = 15; // Closer zoom for specific address
+            }
+        } else {
+            error_log('Geocoding returned HTTP ' . $httpCode);
         }
     }
 }
@@ -291,7 +300,7 @@ function initExploreMap() {
     // Add marker if address is configured
     <?php if ($defaultZoom > 10): ?>
     L.marker([defaultLat, defaultLon]).addTo(mapExplore)
-        .bindPopup('<?php echo addslashes($address); ?>')
+        .bindPopup(<?php echo json_encode($address, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)
         .openPopup();
     <?php endif; ?>
 }
