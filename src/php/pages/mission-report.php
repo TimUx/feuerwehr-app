@@ -111,7 +111,12 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
                 <?php else: ?>
                     <?php foreach ($vehicles as $vehicle): ?>
                     <div class="form-check">
-                        <input type="checkbox" id="vehicle-<?php echo $vehicle['id']; ?>" name="eingesetzte_fahrzeuge[]" value="<?php echo htmlspecialchars($vehicle['type']); ?>" class="form-check-input vehicle-checkbox">
+                        <!-- value = vehicle type (for form submission), data-vehicle-id = vehicle ID (for JS lookup) -->
+                        <input type="checkbox" id="vehicle-<?php echo $vehicle['id']; ?>" 
+                               name="eingesetzte_fahrzeuge[]" 
+                               value="<?php echo htmlspecialchars($vehicle['type']); ?>" 
+                               data-vehicle-id="<?php echo $vehicle['id']; ?>"
+                               class="form-check-input vehicle-checkbox">
                         <label for="vehicle-<?php echo $vehicle['id']; ?>" class="form-check-label">
                             <?php echo htmlspecialchars($vehicle['type']); ?>
                             <?php if (!empty($vehicle['radio_call_sign'])): ?>
@@ -234,23 +239,43 @@ const functions = <?php echo json_encode($functions); ?>;
 const involvementTypes = <?php echo json_encode($involvement_types); ?>;
 
 // Set default date to today
-document.getElementById('einsatzdatum').valueAsDate = new Date();
+const einsatzdatumField = document.getElementById('einsatzdatum');
+if (einsatzdatumField) {
+    einsatzdatumField.valueAsDate = new Date();
+}
 
 // Calculate duration when start/end times change
 function calculateDuration() {
-    const start = document.getElementById('beginn').value;
-    const end = document.getElementById('ende').value;
+    const startField = document.getElementById('beginn');
+    const endField = document.getElementById('ende');
+    const durationField = document.getElementById('dauer');
+    
+    if (!startField || !endField || !durationField) return;
+    
+    const start = startField.value;
+    const end = endField.value;
     
     if (start && end) {
         const startDate = new Date(start);
         const endDate = new Date(end);
         const durationMinutes = Math.round((endDate - startDate) / 1000 / 60);
-        document.getElementById('dauer').value = durationMinutes;
+        durationField.value = durationMinutes;
+    } else {
+        // Clear duration if either field is empty
+        durationField.value = '';
     }
 }
 
-document.getElementById('beginn').addEventListener('change', calculateDuration);
-document.getElementById('ende').addEventListener('change', calculateDuration);
+const beginnField = document.getElementById('beginn');
+const endeField = document.getElementById('ende');
+
+if (beginnField) {
+    beginnField.addEventListener('change', calculateDuration);
+}
+
+if (endeField) {
+    endeField.addEventListener('change', calculateDuration);
+}
 
 // Handle custom vehicle input
 document.getElementById('vehicle-custom').addEventListener('change', function() {
@@ -281,7 +306,9 @@ function updateCrewSections() {
                 });
             }
         } else {
-            const vehicle = vehicles.find(v => v.type === cb.value);
+            const vehicleId = cb.dataset.vehicleId;
+            // Use loose equality (==) to handle string vs number comparison
+            const vehicle = vehicles.find(v => v.id == vehicleId);
             if (vehicle) {
                 selectedVehicles.push({
                     id: vehicle.id,
@@ -362,9 +389,12 @@ document.querySelectorAll('.vehicle-checkbox').forEach(cb => {
 // Beteiligte Personen - Add/Remove functionality
 let personCounter = 0;
 
-document.getElementById('add-person-btn').addEventListener('click', function() {
-    addPersonEntry();
-});
+const addPersonBtn = document.getElementById('add-person-btn');
+if (addPersonBtn) {
+    addPersonBtn.addEventListener('click', function() {
+        addPersonEntry();
+    });
+}
 
 function addPersonEntry() {
     const personsContainer = document.getElementById('persons-container');

@@ -82,6 +82,7 @@ class DataStore {
             'name' => $data['name'],
             'qualifications' => $data['qualifications'] ?? [],
             'leadership_roles' => $data['leadership_roles'] ?? [],
+            'is_instructor' => $data['is_instructor'] ?? false,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
@@ -107,6 +108,9 @@ class DataStore {
                 }
                 if (isset($data['leadership_roles'])) {
                     $person['leadership_roles'] = $data['leadership_roles'];
+                }
+                if (isset($data['is_instructor'])) {
+                    $person['is_instructor'] = $data['is_instructor'];
                 }
                 $person['updated_at'] = date('Y-m-d H:i:s');
                 
