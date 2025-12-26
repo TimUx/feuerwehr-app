@@ -71,7 +71,9 @@ try {
         }
         
         // Send email with PDF and optional file attachment
-        $subject = "Anwesenheitsliste - {$record['thema']} - {$record['datum']}";
+        $thema = !empty($record['thema']) ? $record['thema'] : 'Anwesenheitsliste';
+        $datum = !empty($record['datum']) ? $record['datum'] : date('Y-m-d');
+        $subject = "Anwesenheitsliste - {$thema} - {$datum}";
         $emailSent = EmailPDF::sendEmailWithAttachments(
             $recipient,
             $subject,
@@ -120,7 +122,9 @@ try {
         $pdf = EmailPDF::generatePDF($html);
         
         // Send email with PDF
-        $subject = "Einsatzbericht - {$report['einsatzgrund']} - {$report['einsatzdatum']}";
+        $einsatzgrund = !empty($report['einsatzgrund']) ? $report['einsatzgrund'] : 'Einsatzbericht';
+        $einsatzdatum = !empty($report['einsatzdatum']) ? $report['einsatzdatum'] : date('Y-m-d');
+        $subject = "Einsatzbericht - {$einsatzgrund} - {$einsatzdatum}";
         $emailSent = EmailPDF::sendEmail($recipient, $subject, $html, $pdf, "Einsatzbericht_{$report['einsatzdatum']}.pdf");
         
         if ($emailSent) {

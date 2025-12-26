@@ -57,12 +57,8 @@ function getLocationName($locationId, $allLocations) {
     if (empty($locationId)) {
         return '-';
     }
-    foreach ($allLocations as $location) {
-        if ($location['id'] === $locationId) {
-            return $location['name'];
-        }
-    }
-    return '-';
+    $location = DataStore::getLocationById($locationId);
+    return $location ? $location['name'] : '-';
 }
 ?>
 
@@ -118,7 +114,18 @@ function getLocationName($locationId, $allLocations) {
                                 <td><?php echo htmlspecialchars($record['datum'] ?? $record['date'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($record['von'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($record['bis'] ?? '-'); ?></td>
-                                <td><?php echo htmlspecialchars($record['dauer'] ?? ($record['duration_hours'] ?? 0) * 60); ?> min</td>
+                                <td>
+                                    <?php 
+                                    // Display duration - prefer 'dauer' field (in minutes), otherwise calculate from duration_hours
+                                    $durationMin = 0;
+                                    if (!empty($record['dauer'])) {
+                                        $durationMin = intval($record['dauer']);
+                                    } elseif (!empty($record['duration_hours'])) {
+                                        $durationMin = intval($record['duration_hours'] * 60);
+                                    }
+                                    echo htmlspecialchars($durationMin) . ' min';
+                                    ?>
+                                </td>
                                 <td><?php echo htmlspecialchars($locationName); ?></td>
                                 <td><?php echo htmlspecialchars($record['thema'] ?? $record['description'] ?? '-'); ?></td>
                                 <td>

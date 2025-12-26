@@ -56,9 +56,12 @@ try {
         // Generate PDF
         $pdf = EmailPDF::generatePDF($html);
         
+        // Sanitize filename
+        $datumSafe = preg_replace('/[^a-zA-Z0-9\-_]/', '_', $record['datum'] ?? date('Y-m-d'));
+        
         // Output PDF
         header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="Anwesenheitsliste_' . $record['datum'] . '.pdf"');
+        header('Content-Disposition: attachment; filename="Anwesenheitsliste_' . $datumSafe . '.pdf"');
         header('Content-Length: ' . strlen($pdf));
         echo $pdf;
         exit;
@@ -88,9 +91,12 @@ try {
         // Generate PDF
         $pdf = EmailPDF::generatePDF($html);
         
+        // Sanitize filename
+        $datumSafe = preg_replace('/[^a-zA-Z0-9\-_]/', '_', $report['einsatzdatum'] ?? date('Y-m-d'));
+        
         // Output PDF
         header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="Einsatzbericht_' . $report['einsatzdatum'] . '.pdf"');
+        header('Content-Disposition: attachment; filename="Einsatzbericht_' . $datumSafe . '.pdf"');
         header('Content-Length: ' . strlen($pdf));
         echo $pdf;
         exit;
