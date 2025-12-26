@@ -1006,6 +1006,266 @@ function runAllTests() {
         ];
     }
     
+    // Test 23: SMTP Configuration and Connectivity Tests
+    debugLog("Test 23: Testing SMTP configuration and connectivity", 'INFO');
+    
+    // Load email configuration
+    $emailConfig = $config['email'] ?? [];
+    
+    if (!empty($emailConfig['smtp_host'])) {
+        $smtpHost = $emailConfig['smtp_host'];
+        $smtpPort = $emailConfig['smtp_port'] ?? 587;
+        $smtpSecure = $emailConfig['smtp_secure'] ?? '';
+        $smtpAuth = $emailConfig['smtp_auth'] ?? false;
+        $smtpUsername = $emailConfig['smtp_username'] ?? '';
+        
+        debugLog("SMTP Host: $smtpHost", 'INFO');
+        debugLog("SMTP Port: $smtpPort", 'INFO');
+        debugLog("SMTP Secure: " . ($smtpSecure ?: 'none'), 'INFO');
+        debugLog("SMTP Auth: " . ($smtpAuth ? 'yes' : 'no'), 'INFO');
+        debugLog("SMTP Username: " . ($smtpUsername ?: 'none'), 'INFO');
+        
+        // Display SMTP configuration
+        $tests[] = [
+            'category' => 'E-Mail / SMTP',
+            'name' => 'SMTP Konfiguration',
+            'status' => 'info',
+            'message' => "Host: $smtpHost, Port: $smtpPort, Verschlüsselung: " . ($smtpSecure ?: 'keine') . ", Auth: " . ($smtpAuth ? 'Ja' : 'Nein'),
+            'critical' => false
+        ];
+        
+        // Test 23a: DNS resolution for SMTP host
+        debugLog("Testing DNS resolution for SMTP host: $smtpHost", 'INFO');
+        $smtpIp = @gethostbyname($smtpHost);
+        $dnsSuccess = ($smtpIp !== $smtpHost && filter_var($smtpIp, FILTER_VALIDATE_IP));
+        debugLog("DNS resolution: " . ($dnsSuccess ? "OK ($smtpIp)" : "FAILED"), $dnsSuccess ? 'INFO' : 'ERROR');
+        
+        $tests[] = [
+            'category' => 'E-Mail / SMTP',
+            'name' => 'SMTP DNS Auflösung',
+            'status' => $dnsSuccess ? 'pass' : 'fail',
+            'message' => $dnsSuccess ? "Host aufgelöst zu $smtpIp" : "Konnte $smtpHost nicht auflösen",
+            'critical' => false,
+            'fix' => !$dnsSuccess ? 'DNS-Konfiguration prüfen oder /etc/hosts anpassen' : null
+        ];
+        
+        // Test 23b: Socket connection to SMTP server
+        if ($dnsSuccess) {
+            debugLog("Testing socket connection to $smtpHost:$smtpPort", 'INFO');
+            $socketSuccess = false;
+            $socketError = '';
+            $connectTimeout = 10;
+            
+            try {
+                $errno = 0;
+                $errstr = '';
+                
+                // Test connection (use ssl:// wrapper for SSL on port 465)
+                $protocol = ($smtpSecure === 'ssl' && $smtpPort == 465) ? 'ssl://' : 'tcp://';
+                $socket = @stream_socket_client(
+                    "{$protocol}{$smtpHost}:{$smtpPort}",
+                    $errno,
+                    $errstr,
+                    $connectTimeout,
+                    STREAM_CLIENT_CONNECT
+                );
+                
+                if ($socket) {
+                    $socketSuccess = true;
+                    debugLog("Socket connection successful", 'INFO');
+                    
+                    // Try to read SMTP greeting
+                    stream_set_timeout($socket, 5);
+                    $greeting = fgets($socket, 512);
+                    if ($greeting) {
+                        debugLog("SMTP Greeting: " . trim($greeting), 'INFO');
+                        $socketError = "Verbunden. Greeting: " . trim(substr($greeting, 0, 50));
+                    } else {
+                        $socketError = "Verbunden, aber kein SMTP Greeting empfangen";
+                    }
+                    fclose($socket);
+                } else {
+                    $socketError = "Verbindung fehlgeschlagen: $errstr (errno: $errno)";
+                    debugLog("Socket connection failed: $errstr (errno: $errno)", 'ERROR');
+                }
+            } catch (Exception $e) {
+                $socketError = "Exception: " . $e->getMessage();
+                debugLog("Socket connection exception: " . $e->getMessage(), 'ERROR');
+            }
+            
+            $tests[] = [
+                'category' => 'E-Mail / SMTP',
+                'name' => 'SMTP Server Verbindung',
+                'status' => $socketSuccess ? 'pass' : 'fail',
+                'message' => $socketError ?: 'Verbindung erfolgreich',
+                'critical' => false,
+                'fix' => !$socketSuccess ? 'Prüfen Sie Firewall, Server-Erreichbarkeit und Port' : null
+            ];
+            
+            // Test 23c: TLS/SSL capability test
+            if ($socketSuccess && !empty($smtpSecure)) {
+                debugLog("Testing TLS/SSL capability", 'INFO');
+                $tlsSuccess = false;
+                $tlsError = '';
+                
+                try {
+                    $errno = 0;
+                    $errstr = '';
+                    
+                    if ($smtpSecure === 'ssl') {
+                        // For SSL, connection should already be encrypted
+                        $tlsSuccess = true;
+                        $tlsError = "SSL Verbindung auf Port $smtpPort erfolgreich";
+                    } else if ($smtpSecure === 'tls') {
+                        // For TLS, we need to test STARTTLS
+                        $socket = @stream_socket_client(
+                            "tcp://{$smtpHost}:{$smtpPort}",
+                            $errno,
+                            $errstr,
+                            $connectTimeout
+                        );
+                        
+                        if ($socket) {
+                            stream_set_timeout($socket, 5);
+                            
+                            // Read greeting
+                            $greeting = fgets($socket, 512);
+                            
+                            // Send EHLO
+                            fwrite($socket, "EHLO localhost\r\n");
+                            $response = '';
+                            while ($line = fgets($socket, 512)) {
+                                $response .= $line;
+                                if (preg_match('/^250 /', $line)) break;
+                            }
+                            
+                            // Check if STARTTLS is supported
+                            if (stripos($response, 'STARTTLS') !== false) {
+                                // Send STARTTLS command
+                                fwrite($socket, "STARTTLS\r\n");
+                                $starttlsResponse = fgets($socket, 512);
+                                
+                                if (preg_match('/^220/', $starttlsResponse)) {
+                                    // Try to enable crypto
+                                    if (@stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                                        $tlsSuccess = true;
+                                        $tlsError = "STARTTLS erfolgreich aktiviert";
+                                        debugLog("STARTTLS successful", 'INFO');
+                                    } else {
+                                        $tlsError = "STARTTLS Handshake fehlgeschlagen";
+                                        debugLog("STARTTLS handshake failed", 'ERROR');
+                                    }
+                                } else {
+                                    $tlsError = "STARTTLS Befehl nicht akzeptiert: " . trim($starttlsResponse);
+                                    debugLog("STARTTLS command not accepted: " . trim($starttlsResponse), 'ERROR');
+                                }
+                            } else {
+                                $tlsError = "Server unterstützt STARTTLS nicht";
+                                debugLog("Server does not support STARTTLS", 'ERROR');
+                            }
+                            
+                            fclose($socket);
+                        } else {
+                            $tlsError = "Verbindung für TLS Test fehlgeschlagen: $errstr";
+                            debugLog("Connection for TLS test failed: $errstr", 'ERROR');
+                        }
+                    }
+                } catch (Exception $e) {
+                    $tlsError = "Exception: " . $e->getMessage();
+                    debugLog("TLS test exception: " . $e->getMessage(), 'ERROR');
+                }
+                
+                $tests[] = [
+                    'category' => 'E-Mail / SMTP',
+                    'name' => 'SMTP ' . strtoupper($smtpSecure) . ' Verschlüsselung',
+                    'status' => $tlsSuccess ? 'pass' : 'fail',
+                    'message' => $tlsError ?: 'Verschlüsselung fehlgeschlagen',
+                    'critical' => false,
+                    'fix' => !$tlsSuccess ? 'Prüfen Sie die SSL/TLS-Konfiguration des Servers' : null
+                ];
+            }
+            
+            // Test 23d: SMTP Authentication test (if credentials provided)
+            if ($socketSuccess && $smtpAuth && !empty($smtpUsername)) {
+                debugLog("Testing SMTP authentication", 'INFO');
+                $authSuccess = false;
+                $authError = '';
+                
+                try {
+                    // Load SMTP client for full authentication test
+                    require_once __DIR__ . '/src/php/smtp_client.php';
+                    
+                    $smtpPassword = $emailConfig['smtp_password'] ?? '';
+                    
+                    // We can't do a full auth test without actually sending an email
+                    // Just verify the configuration is complete
+                    if (!empty($smtpPassword)) {
+                        $authSuccess = true;
+                        $authError = "Benutzername und Passwort konfiguriert (vollständige Auth-Prüfung nur beim E-Mail-Versand)";
+                        debugLog("SMTP auth credentials configured", 'INFO');
+                    } else {
+                        $authError = "Passwort fehlt";
+                        debugLog("SMTP password missing", 'ERROR');
+                    }
+                } catch (Exception $e) {
+                    $authError = "Exception: " . $e->getMessage();
+                    debugLog("Auth test exception: " . $e->getMessage(), 'ERROR');
+                }
+                
+                $tests[] = [
+                    'category' => 'E-Mail / SMTP',
+                    'name' => 'SMTP Authentifizierung',
+                    'status' => $authSuccess ? 'pass' : 'warn',
+                    'message' => $authError,
+                    'critical' => false,
+                    'fix' => !$authSuccess ? 'Prüfen Sie Benutzername und Passwort' : null
+                ];
+            }
+        }
+        
+        // Test 23e: Email addresses validation
+        $fromAddress = $emailConfig['from_address'] ?? '';
+        $toAddress = $emailConfig['to_address'] ?? '';
+        
+        $fromValid = !empty($fromAddress) && filter_var($fromAddress, FILTER_VALIDATE_EMAIL);
+        $toValid = !empty($toAddress) && filter_var($toAddress, FILTER_VALIDATE_EMAIL);
+        
+        debugLog("From address: $fromAddress, valid: " . ($fromValid ? 'yes' : 'no'), $fromValid ? 'INFO' : 'ERROR');
+        debugLog("To address: $toAddress, valid: " . ($toValid ? 'yes' : 'no'), $toValid ? 'INFO' : 'ERROR');
+        
+        $tests[] = [
+            'category' => 'E-Mail / SMTP',
+            'name' => 'E-Mail Adressen',
+            'status' => ($fromValid && $toValid) ? 'pass' : 'fail',
+            'message' => "Von: " . ($fromValid ? $fromAddress : 'UNGÜLTIG') . ", An: " . ($toValid ? $toAddress : 'UNGÜLTIG'),
+            'critical' => false,
+            'fix' => (!$fromValid || !$toValid) ? 'Prüfen Sie die E-Mail-Adressen in den Einstellungen' : null
+        ];
+        
+        // Test 23f: Check if socket functions are available
+        $socketFunctionsAvailable = function_exists('stream_socket_client') && function_exists('fsockopen');
+        
+        $tests[] = [
+            'category' => 'E-Mail / SMTP',
+            'name' => 'Socket Funktionen',
+            'status' => $socketFunctionsAvailable ? 'pass' : 'fail',
+            'message' => $socketFunctionsAvailable ? 'Verfügbar' : 'Nicht verfügbar (allow_url_fopen deaktiviert?)',
+            'critical' => false,
+            'fix' => !$socketFunctionsAvailable ? 'allow_url_fopen in php.ini aktivieren' : null
+        ];
+        
+    } else {
+        // No SMTP configuration
+        $tests[] = [
+            'category' => 'E-Mail / SMTP',
+            'name' => 'SMTP Konfiguration',
+            'status' => 'warn',
+            'message' => 'Keine SMTP-Konfiguration vorhanden. E-Mail-Versand nutzt PHP mail() Funktion.',
+            'critical' => false,
+            'fix' => 'Konfigurieren Sie SMTP-Einstellungen für zuverlässigen E-Mail-Versand'
+        ];
+    }
+    
     return [
         'tests' => $tests,
         'criticalFailures' => $criticalFailures,
@@ -1019,7 +1279,8 @@ function runAllTests() {
         'webserverErrorLog' => $webserverErrorLog ?? null,
         'phpProcessLog' => $phpProcessLog ?? null,
         'detectedWebUser' => $detectedWebUser ?? null,
-        'apiConnectivityOk' => $apiConnectivityOk
+        'apiConnectivityOk' => $apiConnectivityOk,
+        'smtpConfigured' => !empty($emailConfig['smtp_host'])
     ];
 }
 
@@ -1311,6 +1572,23 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                             <li><strong>Ursachen:</strong> Firewall, fehlender Internetzugang, DNS-Probleme, Docker Netzwerk-Konfiguration</li>
                             <li><strong>Lösung:</strong> Prüfen Sie die Netzwerk-Konfiguration und stellen Sie sicher, dass externe APIs erreichbar sind</li>
                             <li><strong>Browser-Test:</strong> Öffnen Sie die Browser-Konsole (F12) auf der Karten-Seite für detaillierte Fehler</li>
+                        </ul>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (isset($results['smtpConfigured']) && $results['smtpConfigured']): ?>
+                <div class="alert" style="background: #e8f5e9; border-left-color: #4caf50; color: #1b5e20; margin-top: 20px;">
+                    <span class="material-icons">email</span>
+                    <div>
+                        <strong>📧 SMTP Diagnose verfügbar</strong><br>
+                        Die SMTP-Konfiguration wurde getestet. Prüfen Sie die Test-Ergebnisse unten in der Kategorie "E-Mail / SMTP".
+                        <ul style="margin: 10px 0 0 20px;">
+                            <li>DNS-Auflösung des SMTP-Servers</li>
+                            <li>Socket-Verbindung zum SMTP-Server</li>
+                            <li>TLS/SSL-Verschlüsselung</li>
+                            <li>Authentifizierungs-Konfiguration</li>
+                            <li>E-Mail-Adressen-Validierung</li>
                         </ul>
                     </div>
                 </div>

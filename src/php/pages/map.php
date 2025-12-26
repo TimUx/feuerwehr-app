@@ -5,15 +5,42 @@
  */
 
 require_once __DIR__ . '/../auth.php';
+require_once __DIR__ . '/../datastore.php';
 
 Auth::requireOperator();
 
 $user = Auth::getUser();
 
+// Get settings to retrieve address
+$settings = DataStore::getSettings();
+$address = $settings['address'] ?? '';
+
 // Default location (Germany center)
 $defaultLat = 50.9787;
 $defaultLon = 9.7632;
 $defaultZoom = 12;
+
+// If address is configured, try to geocode it
+if (!empty($address)) {
+    // Use Nominatim API to geocode the address
+    $geocodeUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' . urlencode($address) . '&limit=1';
+    $ch = curl_init($geocodeUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Feuerwehr-App/1.0');
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($httpCode === 200 && $response) {
+        $data = json_decode($response, true);
+        if (!empty($data) && isset($data[0]['lat']) && isset($data[0]['lon'])) {
+            $defaultLat = floatval($data[0]['lat']);
+            $defaultLon = floatval($data[0]['lon']);
+            $defaultZoom = 15; // Closer zoom for specific address
+        }
+    }
+}
 ?>
 
 <div class="page-header">
@@ -256,7 +283,7 @@ function switchMapMode(mode) {
 }
 
 // Calculate and display route
-function calculateRoute() {
+async function calculateRoute() {
     const start = document.getElementById('routeStart').value.trim();
     const end = document.getElementById('routeEnd').value.trim();
     
@@ -265,19 +292,55 @@ function calculateRoute() {
         return;
     }
     
-    // Create OpenStreetMap directions URL
-    // Format: start and end as search queries
-    const osmUrl = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${encodeURIComponent(start)}%3B${encodeURIComponent(end)}`;
-    
-    // Show embedded map with route
-    const iframe = document.getElementById('map-iframe-route');
-    iframe.src = osmUrl;
-    
-    // Update link
-    document.getElementById('routeLink').innerHTML = `<a href="${osmUrl}" target="_blank">Route in neuem Tab öffnen</a>`;
-    
-    // Show result
+    // Show loading message
     document.getElementById('routeResult').style.display = 'block';
+    const iframe = document.getElementById('map-iframe-route');
+    iframe.style.opacity = '0.5';
+    
+    try {
+        // Geocode start address
+        const startResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(start)}&limit=1`, {
+            headers: { 'User-Agent': 'Feuerwehr-App/1.0' }
+        });
+        const startData = await startResponse.json();
+        
+        if (!startData || startData.length === 0) {
+            throw new Error('Startadresse konnte nicht gefunden werden.');
+        }
+        
+        // Geocode end address
+        const endResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(end)}&limit=1`, {
+            headers: { 'User-Agent': 'Feuerwehr-App/1.0' }
+        });
+        const endData = await endResponse.json();
+        
+        if (!endData || endData.length === 0) {
+            throw new Error('Zieladresse konnte nicht gefunden werden.');
+        }
+        
+        const startLat = parseFloat(startData[0].lat);
+        const startLon = parseFloat(startData[0].lon);
+        const endLat = parseFloat(endData[0].lat);
+        const endLon = parseFloat(endData[0].lon);
+        
+        // Create OpenStreetMap directions URL with coordinates
+        const osmUrl = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${startLat}%2C${startLon}%3B${endLat}%2C${endLon}`;
+        
+        // Show embedded map with route
+        iframe.src = osmUrl;
+        iframe.style.opacity = '1';
+        
+        // Update link
+        document.getElementById('routeLink').innerHTML = `<a href="${osmUrl}" target="_blank">Route in neuem Tab öffnen</a>`;
+        
+    } catch (error) {
+        alert('Fehler bei der Routenberechnung: ' + error.message + '\n\nHinweis: Die Route wird in einem neuen Tab geöffnet.');
+        iframe.style.opacity = '1';
+        
+        // Fallback: Open in new tab
+        const osmUrl = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${encodeURIComponent(start)}%3B${encodeURIComponent(end)}`;
+        window.open(osmUrl, '_blank');
+    }
 }
 
 // Open route in Google Maps
@@ -295,7 +358,7 @@ function openInGoogleMaps() {
 }
 
 // Search for address
-function searchAddress() {
+async function searchAddress() {
     const address = document.getElementById('searchAddress').value.trim();
     
     if (!address) {
@@ -303,18 +366,39 @@ function searchAddress() {
         return;
     }
     
-    // Create OpenStreetMap search URL
-    const osmSearchUrl = `https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`;
-    
-    // Show embedded map
-    const iframe = document.getElementById('map-iframe-search');
-    iframe.src = osmSearchUrl;
-    
-    // Update link
-    document.getElementById('searchLink').innerHTML = `<a href="${osmSearchUrl}" target="_blank">Suchergebnis in neuem Tab öffnen</a>`;
-    
-    // Show result
+    // Show loading
     document.getElementById('searchResult').style.display = 'block';
+    const iframe = document.getElementById('map-iframe-search');
+    iframe.style.opacity = '0.5';
+    
+    try {
+        // Geocode address
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`, {
+            headers: { 'User-Agent': 'Feuerwehr-App/1.0' }
+        });
+        const data = await response.json();
+        
+        if (!data || data.length === 0) {
+            throw new Error('Adresse konnte nicht gefunden werden.');
+        }
+        
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+        
+        // Create OpenStreetMap URL with marker
+        const osmSearchUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`;
+        
+        // Show embedded map
+        iframe.src = osmSearchUrl;
+        iframe.style.opacity = '1';
+        
+        // Update link
+        document.getElementById('searchLink').innerHTML = `<a href="${osmSearchUrl}" target="_blank">Suchergebnis in neuem Tab öffnen</a>`;
+        
+    } catch (error) {
+        alert('Fehler bei der Adresssuche: ' + error.message);
+        iframe.style.opacity = '1';
+    }
 }
 
 // Handle Enter key in input fields
