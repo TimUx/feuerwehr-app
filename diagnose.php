@@ -873,8 +873,8 @@ function runAllTests() {
             'description' => 'Kartenkacheln'
         ],
         [
-            'name' => 'MapLibre GL JS',
-            'url' => 'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js',
+            'name' => 'Leaflet JS',
+            'url' => 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
             'description' => 'Karten-Bibliothek'
         ],
         [
@@ -960,13 +960,13 @@ function runAllTests() {
         }
     }
     
-    // Test 21: JavaScript/MapLibre Loading Test
+    // Test 21: JavaScript/Leaflet Loading Test
     debugLog("Test 21: Adding JavaScript library loading information", 'INFO');
     $tests[] = [
         'category' => 'Karten-Funktionalität',
         'name' => 'JavaScript Bibliotheken',
         'status' => 'info',
-        'message' => 'MapLibre GL JS muss im Browser geladen werden. Öffnen Sie die Karten-Seite und prüfen Sie die Browser-Konsole auf Fehler (F12 → Console).',
+        'message' => 'Leaflet JS muss im Browser geladen werden. Öffnen Sie die Karten-Seite und prüfen Sie die Browser-Konsole auf Fehler (F12 → Console).',
         'critical' => false
     ];
     
