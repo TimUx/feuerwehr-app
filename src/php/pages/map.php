@@ -66,7 +66,6 @@ let routeLayer;
 let markers = [];
 
 // Constants
-const MAP_INIT_DELAY = 100; // milliseconds
 const MAPLIBRE_CHECK_INTERVAL = 100; // milliseconds
 
 // Wait for MapLibre GL to be available before initializing
@@ -190,12 +189,12 @@ function calculateRoute() {
         
         // Add markers for start and end
         const startMarker = new maplibregl.Marker({color: '#4caf50'})
-            .setLngLat([startCoords[1], startCoords[0]])
+            .setLngLat(startCoords)
             .setPopup(new maplibregl.Popup().setHTML('<strong>Start:</strong> ' + start))
             .addTo(map);
         
         const endMarker = new maplibregl.Marker({color: '#f44336'})
-            .setLngLat([endCoords[1], endCoords[0]])
+            .setLngLat(endCoords)
             .setPopup(new maplibregl.Popup().setHTML('<strong>Ziel:</strong> ' + end))
             .addTo(map);
         
@@ -288,15 +287,21 @@ function displayRoute(route) {
 
 async function getRoute(start, end) {
     try {
-        // Use OSRM public API for routing
-        const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
+        // start and end are already in [lon, lat] format
+        const url = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson`;
         const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Routing service returned status ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
             return data.routes[0];
         }
-        return null;
+        
+        throw new Error('Keine Route gefunden');
     } catch (error) {
         console.error('Routing API error:', error);
         throw error;
@@ -306,10 +311,16 @@ async function getRoute(start, end) {
 async function geocodeAddress(address) {
     try {
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+        
+        if (!response.ok) {
+            throw new Error(`Geocoding service returned status ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data && data.length > 0) {
-            return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+            // Return coordinates in [lon, lat] format (MapLibre format)
+            return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
         }
         return null;
     } catch (error) {
