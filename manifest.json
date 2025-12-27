@@ -1,6 +1,6 @@
 {
   "name": "Feuerwehr Management",
-  "short_name": "Feuerwehr",
+  "short_name": "FW-Mgmt",
   "description": "App zum internen Koordinieren einer Feuerwehr",
   "start_url": "/index.php",
   "scope": "/",
