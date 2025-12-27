@@ -554,7 +554,12 @@ class EmailPDF {
      * Create attendance list HTML from template
      */
     public static function generateAttendanceHTML($data) {
-        $logo = self::getLogoPath();
+        require_once __DIR__ . '/datastore.php';
+        $settings = DataStore::getSettings();
+        
+        $logo = self::getLogoPathFromSettings($settings);
+        $fireDepartmentName = htmlspecialchars($settings['fire_department_name'] ?? 'Freiwillige Feuerwehr');
+        $fireDepartmentCity = !empty($settings['fire_department_city']) ? '<br>' . htmlspecialchars($settings['fire_department_city']) : '';
         
         // Format date
         $datum = date('d.m.Y', strtotime($data['datum']));
@@ -658,8 +663,8 @@ class EmailPDF {
 </head>
 <body>
     <div class="header-container">
-        <h1>Freiwillige Feuerwehr<br>Willingshausen</h1>
-        ' . ($logo ? '<img src="' . $logo . '" alt="Logo Feuerwehr Willingshausen">' : '') . '
+        <h1>' . $fireDepartmentName . $fireDepartmentCity . '</h1>
+        ' . ($logo ? '<img src="' . $logo . '" alt="Logo ' . $fireDepartmentName . '">' : '') . '
     </div>
     <hr class="header-line">
     <h2>Anwesenheitsliste</h2>
