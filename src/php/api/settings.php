@@ -10,14 +10,14 @@ require_once __DIR__ . '/../datastore.php';
 // Initialize authentication
 Auth::init();
 
-// Check authentication and admin rights
+// Check authentication and global admin rights
 if (!Auth::isAuthenticated()) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Nicht authentifiziert']);
     exit;
 }
 
-Auth::requireAdmin();
+Auth::requireGlobalAdmin();
 
 $method = $_SERVER['REQUEST_METHOD'];
 

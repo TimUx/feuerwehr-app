@@ -6,7 +6,7 @@
 require_once __DIR__ . '/../auth.php';
 
 Auth::requireAuth();
-Auth::requireAdmin();
+Auth::requireGlobalAdmin();
 
 $user = Auth::getUser();
 

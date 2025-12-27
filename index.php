@@ -450,6 +450,7 @@ $user = Auth::getUser();
                     <span>Benutzer</span>
                 </a>
                 
+                <?php if (Auth::isGlobalAdmin()): ?>
                 <a href="#" class="nav-item" data-page="admin-settings">
                     <span class="material-icons">settings</span>
                     <span>Allgemeine Einstellungen</span>
@@ -459,6 +460,7 @@ $user = Auth::getUser();
                     <span class="material-icons">email</span>
                     <span>Email Einstellungen</span>
                 </a>
+                <?php endif; ?>
                 <?php endif; ?>
             </nav>
             

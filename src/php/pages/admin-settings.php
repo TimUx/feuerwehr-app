@@ -7,10 +7,9 @@ require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/../datastore.php';
 
 Auth::requireAuth();
+Auth::requireGlobalAdmin();
 
 $settings = DataStore::getSettings();
-$isAdmin = Auth::isAdmin();
-$readonlyAttr = $isAdmin ? '' : 'readonly';
 ?>
 
 <div class="card">
@@ -28,7 +27,7 @@ $readonlyAttr = $isAdmin ? '' : 'readonly';
                        class="form-input" 
                        value="<?php echo htmlspecialchars($settings['fire_department_name'] ?? 'Freiwillige Feuerwehr'); ?>" 
                        placeholder="z.B. Freiwillige Feuerwehr Willingshausen" 
-                       <?php echo $isAdmin ? 'required' : 'readonly'; ?>>
+                       required>
                 <small style="color: var(--text-secondary);">Dieser Name wird in E-Mails und PDFs verwendet.</small>
             </div>
             
@@ -37,14 +36,12 @@ $readonlyAttr = $isAdmin ? '' : 'readonly';
                 <input type="text" id="fire_department_city" name="fire_department_city" 
                        class="form-input" 
                        value="<?php echo htmlspecialchars($settings['fire_department_city'] ?? ''); ?>" 
-                       placeholder="z.B. Willingshausen"
-                       <?php echo $readonlyAttr; ?>>
+                       placeholder="z.B. Willingshausen">
                 <small style="color: var(--text-secondary);">Optional: Wird auf separater Zeile angezeigt</small>
             </div>
             
             <h3>Logo</h3>
             
-            <?php if ($isAdmin): ?>
             <div class="form-group">
                 <?php if (!empty($settings['logo_filename'])): ?>
                     <div class="current-logo" style="margin-bottom: 15px;">
@@ -66,20 +63,6 @@ $readonlyAttr = $isAdmin ? '' : 'readonly';
                     Empfohlen: PNG oder SVG, max. 2 MB. Das Logo wird in E-Mails und PDFs verwendet.
                 </small>
             </div>
-            <?php else: ?>
-            <div class="form-group">
-                <?php if (!empty($settings['logo_filename'])): ?>
-                    <div class="current-logo" style="margin-bottom: 15px;">
-                        <p><strong>Aktuelles Logo:</strong></p>
-                        <img src="/data/settings/<?php echo htmlspecialchars($settings['logo_filename']); ?>" 
-                             alt="Feuerwehr Logo" 
-                             style="max-height: 150px; max-width: 300px; border: 2px solid var(--border-color); border-radius: 8px; padding: 10px; background: white;">
-                    </div>
-                <?php else: ?>
-                    <p style="color: var(--text-secondary);">Kein Logo hochgeladen.</p>
-                <?php endif; ?>
-            </div>
-            <?php endif; ?>
             
             <h3>E-Mail-Einstellungen</h3>
             
@@ -88,8 +71,7 @@ $readonlyAttr = $isAdmin ? '' : 'readonly';
                 <input type="email" id="email_recipient" name="email_recipient" 
                        class="form-input" 
                        value="<?php echo htmlspecialchars($settings['email_recipient'] ?? ''); ?>" 
-                       placeholder="z.B. berichte@feuerwehr-beispiel.de"
-                       <?php echo $readonlyAttr; ?>>
+                       placeholder="z.B. berichte@feuerwehr-beispiel.de">
                 <small style="color: var(--text-secondary);">E-Mail-Adresse, an die Einsatzberichte automatisch gesendet werden.</small>
             </div>
             
@@ -100,8 +82,7 @@ $readonlyAttr = $isAdmin ? '' : 'readonly';
                 <input type="tel" id="contact_phone" name="contact_phone" 
                        class="form-input" 
                        value="<?php echo htmlspecialchars($settings['contact_phone'] ?? ''); ?>" 
-                       placeholder="z.B. 06691 12345"
-                       <?php echo $readonlyAttr; ?>>
+                       placeholder="z.B. 06691 12345">
             </div>
             
             <div class="form-group">
@@ -109,25 +90,21 @@ $readonlyAttr = $isAdmin ? '' : 'readonly';
                 <input type="email" id="contact_email" name="contact_email" 
                        class="form-input" 
                        value="<?php echo htmlspecialchars($settings['contact_email'] ?? ''); ?>" 
-                       placeholder="z.B. info@feuerwehr-beispiel.de"
-                       <?php echo $readonlyAttr; ?>>
+                       placeholder="z.B. info@feuerwehr-beispiel.de">
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="address">Adresse</label>
                 <textarea id="address" name="address" class="form-textarea" rows="3" 
-                          placeholder="Straße, PLZ, Ort"
-                          <?php echo $readonlyAttr; ?>><?php echo htmlspecialchars($settings['address'] ?? ''); ?></textarea>
+                          placeholder="Straße, PLZ, Ort"><?php echo htmlspecialchars($settings['address'] ?? ''); ?></textarea>
             </div>
             
-            <?php if ($isAdmin): ?>
             <div class="form-group mt-3">
                 <button type="submit" class="btn btn-primary">
                     <span class="material-icons">save</span>
                     Einstellungen speichern
                 </button>
             </div>
-            <?php endif; ?>
         </form>
     </div>
 </div>

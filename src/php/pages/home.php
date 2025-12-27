@@ -9,6 +9,7 @@ Auth::requireAuth();
 
 $user = Auth::getUser();
 $isAdmin = Auth::isAdmin();
+$isGlobalAdmin = Auth::isGlobalAdmin();
 ?>
 
 <div class="menu-container">
@@ -109,6 +110,7 @@ $isAdmin = Auth::isAdmin();
                 <span class="menu-button-text">Benutzer</span>
             </button>
             
+            <?php if ($isGlobalAdmin): ?>
             <!-- Allgemeine Einstellungen -->
             <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-settings')">
                 <span class="material-icons">settings</span>
@@ -120,6 +122,7 @@ $isAdmin = Auth::isAdmin();
                 <span class="material-icons">email</span>
                 <span class="menu-button-text">Email Einstellungen</span>
             </button>
+            <?php endif; ?>
         </div>
     </div>
     <?php endif; ?>
