@@ -133,31 +133,38 @@ try {
         $ccAddress = null; // No CC needed if using fallback
     }
     
-    // Ensure we have a recipient
-    if (empty($recipient)) {
-        echo json_encode([
-            'success' => true,
-            'message' => 'Einsatzbericht wurde gespeichert, aber es ist keine E-Mail-Adresse konfiguriert',
-            'report_id' => $report['id']
-        ]);
-        exit;
+    // Ensure we have a recipient - if not configured, log error but continue
+    $emailWillBeSent = !empty($recipient);
+    if (!$emailWillBeSent) {
+        error_log("Warning: No email recipient configured for mission report. Location ID: {$standortId}");
     }
     
-    // Send email with PDF attachment
-    $subject = "Einsatzbericht - {$data['einsatzgrund']} - {$data['einsatzdatum']}";
-    $emailSent = EmailPDF::sendEmail($recipient, $subject, $html, $pdf, "Einsatzbericht_{$data['einsatzdatum']}.pdf", $ccAddress);
-    
-    if ($emailSent) {
-        echo json_encode([
-            'success' => true,
-            'message' => $successMessage,
-            'report_id' => $report['id']
-        ]);
+    // Send email only if recipient is configured
+    if ($emailWillBeSent) {
+        // Send email with PDF attachment
+        $subject = "Einsatzbericht - {$data['einsatzgrund']} - {$data['einsatzdatum']}";
+        $emailSent = EmailPDF::sendEmail($recipient, $subject, $html, $pdf, "Einsatzbericht_{$data['einsatzdatum']}.pdf", $ccAddress);
+        
+        if ($emailSent) {
+            echo json_encode([
+                'success' => true,
+                'message' => $successMessage,
+                'report_id' => $report['id']
+            ]);
+        } else {
+            // Still success if saved, but note email issue
+            $errorMsg = EmailPDF::getLastError();
+            echo json_encode([
+                'success' => true,
+                'message' => ($recordId ? 'Einsatzbericht wurde aktualisiert' : 'Einsatzbericht wurde gespeichert') . ', aber E-Mail konnte nicht versendet werden' . ($errorMsg ? ': ' . $errorMsg : ''),
+                'report_id' => $report['id']
+            ]);
+        }
     } else {
-        // Still success if saved, but note email issue
+        // No email configured
         echo json_encode([
             'success' => true,
-            'message' => ($recordId ? 'Einsatzbericht wurde aktualisiert' : 'Einsatzbericht wurde gespeichert') . ', aber E-Mail konnte nicht versendet werden',
+            'message' => ($recordId ? 'Einsatzbericht wurde aktualisiert' : 'Einsatzbericht wurde gespeichert') . ', aber keine E-Mail-Adresse ist konfiguriert',
             'report_id' => $report['id']
         ]);
     }

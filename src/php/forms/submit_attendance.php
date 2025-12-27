@@ -152,51 +152,58 @@ try {
         $ccAddress = null; // No CC needed if using fallback
     }
     
-    // Ensure we have a recipient
-    if (empty($recipient)) {
-        echo json_encode([
-            'success' => true,
-            'message' => 'Anwesenheitsliste wurde gespeichert, aber es ist keine E-Mail-Adresse konfiguriert',
-            'attendance_id' => $attendance['id']
-        ]);
-        exit;
+    // Ensure we have a recipient - if not configured, log error but continue
+    $emailWillBeSent = !empty($recipient);
+    if (!$emailWillBeSent) {
+        error_log("Warning: No email recipient configured for attendance list. Location ID: {$standortId}");
     }
     
-    // Prepare file attachment if uploaded
-    $fileAttachment = null;
-    $fileAttachmentName = null;
-    if ($uploadedFile) {
-        $filePath = __DIR__ . '/../../data/uploads/' . $uploadedFile;
-        if (file_exists($filePath)) {
-            $fileAttachment = file_get_contents($filePath);
-            $fileAttachmentName = $uploadedFile;
+    // Send email only if recipient is configured
+    if ($emailWillBeSent) {
+        // Prepare file attachment if uploaded
+        $fileAttachment = null;
+        $fileAttachmentName = null;
+        if ($uploadedFile) {
+            $filePath = __DIR__ . '/../../data/uploads/' . $uploadedFile;
+            if (file_exists($filePath)) {
+                $fileAttachment = file_get_contents($filePath);
+                $fileAttachmentName = $uploadedFile;
+            }
         }
-    }
-    
-    // Send email with PDF and optional file attachment
-    $subject = "Anwesenheitsliste - {$data['thema']} - {$data['datum']}";
-    $emailSent = EmailPDF::sendEmailWithAttachments(
-        $recipient,
-        $subject,
-        $html,
-        $pdf,
-        "Anwesenheitsliste_{$data['datum']}.pdf",
-        $fileAttachment,
-        $fileAttachmentName,
-        $ccAddress
-    );
-    
-    if ($emailSent) {
-        echo json_encode([
-            'success' => true,
-            'message' => $successMessage,
-            'attendance_id' => $attendance['id']
-        ]);
+        
+        // Send email with PDF and optional file attachment
+        $subject = "Anwesenheitsliste - {$data['thema']} - {$data['datum']}";
+        $emailSent = EmailPDF::sendEmailWithAttachments(
+            $recipient,
+            $subject,
+            $html,
+            $pdf,
+            "Anwesenheitsliste_{$data['datum']}.pdf",
+            $fileAttachment,
+            $fileAttachmentName,
+            $ccAddress
+        );
+        
+        if ($emailSent) {
+            echo json_encode([
+                'success' => true,
+                'message' => $successMessage,
+                'attendance_id' => $attendance['id']
+            ]);
+        } else {
+            // Still success if saved, but note email issue
+            $errorMsg = EmailPDF::getLastError();
+            echo json_encode([
+                'success' => true,
+                'message' => ($recordId ? 'Anwesenheitsliste wurde aktualisiert' : 'Anwesenheitsliste wurde gespeichert') . ', aber E-Mail konnte nicht versendet werden' . ($errorMsg ? ': ' . $errorMsg : ''),
+                'attendance_id' => $attendance['id']
+            ]);
+        }
     } else {
-        // Still success if saved, but note email issue
+        // No email configured
         echo json_encode([
             'success' => true,
-            'message' => ($recordId ? 'Anwesenheitsliste wurde aktualisiert' : 'Anwesenheitsliste wurde gespeichert') . ', aber E-Mail konnte nicht versendet werden',
+            'message' => ($recordId ? 'Anwesenheitsliste wurde aktualisiert' : 'Anwesenheitsliste wurde gespeichert') . ', aber keine E-Mail-Adresse ist konfiguriert',
             'attendance_id' => $attendance['id']
         ]);
     }
