@@ -90,8 +90,8 @@ try {
                 </html>
             ";
             
-            // Send email
-            $emailSent = EmailPDF::sendEmailWithAttachments($email, $subject, $htmlBody);
+            // Send email without attachments (pass null for attachment parameters)
+            $emailSent = EmailPDF::sendEmailWithAttachments($email, $subject, $htmlBody, null, 'document.pdf', null, null);
             
             if ($emailSent) {
                 echo json_encode(['success' => true, 'message' => 'Falls ein Konto mit diesem Benutzernamen existiert und eine E-Mail-Adresse hinterlegt ist, wurde ein Link zur Passwort-Wiederherstellung gesendet.']);

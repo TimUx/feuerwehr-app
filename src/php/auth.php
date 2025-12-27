@@ -671,6 +671,10 @@ class Auth {
 
     /**
      * Get user by username (for password reset)
+     * Returns user data without password for security
+     * 
+     * @param string $username Username to search for
+     * @return array|null User data without password, or null if not found
      */
     public static function getUserByUsername($username) {
         $users = self::loadUsers();
