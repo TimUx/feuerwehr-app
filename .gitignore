@@ -26,5 +26,5 @@ temp/
 *.tmp
 
 # PHP
-vendor/
-composer.lock
+# Note: vendor/ is committed to allow deployment without composer
+# composer.lock is also committed for reproducible builds
