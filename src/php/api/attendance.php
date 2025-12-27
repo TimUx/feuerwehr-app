@@ -28,15 +28,19 @@ try {
             if (isset($_GET['id'])) {
                 $record = DataStore::getAttendanceRecordById($_GET['id']);
                 if ($record) {
-                    // Check location access for non-admins/operators
+                    // Check location access for non-admin/operator users
                     $user = Auth::getUser();
                     $userLocationId = $user['location_id'] ?? null;
-                    $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+                    // Admins and operators have global access
+                    $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
                     
-                    if (!$isGlobalUser && isset($record['location_id']) && $record['location_id'] !== $userLocationId) {
-                        http_response_code(403);
-                        echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
-                        exit;
+                    if (!$isGlobalUser) {
+                        // Regular users can only access their location's records
+                        if (!$userLocationId || (isset($record['location_id']) && $record['location_id'] !== $userLocationId)) {
+                            http_response_code(403);
+                            echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                            exit;
+                        }
                     }
                     
                     echo json_encode(['success' => true, 'data' => $record]);
@@ -45,15 +49,17 @@ try {
                     echo json_encode(['success' => false, 'message' => 'Anwesenheitsliste nicht gefunden']);
                 }
             } else {
-                // Filter attendance records by location for non-global users
+                // Filter attendance records by location for non-admin/operator users
                 $user = Auth::getUser();
                 $userLocationId = $user['location_id'] ?? null;
-                $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+                // Admins and operators have global access
+                $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
                 
                 if ($isGlobalUser) {
                     $records = DataStore::getAttendanceRecords();
                 } else {
-                    $records = DataStore::getAttendanceRecordsByLocation($userLocationId);
+                    // Regular users see only their location's records (or nothing if no location)
+                    $records = $userLocationId ? DataStore::getAttendanceRecordsByLocation($userLocationId) : [];
                 }
                 
                 echo json_encode(['success' => true, 'data' => $records]);
@@ -99,15 +105,19 @@ try {
                 break;
             }
 
-            // Check location access for non-admins/operators
+            // Check location access for non-admin/operator users
             $user = Auth::getUser();
             $userLocationId = $user['location_id'] ?? null;
-            $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+            // Admins and operators have global access
+            $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
             
-            if (!$isGlobalUser && isset($existingRecord['location_id']) && $existingRecord['location_id'] !== $userLocationId) {
-                http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
-                exit;
+            if (!$isGlobalUser) {
+                // Regular users can only update their location's records
+                if (!$userLocationId || (isset($existingRecord['location_id']) && $existingRecord['location_id'] !== $userLocationId)) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                    exit;
+                }
             }
 
             $record = DataStore::updateAttendanceRecord($data['id'], $data);
@@ -137,15 +147,19 @@ try {
                 break;
             }
 
-            // Check location access for non-admins/operators
+            // Check location access for non-admin/operator users
             $user = Auth::getUser();
             $userLocationId = $user['location_id'] ?? null;
-            $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+            // Admins and operators have global access
+            $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
             
-            if (!$isGlobalUser && isset($existingRecord['location_id']) && $existingRecord['location_id'] !== $userLocationId) {
-                http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
-                exit;
+            if (!$isGlobalUser) {
+                // Regular users can only delete their location's records
+                if (!$userLocationId || (isset($existingRecord['location_id']) && $existingRecord['location_id'] !== $userLocationId)) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                    exit;
+                }
             }
 
             DataStore::deleteAttendanceRecord($data['id']);

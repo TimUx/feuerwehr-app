@@ -371,7 +371,7 @@ class DataStore {
             return $records;
         }
         return array_filter($records, function($record) use ($locationId) {
-            return isset($record['location_id']) && $record['location_id'] === $locationId;
+            return !isset($record['location_id']) || $record['location_id'] === $locationId;
         });
     }
 
@@ -462,7 +462,7 @@ class DataStore {
             return $reports;
         }
         return array_filter($reports, function($report) use ($locationId) {
-            return isset($report['location_id']) && $report['location_id'] === $locationId;
+            return !isset($report['location_id']) || $report['location_id'] === $locationId;
         });
     }
 

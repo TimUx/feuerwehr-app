@@ -26,15 +26,19 @@ try {
             if (isset($_GET['id'])) {
                 $personnel = DataStore::getPersonnelById($_GET['id']);
                 if ($personnel) {
-                    // Check location access for non-admins/operators
+                    // Check location access for non-admin/operator users
                     $user = Auth::getUser();
                     $userLocationId = $user['location_id'] ?? null;
-                    $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+                    // Admins and operators have global access
+                    $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
                     
-                    if (!$isGlobalUser && isset($personnel['location_id']) && $personnel['location_id'] !== $userLocationId) {
-                        http_response_code(403);
-                        echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
-                        exit;
+                    if (!$isGlobalUser) {
+                        // Regular users can only access their location's personnel
+                        if (!$userLocationId || (isset($personnel['location_id']) && $personnel['location_id'] !== $userLocationId)) {
+                            http_response_code(403);
+                            echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                            exit;
+                        }
                     }
                     
                     echo json_encode(['success' => true, 'data' => $personnel]);
@@ -43,15 +47,17 @@ try {
                     echo json_encode(['success' => false, 'message' => 'Einsatzkraft nicht gefunden']);
                 }
             } else {
-                // Filter personnel by location for non-global users
+                // Filter personnel by location for non-admin/operator users
                 $user = Auth::getUser();
                 $userLocationId = $user['location_id'] ?? null;
-                $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+                // Admins and operators have global access
+                $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
                 
                 if ($isGlobalUser) {
                     $personnel = DataStore::getPersonnel();
                 } else {
-                    $personnel = DataStore::getPersonnelByLocation($userLocationId);
+                    // Regular users see only their location's personnel (or nothing if no location)
+                    $personnel = $userLocationId ? DataStore::getPersonnelByLocation($userLocationId) : [];
                 }
                 
                 echo json_encode(['success' => true, 'data' => $personnel]);

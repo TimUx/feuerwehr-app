@@ -28,15 +28,19 @@ try {
             if (isset($_GET['id'])) {
                 $report = DataStore::getMissionReportById($_GET['id']);
                 if ($report) {
-                    // Check location access for non-admins/operators
+                    // Check location access for non-admin/operator users
                     $user = Auth::getUser();
                     $userLocationId = $user['location_id'] ?? null;
-                    $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+                    // Admins and operators have global access
+                    $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
                     
-                    if (!$isGlobalUser && isset($report['location_id']) && $report['location_id'] !== $userLocationId) {
-                        http_response_code(403);
-                        echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
-                        exit;
+                    if (!$isGlobalUser) {
+                        // Regular users can only access their location's reports
+                        if (!$userLocationId || (isset($report['location_id']) && $report['location_id'] !== $userLocationId)) {
+                            http_response_code(403);
+                            echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                            exit;
+                        }
                     }
                     
                     echo json_encode(['success' => true, 'data' => $report]);
@@ -45,15 +49,17 @@ try {
                     echo json_encode(['success' => false, 'message' => 'Einsatzbericht nicht gefunden']);
                 }
             } else {
-                // Filter mission reports by location for non-global users
+                // Filter mission reports by location for non-admin/operator users
                 $user = Auth::getUser();
                 $userLocationId = $user['location_id'] ?? null;
-                $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+                // Admins and operators have global access
+                $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
                 
                 if ($isGlobalUser) {
                     $reports = DataStore::getMissionReports();
                 } else {
-                    $reports = DataStore::getMissionReportsByLocation($userLocationId);
+                    // Regular users see only their location's reports (or nothing if no location)
+                    $reports = $userLocationId ? DataStore::getMissionReportsByLocation($userLocationId) : [];
                 }
                 
                 echo json_encode(['success' => true, 'data' => $reports]);
@@ -99,15 +105,19 @@ try {
                 break;
             }
 
-            // Check location access for non-admins/operators
+            // Check location access for non-admin/operator users
             $user = Auth::getUser();
             $userLocationId = $user['location_id'] ?? null;
-            $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+            // Admins and operators have global access
+            $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
             
-            if (!$isGlobalUser && isset($existingReport['location_id']) && $existingReport['location_id'] !== $userLocationId) {
-                http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
-                exit;
+            if (!$isGlobalUser) {
+                // Regular users can only update their location's reports
+                if (!$userLocationId || (isset($existingReport['location_id']) && $existingReport['location_id'] !== $userLocationId)) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                    exit;
+                }
             }
 
             $report = DataStore::updateMissionReport($data['id'], $data);
@@ -137,15 +147,19 @@ try {
                 break;
             }
 
-            // Check location access for non-admins/operators
+            // Check location access for non-admin/operator users
             $user = Auth::getUser();
             $userLocationId = $user['location_id'] ?? null;
-            $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+            // Admins and operators have global access
+            $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
             
-            if (!$isGlobalUser && isset($existingReport['location_id']) && $existingReport['location_id'] !== $userLocationId) {
-                http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
-                exit;
+            if (!$isGlobalUser) {
+                // Regular users can only delete their location's reports
+                if (!$userLocationId || (isset($existingReport['location_id']) && $existingReport['location_id'] !== $userLocationId)) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                    exit;
+                }
             }
 
             DataStore::deleteMissionReport($data['id']);
