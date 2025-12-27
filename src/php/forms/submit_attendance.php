@@ -38,6 +38,7 @@ try {
     // Get form data
     $leadersSelect = $_POST['uebungsleiter_select'] ?? [];
     $leadersOther = $_POST['uebungsleiter_andere'] ?? '';
+    $standortId = $_POST['standort'] ?? '';
     
     // Combine leaders from select and text field
     $allLeaders = $leadersSelect;
@@ -108,9 +109,34 @@ try {
     // Generate PDF
     $pdf = EmailPDF::generatePDF($html);
     
-    // Get configuration for email recipient
+    // Get configuration and location for email recipients
     $config = require __DIR__ . '/../../../config/config.php';
-    $recipient = $config['email']['from_address']; // Send to configured address
+    $ccAddress = $config['email']['from_address'] ?? null; // CC to general settings email
+    
+    // Get location email address as primary recipient
+    $recipient = null;
+    if (!empty($standortId)) {
+        $location = DataStore::getLocationById($standortId);
+        if ($location && !empty($location['email'])) {
+            $recipient = $location['email'];
+        }
+    }
+    
+    // If no location email, fall back to the general email
+    if (empty($recipient)) {
+        $recipient = $ccAddress;
+        $ccAddress = null; // No CC needed if using fallback
+    }
+    
+    // Ensure we have a recipient
+    if (empty($recipient)) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Anwesenheitsliste wurde gespeichert, aber es ist keine E-Mail-Adresse konfiguriert',
+            'attendance_id' => $attendance['id']
+        ]);
+        exit;
+    }
     
     // Prepare file attachment if uploaded
     $fileAttachment = null;
@@ -132,19 +158,9 @@ try {
         $pdf,
         "Anwesenheitsliste_{$data['datum']}.pdf",
         $fileAttachment,
-        $fileAttachmentName
+        $fileAttachmentName,
+        $ccAddress
     );
-    
-    // Generate PDF
-    $pdf = EmailPDF::generatePDF($html);
-    
-    // Get configuration for email recipient
-    $config = require __DIR__ . '/../../../config/config.php';
-    $recipient = $config['email']['from_address']; // Send to configured address
-    
-    // Send email with PDF attachment
-    $subject = "Anwesenheitsliste - {$data['thema']} - {$data['datum']}";
-    $emailSent = EmailPDF::sendEmail($recipient, $subject, $html, $pdf, "Anwesenheitsliste_{$data['datum']}.pdf");
     
     if ($emailSent) {
         echo json_encode([

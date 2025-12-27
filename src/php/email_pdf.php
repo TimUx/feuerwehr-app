@@ -40,7 +40,7 @@ class EmailPDF {
      * Send email with HTML content and multiple attachments
      * Uses native PHP 8 SMTP by default, falls back to PHPMailer if configured
      */
-    public static function sendEmailWithAttachments($to, $subject, $htmlBody, $pdfContent = null, $pdfFilename = 'document.pdf', $extraFileContent = null, $extraFileName = null) {
+    public static function sendEmailWithAttachments($to, $subject, $htmlBody, $pdfContent = null, $pdfFilename = 'document.pdf', $extraFileContent = null, $extraFileName = null, $cc = null) {
         self::init();
         
         $emailConfig = self::$config['email'] ?? [];
@@ -59,28 +59,35 @@ class EmailPDF {
             return false;
         }
         
+        // Validate CC address if provided
+        if ($cc && !filter_var($cc, FILTER_VALIDATE_EMAIL)) {
+            error_log("Invalid CC address: {$cc}");
+            self::$lastError = "Ungültige CC-Adresse: {$cc}";
+            return false;
+        }
+        
         // Check if user prefers PHPMailer (use_phpmailer config option)
         $usePhpMailer = $emailConfig['use_phpmailer'] ?? false;
         
         // Use PHPMailer if explicitly requested AND available
         if ($usePhpMailer && self::isPhpMailerAvailable()) {
-            return self::sendWithPhpMailer($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName);
+            return self::sendWithPhpMailer($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName, $cc);
         }
         
         // Use native PHP 8 SMTP (default)
-        return self::sendWithNativeSMTP($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName);
+        return self::sendWithNativeSMTP($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName, $cc);
     }
     
     /**
      * Send email using native PHP 8 SMTP client
      */
-    private static function sendWithNativeSMTP($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName) {
+    private static function sendWithNativeSMTP($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName, $cc) {
         $emailConfig = self::$config['email'] ?? [];
         
         // Check if SMTP is configured
         if (empty($emailConfig['smtp_host'])) {
             // Fall back to PHP mail() function
-            return self::sendWithPhpMail($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName);
+            return self::sendWithPhpMail($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName, $cc);
         }
         
         // Validate authentication configuration
@@ -117,7 +124,8 @@ class EmailPDF {
                 $subject,
                 $htmlBody,
                 true, // HTML email
-                $attachments
+                $attachments,
+                $cc ?? '' // CC parameter
             )) {
                 self::$lastError = "SMTP-Fehler: " . $smtp->getLastResponse();
                 error_log("Native SMTP failed: " . self::$lastError);
@@ -137,7 +145,7 @@ class EmailPDF {
     /**
      * Send email using PHPMailer (fallback)
      */
-    private static function sendWithPhpMailer($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName) {
+    private static function sendWithPhpMailer($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName, $cc) {
         if (!self::isPhpMailerAvailable()) {
             error_log("PHPMailer not available");
             return false;
@@ -172,6 +180,12 @@ class EmailPDF {
             
             $mail->setFrom($emailConfig['from_address'] ?? 'noreply@feuerwehr.local', $emailConfig['from_name'] ?? 'Feuerwehr Management System');
             $mail->addAddress($to);
+            
+            // Add CC if provided
+            if (!empty($cc)) {
+                $mail->addCC($cc);
+            }
+            
             $mail->isHTML(true);
             $mail->CharSet = 'UTF-8';
             $mail->Subject = $subject;
@@ -199,7 +213,7 @@ class EmailPDF {
     /**
      * Send email using PHP mail() function (last resort fallback)
      */
-    private static function sendWithPhpMail($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName) {
+    private static function sendWithPhpMail($to, $subject, $htmlBody, $pdfContent, $pdfFilename, $extraFileContent, $extraFileName, $cc) {
         $emailConfig = self::$config['email'] ?? [];
         
         $from = $emailConfig['from_address'] ?? 'noreply@feuerwehr.local';
@@ -208,6 +222,9 @@ class EmailPDF {
         $boundary = md5(time());
         $headers = [];
         $headers[] = "From: {$fromName} <{$from}>";
+        if (!empty($cc)) {
+            $headers[] = "Cc: {$cc}";
+        }
         $headers[] = "MIME-Version: 1.0";
         $headers[] = "Content-Type: multipart/mixed; boundary=\"{$boundary}\"";
         
@@ -243,8 +260,8 @@ class EmailPDF {
     /**
      * Send email with HTML content and optional PDF attachment
      */
-    public static function sendEmail($to, $subject, $htmlBody, $pdfContent = null, $pdfFilename = 'document.pdf') {
-        return self::sendEmailWithAttachments($to, $subject, $htmlBody, $pdfContent, $pdfFilename, null, null);
+    public static function sendEmail($to, $subject, $htmlBody, $pdfContent = null, $pdfFilename = 'document.pdf', $cc = null) {
+        return self::sendEmailWithAttachments($to, $subject, $htmlBody, $pdfContent, $pdfFilename, null, null, $cc);
     }
     
     /**

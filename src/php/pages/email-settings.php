@@ -133,18 +133,6 @@ $emailConfig = $config['email'] ?? [];
                            value="<?php echo htmlspecialchars($emailConfig['from_name'] ?? 'Feuerwehr Management System'); ?>" 
                            placeholder="Feuerwehr Willingshausen">
                 </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="to_address">Empfänger-Adresse *</label>
-                    <input type="email" 
-                           id="to_address" 
-                           name="to_address" 
-                           class="form-input" 
-                           value="<?php echo htmlspecialchars($emailConfig['to_address'] ?? ''); ?>" 
-                           placeholder="feuerwehr@example.com" 
-                           required>
-                    <small class="form-help">Standard-Empfänger für alle Formular-Einsendungen</small>
-                </div>
             </div>
             
             <div class="form-actions">

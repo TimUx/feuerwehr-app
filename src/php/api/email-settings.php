@@ -29,12 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         $config = file_exists($configFile) ? require $configFile : [];
         $emailConfig = $config['email'] ?? [];
         
-        if (empty($emailConfig['to_address'])) {
-            throw new Exception('Keine Empfänger-Adresse konfiguriert');
+        if (empty($emailConfig['from_address'])) {
+            throw new Exception('Keine Absender-Adresse konfiguriert');
         }
         
-        // Prepare test email
-        $to = $emailConfig['to_address'];
+        // Prepare test email - send to the from_address as a test
+        $to = $emailConfig['from_address'];
         $subject = 'Test-E-Mail - Feuerwehr Management System';
         $htmlBody = '<html><body style="font-family: Arial, sans-serif;">';
         $htmlBody .= '<h2>Test-E-Mail</h2>';
@@ -89,7 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'smtp_secure' => $input['smtp_secure'] ?? '',
             'from_address' => $input['from_address'] ?? 'noreply@feuerwehr.local',
             'from_name' => $input['from_name'] ?? 'Feuerwehr Management System',
-            'to_address' => $input['to_address'] ?? '',
         ];
         
         // Generate PHP config file content

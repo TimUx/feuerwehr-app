@@ -20,6 +20,7 @@ if (!Auth::isAuthenticated()) {
 
 try {
     // Get form data
+    $standortId = $_POST['standort'] ?? '';
     $data = [
         'einsatzgrund' => $_POST['einsatzgrund'] ?? '',
         'einsatzdatum' => $_POST['einsatzdatum'] ?? '',
@@ -89,13 +90,38 @@ try {
     // Generate PDF
     $pdf = EmailPDF::generatePDF($html);
     
-    // Get configuration for email recipient
+    // Get configuration and location for email recipients
     $config = require __DIR__ . '/../../../config/config.php';
-    $recipient = $config['email']['from_address']; // Send to configured address
+    $ccAddress = $config['email']['from_address'] ?? null; // CC to general settings email
+    
+    // Get location email address as primary recipient
+    $recipient = null;
+    if (!empty($standortId)) {
+        $location = DataStore::getLocationById($standortId);
+        if ($location && !empty($location['email'])) {
+            $recipient = $location['email'];
+        }
+    }
+    
+    // If no location email, fall back to the general email
+    if (empty($recipient)) {
+        $recipient = $ccAddress;
+        $ccAddress = null; // No CC needed if using fallback
+    }
+    
+    // Ensure we have a recipient
+    if (empty($recipient)) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Einsatzbericht wurde gespeichert, aber es ist keine E-Mail-Adresse konfiguriert',
+            'report_id' => $report['id']
+        ]);
+        exit;
+    }
     
     // Send email with PDF attachment
     $subject = "Einsatzbericht - {$data['einsatzgrund']} - {$data['einsatzdatum']}";
-    $emailSent = EmailPDF::sendEmail($recipient, $subject, $html, $pdf, "Einsatzbericht_{$data['einsatzdatum']}.pdf");
+    $emailSent = EmailPDF::sendEmail($recipient, $subject, $html, $pdf, "Einsatzbericht_{$data['einsatzdatum']}.pdf", $ccAddress);
     
     if ($emailSent) {
         echo json_encode([

@@ -303,6 +303,7 @@ class DataStore {
             'id' => uniqid('loc_'),
             'name' => $data['name'],
             'address' => $data['address'] ?? '',
+            'email' => $data['email'] ?? '',
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
@@ -325,6 +326,9 @@ class DataStore {
                 }
                 if (isset($data['address'])) {
                     $location['address'] = $data['address'];
+                }
+                if (isset($data['email'])) {
+                    $location['email'] = $data['email'];
                 }
                 $location['updated_at'] = date('Y-m-d H:i:s');
                 
