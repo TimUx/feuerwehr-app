@@ -33,6 +33,7 @@ $locations = DataStore::getLocations();
                         <tr>
                             <th>Name</th>
                             <th>Adresse</th>
+                            <th>E-Mail</th>
                             <th style="width: 120px;">Aktionen</th>
                         </tr>
                     </thead>
@@ -47,6 +48,7 @@ $locations = DataStore::getLocations();
                         <tr>
                             <td><strong><?php echo htmlspecialchars($location['name']); ?></strong></td>
                             <td><?php echo htmlspecialchars($location['address'] ?? '-'); ?></td>
+                            <td><?php echo htmlspecialchars($location['email'] ?? '-'); ?></td>
                             <td>
                                 <button class="icon-btn" onclick='editLocation(<?php echo json_encode($location); ?>)' title="Bearbeiten">
                                     <span class="material-icons">edit</span>
@@ -84,6 +86,14 @@ $locations = DataStore::getLocations();
                 <textarea id="location-address" name="address" class="form-textarea" rows="3" placeholder="Straße, PLZ, Ort"></textarea>
             </div>
             
+            <div class="form-group">
+                <label class="form-label" for="location-email">E-Mail-Adresse</label>
+                <input type="email" id="location-email" name="email" class="form-input" placeholder="standort@feuerwehr.de">
+                <small class="form-help" style="display: block; color: var(--text-secondary); margin-top: 0.25rem;">
+                    An diese Adresse werden Formulare (Einsatzberichte, Anwesenheitslisten) gesendet
+                </small>
+            </div>
+            
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeLocationModal()">Abbrechen</button>
                 <button type="submit" class="btn btn-primary">Speichern</button>
@@ -110,6 +120,7 @@ function editLocation(location) {
     document.getElementById('location-id').value = location.id;
     document.getElementById('location-name').value = location.name || '';
     document.getElementById('location-address').value = location.address || '';
+    document.getElementById('location-email').value = location.email || '';
 }
 
 async function deleteLocation(id, name) {
@@ -144,7 +155,8 @@ document.getElementById('location-form').addEventListener('submit', async (e) =>
     const formData = new FormData(e.target);
     const data = {
         name: formData.get('name'),
-        address: formData.get('address')
+        address: formData.get('address'),
+        email: formData.get('email')
     };
     
     const id = formData.get('id');

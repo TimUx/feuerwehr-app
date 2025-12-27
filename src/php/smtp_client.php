@@ -42,9 +42,10 @@ class SMTPClient {
      * @param string $body Email body (HTML or plain text)
      * @param bool $isHtml Whether body is HTML
      * @param array $attachments Array of attachments ['filename' => content]
+     * @param string $cc CC email address (optional)
      * @return bool Success status
      */
-    public function sendEmail(string $from, string $fromName, string $to, string $subject, string $body, bool $isHtml = true, array $attachments = []): bool {
+    public function sendEmail(string $from, string $fromName, string $to, string $subject, string $body, bool $isHtml = true, array $attachments = [], string $cc = ''): bool {
         try {
             $this->connect();
             $this->authenticate();
@@ -55,12 +56,17 @@ class SMTPClient {
             // RCPT TO
             $this->sendCommand("RCPT TO:<{$to}>", 250);
             
+            // RCPT TO for CC if provided
+            if (!empty($cc)) {
+                $this->sendCommand("RCPT TO:<{$cc}>", 250);
+            }
+            
             // DATA
             $this->sendCommand("DATA", 354);
             
             // Headers
             $boundary = '----=_Part_' . md5(uniqid('', true));
-            $headers = $this->buildHeaders($from, $fromName, $to, $subject, $boundary, $isHtml, $attachments);
+            $headers = $this->buildHeaders($from, $fromName, $to, $subject, $boundary, $isHtml, $attachments, $cc);
             
             // Body
             $emailBody = $this->buildBody($body, $isHtml, $boundary, $attachments);
@@ -241,10 +247,13 @@ class SMTPClient {
     /**
      * Build email headers
      */
-    private function buildHeaders(string $from, string $fromName, string $to, string $subject, string $boundary, bool $isHtml, array $attachments): string {
+    private function buildHeaders(string $from, string $fromName, string $to, string $subject, string $boundary, bool $isHtml, array $attachments, string $cc = ''): string {
         $headers = [];
         $headers[] = "From: " . (!empty($fromName) ? "=?UTF-8?B?" . base64_encode($fromName) . "?= <{$from}>" : $from);
         $headers[] = "To: {$to}";
+        if (!empty($cc)) {
+            $headers[] = "Cc: {$cc}";
+        }
         $headers[] = "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=";
         $headers[] = "Date: " . date('r');
         $headers[] = "MIME-Version: 1.0";
