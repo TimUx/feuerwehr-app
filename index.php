@@ -38,6 +38,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     exit;
 }
 
+// Handle password reset page
+if (isset($_GET['action']) && $_GET['action'] === 'reset-password') {
+    $resetToken = $_GET['token'] ?? '';
+    $page = 'reset-password';
+}
+
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
     $username = trim($_POST['username'] ?? '');
@@ -62,10 +68,10 @@ if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
 $isAuthenticated = Auth::isAuthenticated();
 
 // Determine which page to show
-$page = $_GET['page'] ?? 'home';
+$page = isset($page) ? $page : ($_GET['page'] ?? 'home');
 
-// If not authenticated, show login page
-if (!$isAuthenticated) {
+// If not authenticated, show login page (unless it's password reset)
+if (!$isAuthenticated && $page !== 'reset-password') {
     $page = 'login';
 }
 
@@ -133,6 +139,12 @@ $user = Auth::getUser();
                         <label for="remember_me" style="margin: 0; font-weight: normal; cursor: pointer;">Angemeldet bleiben</label>
                     </div>
                     
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <a href="#" onclick="showForgotPassword(); return false;" style="color: var(--primary-color); text-decoration: none; font-size: 14px;">
+                            Passwort vergessen?
+                        </a>
+                    </div>
+                    
                     <button type="submit" class="btn btn-primary" style="width: 100%;">
                         <span class="material-icons">login</span>
                         Anmelden
@@ -140,6 +152,194 @@ $user = Auth::getUser();
                 </form>
             </div>
         </div>
+
+        <!-- Forgot Password Modal -->
+        <div id="forgot-password-modal" class="modal">
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2 class="modal-title">Passwort vergessen</h2>
+                    <button class="modal-close" onclick="closeForgotPassword()">&times;</button>
+                </div>
+                <form id="forgot-password-form">
+                    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+                        Geben Sie Ihren Benutzernamen ein. Falls eine E-Mail-Adresse hinterlegt ist, erhalten Sie einen Link zur Passwort-Wiederherstellung.
+                    </p>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="reset-username">Benutzername</label>
+                        <input type="text" id="reset-username" name="username" class="form-input" required autofocus>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeForgotPassword()">Abbrechen</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="material-icons">send</span>
+                            Link senden
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+        function showForgotPassword() {
+            document.getElementById('forgot-password-modal').classList.add('show');
+        }
+
+        function closeForgotPassword() {
+            document.getElementById('forgot-password-modal').classList.remove('show');
+            document.getElementById('forgot-password-form').reset();
+        }
+
+        // Handle forgot password form submission
+        document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const username = formData.get('username');
+            
+            try {
+                const response = await fetch('/src/php/api/password-reset.php?action=request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ ' + result.message);
+                    closeForgotPassword();
+                } else {
+                    alert('❌ ' + result.message);
+                }
+            } catch (error) {
+                alert('❌ Fehler beim Senden der Anfrage: ' + error.message);
+            }
+        });
+        </script>
+    <?php elseif ($page === 'reset-password'): ?>
+        <!-- Password Reset Page -->
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <h1 class="login-title">🔒 Passwort zurücksetzen</h1>
+                    <p class="login-subtitle">Neues Passwort festlegen</p>
+                </div>
+                
+                <div id="reset-message"></div>
+                
+                <form id="reset-password-form">
+                    <input type="hidden" id="reset-token" value="<?php echo htmlspecialchars($resetToken ?? ''); ?>">
+                    
+                    <div id="reset-username-display" style="display: none; margin-bottom: 20px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-radius: 4px; text-align: center;">
+                        <strong>Benutzername:</strong> <span id="username-value"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="new-password">Neues Passwort</label>
+                        <input type="password" id="new-password" name="password" class="form-input" required minlength="6">
+                        <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                            Mindestens 6 Zeichen
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="confirm-password">Passwort bestätigen</label>
+                        <input type="password" id="confirm-password" name="confirm_password" class="form-input" required minlength="6">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        <span class="material-icons">lock_reset</span>
+                        Passwort ändern
+                    </button>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <a href="/index.php" style="color: var(--primary-color); text-decoration: none; font-size: 14px;">
+                            Zurück zum Login
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+        // Verify token on page load
+        (async function() {
+            const token = document.getElementById('reset-token').value;
+            
+            if (!token) {
+                showResetMessage('error', 'Kein Token gefunden. Bitte fordern Sie einen neuen Passwort-Reset-Link an.');
+                document.getElementById('reset-password-form').style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/src/php/api/password-reset.php?action=verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('username-value').textContent = result.username;
+                    document.getElementById('reset-username-display').style.display = 'block';
+                } else {
+                    showResetMessage('error', result.message || 'Ungültiger oder abgelaufener Token.');
+                    document.getElementById('reset-password-form').style.display = 'none';
+                }
+            } catch (error) {
+                showResetMessage('error', 'Fehler beim Überprüfen des Tokens.');
+                document.getElementById('reset-password-form').style.display = 'none';
+            }
+        })();
+
+        // Handle password reset form submission
+        document.getElementById('reset-password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (password !== confirmPassword) {
+                showResetMessage('error', 'Die Passwörter stimmen nicht überein.');
+                return;
+            }
+            
+            const token = document.getElementById('reset-token').value;
+            
+            try {
+                const response = await fetch('/src/php/api/password-reset.php?action=reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token, password: password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResetMessage('success', result.message + ' Sie werden zum Login weitergeleitet...');
+                    document.getElementById('reset-password-form').style.display = 'none';
+                    setTimeout(() => {
+                        window.location.href = '/index.php';
+                    }, 2000);
+                } else {
+                    showResetMessage('error', result.message);
+                }
+            } catch (error) {
+                showResetMessage('error', 'Fehler beim Zurücksetzen des Passworts: ' + error.message);
+            }
+        });
+
+        function showResetMessage(type, message) {
+            const messageDiv = document.getElementById('reset-message');
+            messageDiv.className = 'alert alert-' + type;
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+        }
+        </script>
     <?php else: ?>
         <!-- Main App -->
         <div class="app-container">

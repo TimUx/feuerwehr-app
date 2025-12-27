@@ -252,7 +252,7 @@ class Auth {
     /**
      * Create new user
      */
-    public static function createUser($username, $password, $role = 'operator', $locationId = null) {
+    public static function createUser($username, $password, $role = 'operator', $locationId = null, $email = null) {
         $users = self::loadUsers();
         
         // Check if username already exists
@@ -268,6 +268,7 @@ class Auth {
             'password' => password_hash($password, PASSWORD_DEFAULT),
             'role' => $role,
             'location_id' => $locationId, // null means global access
+            'email' => $email, // optional email for password reset
             'created_at' => date('Y-m-d H:i:s')
         ];
 
@@ -295,6 +296,9 @@ class Auth {
                 }
                 if (isset($data['location_id'])) {
                     $user['location_id'] = $data['location_id'];
+                }
+                if (isset($data['email'])) {
+                    $user['email'] = $data['email'];
                 }
                 $user['updated_at'] = date('Y-m-d H:i:s');
                 
@@ -512,5 +516,176 @@ class Auth {
         }
         
         return false;
+    }
+
+    /**
+     * Generate password reset token for user
+     */
+    public static function generatePasswordResetToken($username) {
+        self::init();
+        $users = self::loadUsers();
+        
+        // Find user by username
+        $user = null;
+        foreach ($users as $u) {
+            if ($u['username'] === $username) {
+                $user = $u;
+                break;
+            }
+        }
+        
+        if (!$user) {
+            return false;
+        }
+        
+        // Check if user has an email
+        if (empty($user['email'])) {
+            return ['error' => 'no_email'];
+        }
+        
+        // Generate secure token
+        $token = bin2hex(random_bytes(32));
+        $expiry = time() + (60 * 60); // 1 hour expiry
+        
+        // Store token
+        $resetTokensFile = self::$dataDir . '/password_reset_tokens.json';
+        $tokens = [];
+        
+        if (file_exists($resetTokensFile)) {
+            $encrypted = file_get_contents($resetTokensFile);
+            $decrypted = Encryption::decrypt($encrypted);
+            $tokens = json_decode($decrypted, true) ?: [];
+        }
+        
+        // Clean up expired tokens
+        $tokens = array_filter($tokens, function($item) {
+            return $item['expiry'] > time();
+        });
+        
+        // Add new token
+        $tokens[] = [
+            'token' => password_hash($token, PASSWORD_DEFAULT),
+            'user_id' => $user['id'],
+            'username' => $user['username'],
+            'email' => $user['email'],
+            'expiry' => $expiry,
+            'created' => time()
+        ];
+        
+        // Save tokens
+        $json = json_encode($tokens, JSON_PRETTY_PRINT);
+        $encrypted = Encryption::encrypt($json);
+        file_put_contents($resetTokensFile, $encrypted);
+        chmod($resetTokensFile, 0600);
+        
+        return [
+            'token' => $token,
+            'email' => $user['email'],
+            'username' => $user['username']
+        ];
+    }
+
+    /**
+     * Verify password reset token
+     */
+    public static function verifyPasswordResetToken($token) {
+        self::init();
+        $resetTokensFile = self::$dataDir . '/password_reset_tokens.json';
+        
+        if (!file_exists($resetTokensFile)) {
+            return false;
+        }
+        
+        $encrypted = file_get_contents($resetTokensFile);
+        $decrypted = Encryption::decrypt($encrypted);
+        $tokens = json_decode($decrypted, true) ?: [];
+        
+        // Find matching token
+        foreach ($tokens as $storedToken) {
+            if (password_verify($token, $storedToken['token'])) {
+                // Check if token is still valid
+                if ($storedToken['expiry'] < time()) {
+                    return false;
+                }
+                
+                return [
+                    'user_id' => $storedToken['user_id'],
+                    'username' => $storedToken['username']
+                ];
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Reset password with token
+     */
+    public static function resetPassword($token, $newPassword) {
+        self::init();
+        
+        // Verify token
+        $tokenData = self::verifyPasswordResetToken($token);
+        if (!$tokenData) {
+            return false;
+        }
+        
+        // Update password
+        $success = self::updateUser($tokenData['user_id'], [
+            'password' => $newPassword
+        ]);
+        
+        if ($success) {
+            // Remove used token
+            self::removePasswordResetToken($token);
+        }
+        
+        return $success;
+    }
+
+    /**
+     * Remove password reset token after use
+     */
+    private static function removePasswordResetToken($token) {
+        self::init();
+        $resetTokensFile = self::$dataDir . '/password_reset_tokens.json';
+        
+        if (!file_exists($resetTokensFile)) {
+            return;
+        }
+        
+        $encrypted = file_get_contents($resetTokensFile);
+        $decrypted = Encryption::decrypt($encrypted);
+        $tokens = json_decode($decrypted, true) ?: [];
+        
+        // Remove matching token
+        $tokens = array_filter($tokens, function($storedToken) use ($token) {
+            return !password_verify($token, $storedToken['token']);
+        });
+        
+        // Save remaining tokens
+        $json = json_encode(array_values($tokens), JSON_PRETTY_PRINT);
+        $encrypted = Encryption::encrypt($json);
+        file_put_contents($resetTokensFile, $encrypted);
+    }
+
+    /**
+     * Get user by username (for password reset)
+     * Returns user data without password for security
+     * 
+     * @param string $username Username to search for
+     * @return array|null User data without password, or null if not found
+     */
+    public static function getUserByUsername($username) {
+        $users = self::loadUsers();
+        
+        foreach ($users as $user) {
+            if ($user['username'] === $username) {
+                unset($user['password']);
+                return $user;
+            }
+        }
+        
+        return null;
     }
 }
