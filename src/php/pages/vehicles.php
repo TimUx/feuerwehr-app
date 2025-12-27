@@ -8,7 +8,12 @@ require_once __DIR__ . '/../datastore.php';
 
 Auth::requireAuth();
 
-$vehicles = DataStore::getVehicles();
+// Filter vehicles by location for location-restricted users
+$user = Auth::getUser();
+$hasGlobalAccess = Auth::hasGlobalAccess();
+$userLocationId = Auth::getUserLocationId();
+
+$vehicles = DataStore::getVehiclesByLocation($hasGlobalAccess ? null : $userLocationId);
 $locations = DataStore::getLocations();
 ?>
 

@@ -10,12 +10,23 @@ Auth::requireAuth();
 
 $user = Auth::getUser();
 $isAdmin = Auth::isAdmin();
+$hasGlobalAccess = Auth::hasGlobalAccess();
+$userLocationId = Auth::getUserLocationId();
 
-// Get counts
-$personnelCount = count(DataStore::getPersonnel());
-$vehiclesCount = count(DataStore::getVehicles());
-$attendanceCount = count(DataStore::getAttendanceRecords());
-$missionsCount = count(DataStore::getMissionReports());
+// Get counts - filtered by location for location-restricted users
+if ($hasGlobalAccess) {
+    $personnelCount = count(DataStore::getPersonnel());
+    $vehiclesCount = count(DataStore::getVehicles());
+    $attendanceCount = count(DataStore::getAttendanceRecords());
+    $missionsCount = count(DataStore::getMissionReports());
+} else {
+    $personnelCount = count(DataStore::getPersonnelByLocation($userLocationId));
+    $vehiclesCount = count(DataStore::getVehiclesByLocation($userLocationId));
+    // For now, show all attendance and mission records
+    // TODO: Implement location filtering for these if needed
+    $attendanceCount = count(DataStore::getAttendanceRecords());
+    $missionsCount = count(DataStore::getMissionReports());
+}
 
 // Get current year statistics
 $currentYear = date('Y');
