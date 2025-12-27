@@ -8,13 +8,31 @@ require_once __DIR__ . '/../datastore.php';
 
 Auth::requireAuth();
 
+$user = Auth::getUser();
+$userLocationId = Auth::getUserLocationId();
+$isGlobalAdmin = Auth::isGlobalAdmin();
+
 $currentYear = $_GET['year'] ?? date('Y');
 $selectedPersonnel = $_GET['personnel'] ?? null;
 $selectedLocation = $_GET['location'] ?? null;
 
 $stats = DataStore::getStatistics($currentYear);
-$personnel = DataStore::getPersonnel();
-$locations = DataStore::getLocations();
+
+// Filter personnel and locations based on user's location
+if ($userLocationId && !$isGlobalAdmin) {
+    // Non-global users can only see their own location
+    $personnel = DataStore::getPersonnelByLocation($userLocationId);
+    $locations = [DataStore::getLocationById($userLocationId)];
+    
+    // Force filter to user's location if not already set or if different
+    if (!$selectedLocation || $selectedLocation !== $userLocationId) {
+        $selectedLocation = $userLocationId;
+    }
+} else {
+    // Global admins can see all
+    $personnel = DataStore::getPersonnel();
+    $locations = DataStore::getLocations();
+}
 
 // Get personnel stats if selected
 $personnelStats = null;
@@ -35,10 +53,10 @@ if ($selectedLocation) {
         Statistiken
     </div>
     <div class="card-content">
-        <form method="GET" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
             <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
                 <label class="form-label" for="year">Jahr</label>
-                <select id="year" name="year" class="form-select" onchange="this.form.submit()">
+                <select id="year" name="year" class="form-select">
                     <?php for ($y = date('Y'); $y >= date('Y') - 10; $y--): ?>
                         <option value="<?php echo $y; ?>" <?php echo $currentYear == $y ? 'selected' : ''; ?>>
                             <?php echo $y; ?>
@@ -47,9 +65,10 @@ if ($selectedLocation) {
                 </select>
             </div>
             
+            <?php if ($isGlobalAdmin): ?>
             <div class="form-group" style="margin-bottom: 0; flex: 2; min-width: 200px;">
                 <label class="form-label" for="location">Standort (optional)</label>
-                <select id="location" name="location" class="form-select" onchange="this.form.submit()">
+                <select id="location" name="location" class="form-select">
                     <option value="">-- Alle Standorte --</option>
                     <?php foreach ($locations as $location): ?>
                         <option value="<?php echo $location['id']; ?>" <?php echo $selectedLocation == $location['id'] ? 'selected' : ''; ?>>
@@ -58,10 +77,11 @@ if ($selectedLocation) {
                     <?php endforeach; ?>
                 </select>
             </div>
+            <?php endif; ?>
             
             <div class="form-group" style="margin-bottom: 0; flex: 2; min-width: 200px;">
                 <label class="form-label" for="personnel">Einsatzkraft (optional)</label>
-                <select id="personnel" name="personnel" class="form-select" onchange="this.form.submit()">
+                <select id="personnel" name="personnel" class="form-select">
                     <option value="">-- Alle Einsatzkräfte --</option>
                     <?php foreach ($personnel as $person): ?>
                         <option value="<?php echo $person['id']; ?>" <?php echo $selectedPersonnel == $person['id'] ? 'selected' : ''; ?>>
@@ -70,7 +90,7 @@ if ($selectedLocation) {
                     <?php endforeach; ?>
                 </select>
             </div>
-        </form>
+        </div>
         
         <?php if ($personnelStats): ?>
             <?php 
@@ -209,9 +229,24 @@ if ($selectedLocation) {
 </div>
 
 <script>
-// Prevent form resubmission on page reload
-if (window.history.replaceState) {
-    const url = new URL(window.location);
-    window.history.replaceState(null, null, url);
+// Handle filter changes without form submission
+function updateStatistics() {
+    const year = document.getElementById('year').value;
+    const locationEl = document.getElementById('location');
+    const location = locationEl ? locationEl.value : '';
+    const personnel = document.getElementById('personnel').value;
+    
+    const params = { year: year };
+    if (location) params.location = location;
+    if (personnel) params.personnel = personnel;
+    
+    window.feuerwehrApp.navigateTo('statistics', params);
 }
+
+document.getElementById('year').addEventListener('change', updateStatistics);
+const locationEl = document.getElementById('location');
+if (locationEl) {
+    locationEl.addEventListener('change', updateStatistics);
+}
+document.getElementById('personnel').addEventListener('change', updateStatistics);
 </script>
