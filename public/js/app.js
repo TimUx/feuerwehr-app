@@ -3,6 +3,7 @@
 class FeuerwehrApp {
   constructor() {
     this.currentPage = 'home';
+    this.pageParams = new URLSearchParams();
     this.theme = localStorage.getItem('theme') || 'light';
     this.deferredPrompt = null;
     this.pageScripts = []; // Track scripts added by pages for cleanup
@@ -16,7 +17,17 @@ class FeuerwehrApp {
     this.setupEventListeners();
     this.setupPWAInstall();
     
-    // Load the home page on initialization
+    // Check for URL parameters on initialization
+    const urlParams = new URLSearchParams(window.location.search);
+    const page = urlParams.get('page');
+    if (page) {
+      this.currentPage = page;
+      // Store any additional parameters
+      urlParams.delete('page');
+      this.pageParams = urlParams;
+    }
+    
+    // Load the initial page
     this.loadPage(this.currentPage);
   }
 
@@ -223,8 +234,15 @@ class FeuerwehrApp {
     });
   }
 
-  navigateTo(page) {
+  navigateTo(page, params = null) {
     this.currentPage = page;
+    
+    // Clear or set page parameters
+    if (params) {
+      this.pageParams = new URLSearchParams(params);
+    } else {
+      this.pageParams = new URLSearchParams();
+    }
     
     // Update active nav item
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -254,7 +272,13 @@ class FeuerwehrApp {
     this.pageScripts = [];
 
     try {
-      const response = await fetch(`/src/php/pages/${page}.php`);
+      // Build URL with parameters
+      let url = `/src/php/pages/${page}.php`;
+      if (this.pageParams.toString()) {
+        url += '?' + this.pageParams.toString();
+      }
+      
+      const response = await fetch(url);
       if (response.ok) {
         const html = await response.text();
         

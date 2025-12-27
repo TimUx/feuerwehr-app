@@ -56,6 +56,14 @@ try {
         // Generate PDF
         $pdf = EmailPDF::generatePDF($html);
         
+        // Check if PDF generation was successful
+        if ($pdf === false || empty($pdf)) {
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Fehler beim Generieren des PDFs. Bitte überprüfen Sie die Serverprotokolle.']);
+            exit;
+        }
+        
         // Sanitize filename
         $datumSafe = preg_replace('/[^a-zA-Z0-9\-_]/', '_', $record['datum'] ?? date('Y-m-d'));
         
@@ -90,6 +98,14 @@ try {
         
         // Generate PDF
         $pdf = EmailPDF::generatePDF($html);
+        
+        // Check if PDF generation was successful
+        if ($pdf === false || empty($pdf)) {
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Fehler beim Generieren des PDFs. Bitte überprüfen Sie die Serverprotokolle.']);
+            exit;
+        }
         
         // Sanitize filename
         $datumSafe = preg_replace('/[^a-zA-Z0-9\-_]/', '_', $report['einsatzdatum'] ?? date('Y-m-d'));

@@ -17,6 +17,21 @@ $personnel = DataStore::getPersonnelByLocation($hasGlobalAccess ? null : $userLo
 $vehicles = DataStore::getVehiclesByLocation($hasGlobalAccess ? null : $userLocationId);
 $locations = DataStore::getLocations();
 
+// Check if we're editing an existing record
+$editMode = false;
+$editRecord = null;
+if (isset($_GET['edit'])) {
+    $editId = $_GET['edit'];
+    $allReports = DataStore::getMissionReports();
+    foreach ($allReports as $report) {
+        if ($report['id'] === $editId) {
+            $editRecord = $report;
+            $editMode = true;
+            break;
+        }
+    }
+}
+
 // Function options from JSON
 $functions = [
     'Fahrzeugführer', 'Melder', 'Maschinist', 'Agrifftruppführer', 
@@ -30,10 +45,19 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
 <div class="card">
     <div class="card-header">
         <span class="material-icons">description</span>
-        Einsatzbericht
+        <?php echo $editMode ? 'Einsatzbericht bearbeiten' : 'Einsatzbericht'; ?>
     </div>
     <div class="card-content">
+        <?php if ($editMode): ?>
+        <div class="alert alert-info" style="margin-bottom: 1rem; padding: 0.75rem; background-color: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+            <strong>Bearbeitungsmodus:</strong> Sie bearbeiten einen vorhandenen Einsatzbericht.
+        </div>
+        <?php endif; ?>
+        
         <form id="mission-report-form" method="POST" action="/src/php/forms/submit_mission_report.php">
+            <?php if ($editMode): ?>
+            <input type="hidden" name="record_id" value="<?php echo htmlspecialchars($editRecord['id']); ?>">
+            <?php endif; ?>
             
             <h3 style="margin-top: 0;">Einsatzdaten</h3>
             
@@ -582,4 +606,183 @@ document.getElementById('mission-report-form').addEventListener('submit', async 
 
 // Initialize
 updateCrewSections();
+
+// Pre-fill form if in edit mode
+<?php if ($editMode && $editRecord): ?>
+(function() {
+    const record = <?php echo json_encode($editRecord); ?>;
+    
+    // Pre-fill basic fields
+    if (record.standort || record.location_id) {
+        const locationId = record.standort || record.location_id;
+        const standortField = document.getElementById('standort-filter');
+        if (standortField) {
+            standortField.value = locationId;
+            // Trigger location filter
+            filterByLocation();
+        }
+    }
+    
+    if (record.einsatzgrund) {
+        document.getElementById('einsatzgrund').value = record.einsatzgrund;
+    }
+    
+    if (record.einsatzdatum) {
+        document.getElementById('einsatzdatum').value = record.einsatzdatum;
+    }
+    
+    if (record.beginn) {
+        document.getElementById('beginn').value = record.beginn;
+    }
+    
+    if (record.ende) {
+        document.getElementById('ende').value = record.ende;
+    }
+    
+    // Trigger duration calculation
+    calculateDuration();
+    
+    if (record.einsatzort) {
+        document.getElementById('einsatzort').value = record.einsatzort;
+    }
+    
+    if (record.einsatzleiter) {
+        document.getElementById('einsatzleiter').value = record.einsatzleiter;
+    }
+    
+    if (record.einsatzlage) {
+        document.getElementById('einsatzlage').value = record.einsatzlage;
+    }
+    
+    if (record.tatigkeiten_der_feuerwehr) {
+        document.getElementById('tatigkeiten_der_feuerwehr').value = record.tatigkeiten_der_feuerwehr;
+    }
+    
+    if (record.verbrauchte_mittel) {
+        document.getElementById('verbrauchte_mittel').value = record.verbrauchte_mittel;
+    }
+    
+    if (record.besondere_vorkommnisse) {
+        document.getElementById('besondere_vorkommnisse').value = record.besondere_vorkommnisse;
+    }
+    
+    if (record.einsatz_kostenpflichtig) {
+        const costRadios = document.querySelectorAll('input[name="einsatz_kostenpflichtig"]');
+        costRadios.forEach(radio => {
+            if (radio.value === record.einsatz_kostenpflichtig) {
+                radio.checked = true;
+            }
+        });
+    }
+    
+    // Pre-fill vehicles
+    if (record.eingesetzte_fahrzeuge && Array.isArray(record.eingesetzte_fahrzeuge)) {
+        record.eingesetzte_fahrzeuge.forEach(vehicleId => {
+            const checkbox = document.querySelector(`input[name="eingesetzte_fahrzeuge[]"][value="${vehicleId}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+        
+        // Update crew sections
+        updateCrewSections();
+        
+        // Pre-fill crew data if available
+        if (record.fahrzeugbesatzung && Array.isArray(record.fahrzeugbesatzung)) {
+            // Wait a bit for the crew sections to be created
+            setTimeout(() => {
+                record.fahrzeugbesatzung.forEach((crewMember, index) => {
+                    const vehicle = crewMember.fahrzeug;
+                    const vehicleSection = document.querySelector(`.vehicle-crew-section[data-vehicle="${vehicle}"]`);
+                    
+                    if (vehicleSection) {
+                        // Try to find an empty entry or add a new one
+                        const entries = vehicleSection.querySelectorAll('.crew-entry');
+                        let targetEntry = null;
+                        
+                        for (let entry of entries) {
+                            const nameSelect = entry.querySelector('select[name*="[name]"]');
+                            if (nameSelect && !nameSelect.value) {
+                                targetEntry = entry;
+                                break;
+                            }
+                        }
+                        
+                        // If no empty entry, add a new one
+                        if (!targetEntry && entries.length > 0) {
+                            const addButton = vehicleSection.querySelector('.add-crew-btn');
+                            if (addButton) {
+                                addButton.click();
+                                const newEntries = vehicleSection.querySelectorAll('.crew-entry');
+                                targetEntry = newEntries[newEntries.length - 1];
+                            }
+                        }
+                        
+                        if (targetEntry) {
+                            const nameSelect = targetEntry.querySelector('select[name*="[name]"]');
+                            const funktionInput = targetEntry.querySelector('input[name*="[funktion]"]');
+                            const verdienstausfallSelect = targetEntry.querySelector('select[name*="[verdienstausfall]"]');
+                            
+                            if (nameSelect && crewMember.name) {
+                                nameSelect.value = crewMember.name;
+                            }
+                            if (funktionInput && crewMember.funktion) {
+                                funktionInput.value = crewMember.funktion;
+                            }
+                            if (verdienstausfallSelect && crewMember.verdienstausfall) {
+                                verdienstausfallSelect.value = crewMember.verdienstausfall;
+                            }
+                        }
+                    }
+                });
+            }, 100);
+        }
+    }
+    
+    // Pre-fill involved persons if available
+    if (record.beteiligte_personen && Array.isArray(record.beteiligte_personen)) {
+        setTimeout(() => {
+            record.beteiligte_personen.forEach((person, index) => {
+                if (index > 0) {
+                    // Add new involved person entry
+                    const addButton = document.querySelector('#beteiligte-personen-container .add-person-btn');
+                    if (addButton) {
+                        addButton.click();
+                    }
+                }
+                
+                // Wait a bit for the entry to be added
+                setTimeout(() => {
+                    const entries = document.querySelectorAll('.involved-person-entry');
+                    if (entries[index]) {
+                        const entry = entries[index];
+                        
+                        const beteiligungsartInput = entry.querySelector('input[name*="[beteiligungsart]"]');
+                        const nameInput = entry.querySelector('input[name*="[name]"]');
+                        const telefonnummerInput = entry.querySelector('input[name*="[telefonnummer]"]');
+                        const adresseTextarea = entry.querySelector('textarea[name*="[adresse]"]');
+                        const kfzInput = entry.querySelector('input[name*="[kfz_kennzeichen]"]');
+                        
+                        if (beteiligungsartInput && person.beteiligungsart) {
+                            beteiligungsartInput.value = person.beteiligungsart;
+                        }
+                        if (nameInput && person.name) {
+                            nameInput.value = person.name;
+                        }
+                        if (telefonnummerInput && person.telefonnummer) {
+                            telefonnummerInput.value = person.telefonnummer;
+                        }
+                        if (adresseTextarea && person.adresse) {
+                            adresseTextarea.value = person.adresse;
+                        }
+                        if (kfzInput && person.kfz_kennzeichen) {
+                            kfzInput.value = person.kfz_kennzeichen;
+                        }
+                    }
+                }, 50 * (index + 1));
+            });
+        }, 200);
+    }
+})();
+<?php endif; ?>
 </script>

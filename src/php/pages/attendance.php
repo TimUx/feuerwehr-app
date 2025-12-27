@@ -14,15 +14,39 @@ $userLocationId = Auth::getUserLocationId();
 
 $personnel = DataStore::getPersonnelByLocation($hasGlobalAccess ? null : $userLocationId);
 $locations = DataStore::getLocations();
+
+// Check if we're editing an existing record
+$editMode = false;
+$editRecord = null;
+if (isset($_GET['edit'])) {
+    $editId = $_GET['edit'];
+    $allRecords = DataStore::getAttendanceRecords();
+    foreach ($allRecords as $record) {
+        if ($record['id'] === $editId) {
+            $editRecord = $record;
+            $editMode = true;
+            break;
+        }
+    }
+}
 ?>
 
 <div class="card">
     <div class="card-header">
         <span class="material-icons">fact_check</span>
-        Anwesenheitsliste
+        <?php echo $editMode ? 'Anwesenheitsliste bearbeiten' : 'Anwesenheitsliste'; ?>
     </div>
     <div class="card-content">
+        <?php if ($editMode): ?>
+        <div class="alert alert-info" style="margin-bottom: 1rem; padding: 0.75rem; background-color: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+            <strong>Bearbeitungsmodus:</strong> Sie bearbeiten eine vorhandene Anwesenheitsliste.
+        </div>
+        <?php endif; ?>
+        
         <form id="attendance-form" method="POST" action="/src/php/forms/submit_attendance.php" enctype="multipart/form-data">
+            <?php if ($editMode): ?>
+            <input type="hidden" name="record_id" value="<?php echo htmlspecialchars($editRecord['id']); ?>">
+            <?php endif; ?>
             
             <h3 style="margin-top: 0;">Veranstaltungsdaten</h3>
             
@@ -357,4 +381,73 @@ document.getElementById('attendance-form').addEventListener('submit', async (e) 
         window.feuerwehrApp.showAlert('error', 'Fehler beim Absenden der Liste');
     }
 });
+
+// Pre-fill form if in edit mode
+<?php if ($editMode && $editRecord): ?>
+(function() {
+    const record = <?php echo json_encode($editRecord); ?>;
+    
+    // Pre-fill basic fields
+    if (record.standort || record.location_id) {
+        const locationId = record.standort || record.location_id;
+        const standortField = document.getElementById('standort-filter');
+        if (standortField) {
+            standortField.value = locationId;
+            // Trigger location filter
+            filterByLocation();
+        }
+    }
+    
+    if (record.datum) {
+        document.getElementById('datum').value = record.datum;
+    }
+    
+    if (record.von) {
+        document.getElementById('von').value = record.von;
+    }
+    
+    if (record.bis) {
+        document.getElementById('bis').value = record.bis;
+    }
+    
+    if (record.thema) {
+        document.getElementById('thema').value = record.thema;
+    }
+    
+    if (record.anmerkungen) {
+        document.getElementById('anmerkungen').value = record.anmerkungen;
+    }
+    
+    // Pre-fill leaders
+    if (record.uebungsleiter && Array.isArray(record.uebungsleiter)) {
+        const leaderSelect = document.getElementById('uebungsleiter-select');
+        const leaderOptions = leaderSelect.options;
+        
+        for (let i = 0; i < leaderOptions.length; i++) {
+            const option = leaderOptions[i];
+            if (record.uebungsleiter.includes(option.value)) {
+                option.selected = true;
+            }
+        }
+        
+        // If there are leaders not in the dropdown, put them in the text field
+        const leadersInDropdown = Array.from(leaderOptions).map(opt => opt.value);
+        const leadersNotInDropdown = record.uebungsleiter.filter(leader => !leadersInDropdown.includes(leader));
+        if (leadersNotInDropdown.length > 0) {
+            document.getElementById('uebungsleiter-andere').value = leadersNotInDropdown.join(', ');
+        }
+    }
+    
+    // Pre-fill attendees
+    if (record.teilnehmer && Array.isArray(record.teilnehmer)) {
+        record.teilnehmer.forEach(attendeeId => {
+            const checkbox = document.getElementById('attendee-' + attendeeId);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+        updateTotalCount();
+    }
+})();
+<?php endif; ?>
 </script>
