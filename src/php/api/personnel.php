@@ -26,13 +26,34 @@ try {
             if (isset($_GET['id'])) {
                 $personnel = DataStore::getPersonnelById($_GET['id']);
                 if ($personnel) {
+                    // Check location access for non-admins/operators
+                    $user = Auth::getUser();
+                    $userLocationId = $user['location_id'] ?? null;
+                    $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+                    
+                    if (!$isGlobalUser && isset($personnel['location_id']) && $personnel['location_id'] !== $userLocationId) {
+                        http_response_code(403);
+                        echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                        exit;
+                    }
+                    
                     echo json_encode(['success' => true, 'data' => $personnel]);
                 } else {
                     http_response_code(404);
                     echo json_encode(['success' => false, 'message' => 'Einsatzkraft nicht gefunden']);
                 }
             } else {
-                $personnel = DataStore::getPersonnel();
+                // Filter personnel by location for non-global users
+                $user = Auth::getUser();
+                $userLocationId = $user['location_id'] ?? null;
+                $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+                
+                if ($isGlobalUser) {
+                    $personnel = DataStore::getPersonnel();
+                } else {
+                    $personnel = DataStore::getPersonnelByLocation($userLocationId);
+                }
+                
                 echo json_encode(['success' => true, 'data' => $personnel]);
             }
             break;

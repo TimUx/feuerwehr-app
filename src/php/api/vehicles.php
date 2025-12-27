@@ -26,13 +26,34 @@ try {
             if (isset($_GET['id'])) {
                 $vehicle = DataStore::getVehicleById($_GET['id']);
                 if ($vehicle) {
+                    // Check location access for non-admins/operators
+                    $user = Auth::getUser();
+                    $userLocationId = $user['location_id'] ?? null;
+                    $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+                    
+                    if (!$isGlobalUser && isset($vehicle['location_id']) && $vehicle['location_id'] !== $userLocationId) {
+                        http_response_code(403);
+                        echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                        exit;
+                    }
+                    
                     echo json_encode(['success' => true, 'data' => $vehicle]);
                 } else {
                     http_response_code(404);
                     echo json_encode(['success' => false, 'message' => 'Fahrzeug nicht gefunden']);
                 }
             } else {
-                $vehicles = DataStore::getVehicles();
+                // Filter vehicles by location for non-global users
+                $user = Auth::getUser();
+                $userLocationId = $user['location_id'] ?? null;
+                $isGlobalUser = Auth::isAdmin() || Auth::isOperator() || empty($userLocationId);
+                
+                if ($isGlobalUser) {
+                    $vehicles = DataStore::getVehicles();
+                } else {
+                    $vehicles = DataStore::getVehiclesByLocation($userLocationId);
+                }
+                
                 echo json_encode(['success' => true, 'data' => $vehicles]);
             }
             break;
