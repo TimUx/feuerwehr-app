@@ -495,6 +495,7 @@ class EmailPDF {
 
         .header-container img {
             max-height: 75px;
+            max-width: 100px;
             height: auto;
             width: auto;
         }
@@ -702,6 +703,7 @@ class EmailPDF {
 
         .header-container img {
             max-height: 75px;
+            max-width: 100px;
             height: auto;
             width: auto;
         }
