@@ -136,6 +136,7 @@ Alle Screenshots in iPhone 13 Pro Auflösung (390x844px):
 - **PHP 7.4+** mit Extensions: `openssl`, `mbstring`, `json`
 - **Apache** oder anderer PHP-kompatibler Webserver
 - **Git** (für Installation via Repository)
+- **Composer** (für Installation der PHP-Abhängigkeiten wie mPDF und PHPMailer)
 
 ### Installation mit Web-Installer (Empfohlen)
 
@@ -149,13 +150,24 @@ cd feuerwehr-app
 
 Alternativ: Laden Sie die Dateien per FTP auf Ihren Webserver hoch.
 
-#### 2. Installations-Wizard öffnen
+#### 2. Composer-Abhängigkeiten installieren (erforderlich für PDF-Generierung)
+```bash
+composer install
+```
+
+Wenn Sie keinen Zugriff auf die Kommandozeile haben, können Sie composer auch über den Webserver ausführen. Die benötigten Pakete sind:
+- **mPDF**: Für die Generierung von PDF-Dokumenten mit vollständiger HTML/CSS-Formatierung
+- **PHPMailer**: Für den E-Mail-Versand
+
+**Hinweis**: Ohne mPDF werden PDFs nur als einfacher Text ohne Formatierung generiert.
+
+#### 3. Installations-Wizard öffnen
 Navigieren Sie zu Ihrer Domain im Browser:
 ```
 http://ihre-domain.de/install.php
 ```
 
-#### 3. Installations-Schritte durchlaufen
+#### 4. Installations-Schritte durchlaufen
 Der Wizard führt Sie durch folgende Schritte:
 
 ##### Schritt 1: System-Voraussetzungen prüfen
