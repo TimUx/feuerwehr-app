@@ -39,6 +39,7 @@ try {
     $leadersSelect = $_POST['uebungsleiter_select'] ?? [];
     $leadersOther = $_POST['uebungsleiter_andere'] ?? '';
     $standortId = $_POST['standort'] ?? '';
+    $recordId = $_POST['record_id'] ?? null; // Check if we're updating an existing record
     
     // Combine leaders from select and text field
     $allLeaders = $leadersSelect;
@@ -90,20 +91,41 @@ try {
     
     // Save to datastore with all data including file reference
     $user = Auth::getUser();
-    $attendanceData = array_merge($data, [
-        'id' => uniqid('att_', true),
-        'date' => $data['datum'],
-        'type' => 'training',
-        'description' => $data['thema'],
-        'duration_hours' => $durationHours,
-        'attendees' => $data['teilnehmer'],
-        'total_participants' => $totalParticipants,
-        'location_id' => $data['standort'],
-        'created_by' => $user['id'],
-        'created_at' => date('Y-m-d H:i:s')
-    ]);
     
-    $attendance = DataStore::createAttendanceRecord($attendanceData);
+    if ($recordId) {
+        // Update existing record
+        $attendanceData = array_merge($data, [
+            'date' => $data['datum'],
+            'type' => 'training',
+            'description' => $data['thema'],
+            'duration_hours' => $durationHours,
+            'attendees' => $data['teilnehmer'],
+            'total_participants' => $totalParticipants,
+            'location_id' => $data['standort'],
+            'updated_by' => $user['id'],
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        $attendance = DataStore::updateAttendanceRecord($recordId, $attendanceData);
+        $successMessage = 'Anwesenheitsliste wurde erfolgreich aktualisiert';
+    } else {
+        // Create new record
+        $attendanceData = array_merge($data, [
+            'id' => uniqid('att_', true),
+            'date' => $data['datum'],
+            'type' => 'training',
+            'description' => $data['thema'],
+            'duration_hours' => $durationHours,
+            'attendees' => $data['teilnehmer'],
+            'total_participants' => $totalParticipants,
+            'location_id' => $data['standort'],
+            'created_by' => $user['id'],
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        $attendance = DataStore::createAttendanceRecord($attendanceData);
+        $successMessage = 'Anwesenheitsliste wurde erfolgreich gespeichert und versendet';
+    }
     
     // Generate HTML for email
     $html = EmailPDF::generateAttendanceHTML($data);
@@ -167,14 +189,14 @@ try {
     if ($emailSent) {
         echo json_encode([
             'success' => true,
-            'message' => 'Anwesenheitsliste wurde erfolgreich gespeichert und versendet',
+            'message' => $successMessage,
             'attendance_id' => $attendance['id']
         ]);
     } else {
         // Still success if saved, but note email issue
         echo json_encode([
             'success' => true,
-            'message' => 'Anwesenheitsliste wurde gespeichert, aber E-Mail konnte nicht versendet werden',
+            'message' => ($recordId ? 'Anwesenheitsliste wurde aktualisiert' : 'Anwesenheitsliste wurde gespeichert') . ', aber E-Mail konnte nicht versendet werden',
             'attendance_id' => $attendance['id']
         ]);
     }

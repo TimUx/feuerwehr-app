@@ -21,6 +21,7 @@ if (!Auth::isAuthenticated()) {
 try {
     // Get form data
     $standortId = $_POST['standort'] ?? '';
+    $recordId = $_POST['record_id'] ?? null; // Check if we're updating an existing record
     $data = [
         'einsatzgrund' => $_POST['einsatzgrund'] ?? '',
         'einsatzdatum' => $_POST['einsatzdatum'] ?? '',
@@ -71,18 +72,41 @@ try {
     
     // Save to datastore
     $user = Auth::getUser();
-    $reportData = array_merge($data, [
-        'date' => $data['einsatzdatum'],
-        'mission_type' => $data['einsatzgrund'],
-        'location' => $data['einsatzort'],
-        'description' => $data['einsatzlage'],
-        'participants' => array_merge($data['fahrzeugbesatzung'], $data['beteiligte_personen']),
-        'vehicles' => $data['eingesetzte_fahrzeuge'],
-        'duration_hours' => $durationHours,
-        'created_by' => $user['id']
-    ]);
     
-    $report = DataStore::createMissionReport($reportData);
+    if ($recordId) {
+        // Update existing record
+        $reportData = array_merge($data, [
+            'date' => $data['einsatzdatum'],
+            'mission_type' => $data['einsatzgrund'],
+            'location' => $data['einsatzort'],
+            'description' => $data['einsatzlage'],
+            'participants' => array_merge($data['fahrzeugbesatzung'], $data['beteiligte_personen']),
+            'vehicles' => $data['eingesetzte_fahrzeuge'],
+            'duration_hours' => $durationHours,
+            'updated_by' => $user['id'],
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        $report = DataStore::updateMissionReport($recordId, $reportData);
+        $successMessage = 'Einsatzbericht wurde erfolgreich aktualisiert';
+    } else {
+        // Create new record
+        $reportData = array_merge($data, [
+            'id' => uniqid('mis_', true),
+            'date' => $data['einsatzdatum'],
+            'mission_type' => $data['einsatzgrund'],
+            'location' => $data['einsatzort'],
+            'description' => $data['einsatzlage'],
+            'participants' => array_merge($data['fahrzeugbesatzung'], $data['beteiligte_personen']),
+            'vehicles' => $data['eingesetzte_fahrzeuge'],
+            'duration_hours' => $durationHours,
+            'created_by' => $user['id'],
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        $report = DataStore::createMissionReport($reportData);
+        $successMessage = 'Einsatzbericht wurde erfolgreich gespeichert und versendet';
+    }
     
     // Generate HTML for email
     $html = EmailPDF::generateMissionReportHTML($data);
@@ -126,14 +150,14 @@ try {
     if ($emailSent) {
         echo json_encode([
             'success' => true,
-            'message' => 'Einsatzbericht wurde erfolgreich gespeichert und versendet',
+            'message' => $successMessage,
             'report_id' => $report['id']
         ]);
     } else {
         // Still success if saved, but note email issue
         echo json_encode([
             'success' => true,
-            'message' => 'Einsatzbericht wurde gespeichert, aber E-Mail konnte nicht versendet werden',
+            'message' => ($recordId ? 'Einsatzbericht wurde aktualisiert' : 'Einsatzbericht wurde gespeichert') . ', aber E-Mail konnte nicht versendet werden',
             'report_id' => $report['id']
         ]);
     }
