@@ -362,9 +362,8 @@ class EmailPDF {
         // This is a very basic PDF implementation
         // For production, use a proper library like mPDF, TCPDF, or Dompdf
         
-        // Remove style and script tags with their content
-        $html = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $html);
-        $html = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $html);
+        // Remove style and script tags with their content in a single operation
+        $html = preg_replace('/<(style|script)\b[^>]*>(.*?)<\/\1>/is', '', $html);
         
         // Convert HTML to plain text for basic PDF
         $text = strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $html));

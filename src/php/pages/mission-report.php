@@ -688,6 +688,8 @@ updateCrewSections();
         updateCrewSections();
         
         // Pre-fill crew data if available
+        // Note: This uses nested loops and multiple DOM queries, but only runs once
+        // during edit mode initialization with typically small datasets (< 10 vehicles)
         if (record.fahrzeugbesatzung && Array.isArray(record.fahrzeugbesatzung)) {
             // Wait a bit for the crew sections to be created
             setTimeout(() => {
