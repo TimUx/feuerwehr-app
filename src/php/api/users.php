@@ -19,6 +19,16 @@ try {
         case 'GET':
             // Get all users
             $users = Auth::listUsers();
+            
+            // Filter users by location for location-restricted admins
+            if (Auth::hasLocationRestriction()) {
+                $userLocationId = Auth::getUserLocationId();
+                $users = array_filter($users, function($user) use ($userLocationId) {
+                    return ($user['location_id'] ?? null) === $userLocationId;
+                });
+                $users = array_values($users); // Re-index array
+            }
+            
             echo json_encode(['success' => true, 'data' => $users]);
             break;
 
@@ -35,6 +45,13 @@ try {
             $role = $data['role'] ?? 'operator';
             $locationId = isset($data['location_id']) && $data['location_id'] !== '' ? $data['location_id'] : null;
             $email = isset($data['email']) && $data['email'] !== '' ? $data['email'] : null;
+            
+            // If admin has location restriction, auto-set location to their assigned location
+            if (Auth::hasLocationRestriction()) {
+                $userLocationId = Auth::getUserLocationId();
+                $locationId = $userLocationId;
+            }
+            
             $success = Auth::createUser($data['username'], $data['password'], $role, $locationId, $email);
             
             if ($success) {
@@ -53,6 +70,38 @@ try {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'ID ist erforderlich']);
                 break;
+            }
+
+            // Check if user exists and validate access for location-restricted admins
+            if (Auth::hasLocationRestriction()) {
+                $existingUsers = Auth::listUsers();
+                $existingUser = null;
+                foreach ($existingUsers as $user) {
+                    if ($user['id'] === $data['id']) {
+                        $existingUser = $user;
+                        break;
+                    }
+                }
+                
+                if (!$existingUser) {
+                    http_response_code(404);
+                    echo json_encode(['success' => false, 'message' => 'Benutzer nicht gefunden']);
+                    break;
+                }
+                
+                $existingLocationId = $existingUser['location_id'] ?? null;
+                if (!Auth::canAccessLocation($existingLocationId)) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können nur Benutzer Ihres Standorts bearbeiten.']);
+                    break;
+                }
+                
+                // Don't allow changing location for location-restricted admins
+                if (isset($data['location_id']) && $data['location_id'] !== $existingLocationId) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Sie können den Standort nicht ändern.']);
+                    break;
+                }
             }
 
             $updateData = [];
@@ -90,6 +139,31 @@ try {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'ID ist erforderlich']);
                 break;
+            }
+
+            // Check if user exists and validate access for location-restricted admins
+            if (Auth::hasLocationRestriction()) {
+                $existingUsers = Auth::listUsers();
+                $existingUser = null;
+                foreach ($existingUsers as $user) {
+                    if ($user['id'] === $data['id']) {
+                        $existingUser = $user;
+                        break;
+                    }
+                }
+                
+                if (!$existingUser) {
+                    http_response_code(404);
+                    echo json_encode(['success' => false, 'message' => 'Benutzer nicht gefunden']);
+                    break;
+                }
+                
+                $existingLocationId = $existingUser['location_id'] ?? null;
+                if (!Auth::canAccessLocation($existingLocationId)) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können nur Benutzer Ihres Standorts löschen.']);
+                    break;
+                }
             }
 
             Auth::deleteUser($data['id']);

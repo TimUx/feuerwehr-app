@@ -11,16 +11,15 @@ Auth::requireOperator();
 
 // Determine user's location access
 $user = Auth::getUser();
-$userLocationId = $user['location_id'] ?? null;
-// Admins and operators have global access, regular users are restricted to their location
-$isGlobalUser = Auth::isAdmin() || Auth::isOperator();
+$hasGlobalAccess = Auth::hasGlobalAccess();
+$userLocationId = Auth::getUserLocationId();
 
 // Get data filtered by location
-if ($isGlobalUser) {
+if ($hasGlobalAccess) {
     $attendanceRecords = DataStore::getAttendanceRecords();
     $missionReports = DataStore::getMissionReports();
 } else {
-    // Regular users see only their location's data (or nothing if no location assigned)
+    // Location-restricted users see only their location's data
     $attendanceRecords = $userLocationId ? DataStore::getAttendanceRecordsByLocation($userLocationId) : [];
     $missionReports = $userLocationId ? DataStore::getMissionReportsByLocation($userLocationId) : [];
 }

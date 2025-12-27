@@ -8,8 +8,17 @@ require_once __DIR__ . '/../datastore.php';
 
 Auth::requireAdmin();
 
-$vehicles = DataStore::getVehicles();
+// Filter vehicles by location for location-restricted admins
+if (Auth::hasLocationRestriction()) {
+    $userLocationId = Auth::getUserLocationId();
+    $vehicles = $userLocationId ? DataStore::getVehiclesByLocation($userLocationId) : [];
+} else {
+    $vehicles = DataStore::getVehicles();
+}
+
 $locations = DataStore::getLocations();
+$hasLocationRestriction = Auth::hasLocationRestriction();
+$userLocationId = Auth::getUserLocationId();
 ?>
 
 <div class="card">
@@ -142,15 +151,22 @@ $locations = DataStore::getLocations();
             
             <div class="form-group">
                 <label class="form-label" for="vehicle-location">Standort *</label>
-                <select id="vehicle-location" name="location_id" class="form-input" required>
+                <select id="vehicle-location" name="location_id" class="form-input" required <?php if ($hasLocationRestriction): ?>disabled="disabled"<?php endif; ?>>
                     <option value="">-- Standort auswählen --</option>
                     <?php foreach ($locations as $location): ?>
-                    <option value="<?php echo htmlspecialchars($location['id']); ?>"><?php echo htmlspecialchars($location['name']); ?></option>
+                    <option value="<?php echo htmlspecialchars($location['id']); ?>" <?php if ($hasLocationRestriction && $location['id'] === $userLocationId): ?>selected<?php endif; ?>><?php echo htmlspecialchars($location['name']); ?></option>
                     <?php endforeach; ?>
                 </select>
+                <?php if ($hasLocationRestriction): ?>
+                <input type="hidden" name="location_id" value="<?php echo htmlspecialchars($userLocationId); ?>">
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Der Standort ist auf Ihren zugewiesenen Standort festgelegt.
+                </small>
+                <?php else: ?>
                 <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
                     Keine Standorte vorhanden? <a href="#" onclick="window.feuerwehrApp.loadPage('admin-locations'); return false;" style="color: var(--primary);">Standorte verwalten</a>
                 </small>
+                <?php endif; ?>
             </div>
             
             <div class="form-group">

@@ -26,20 +26,40 @@ try {
             if (isset($_GET['id'])) {
                 $location = DataStore::getLocationById($_GET['id']);
                 if ($location) {
+                    // Location-restricted admins can only view their own location
+                    if (Auth::hasLocationRestriction() && !Auth::canAccessLocation($location['id'])) {
+                        http_response_code(403);
+                        echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                        exit;
+                    }
                     echo json_encode(['success' => true, 'data' => $location]);
                 } else {
                     http_response_code(404);
                     echo json_encode(['success' => false, 'message' => 'Standort nicht gefunden']);
                 }
             } else {
-                $locations = DataStore::getLocations();
+                // Location-restricted admins only see their own location
+                if (Auth::hasLocationRestriction()) {
+                    $userLocationId = Auth::getUserLocationId();
+                    $location = $userLocationId ? DataStore::getLocationById($userLocationId) : null;
+                    $locations = $location ? [$location] : [];
+                } else {
+                    $locations = DataStore::getLocations();
+                }
                 echo json_encode(['success' => true, 'data' => $locations]);
             }
             break;
 
         case 'POST':
-            // Create new location - Admin only
+            // Create new location - Admin only (not for location-restricted admins)
             Auth::requireAdmin();
+            
+            // Location-restricted admins cannot create new locations
+            if (Auth::hasLocationRestriction()) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können keine neuen Standorte erstellen.']);
+                break;
+            }
             
             $data = json_decode(file_get_contents('php://input'), true);
             
@@ -65,6 +85,13 @@ try {
                 break;
             }
 
+            // Location-restricted admins can only edit their own location
+            if (Auth::hasLocationRestriction() && !Auth::canAccessLocation($data['id'])) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können nur Ihren eigenen Standort bearbeiten.']);
+                break;
+            }
+
             $location = DataStore::updateLocation($data['id'], $data);
             if ($location) {
                 echo json_encode(['success' => true, 'data' => $location, 'message' => 'Standort aktualisiert']);
@@ -75,8 +102,15 @@ try {
             break;
 
         case 'DELETE':
-            // Delete location - Admin only
+            // Delete location - Admin only (not for location-restricted admins)
             Auth::requireAdmin();
+            
+            // Location-restricted admins cannot delete locations
+            if (Auth::hasLocationRestriction()) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können keine Standorte löschen.']);
+                break;
+            }
             
             $data = json_decode(file_get_contents('php://input'), true);
             

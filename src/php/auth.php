@@ -200,6 +200,8 @@ class Auth {
 
     /**
      * Check if user has global access (no location restriction)
+     * This applies to all user types (admin, operator, regular users)
+     * Returns true if the user is not assigned to a specific location
      */
     public static function hasGlobalAccess() {
         return self::isAuthenticated() && empty($_SESSION['location_id']);
@@ -210,6 +212,34 @@ class Auth {
      */
     public static function getUserLocationId() {
         return self::isAuthenticated() ? ($_SESSION['location_id'] ?? null) : null;
+    }
+
+    /**
+     * Check if an admin user has location-based restrictions
+     * Admins with a location_id set should only manage items for that location
+     */
+    public static function hasLocationRestriction() {
+        return self::isAdmin() && !empty($_SESSION['location_id']);
+    }
+
+    /**
+     * Check if the current admin has access to a resource based on location
+     * Returns true if user has global access OR if the resource matches user's location
+     */
+    public static function canAccessLocation($resourceLocationId) {
+        if (!self::isAdmin()) {
+            return false;
+        }
+        
+        $userLocationId = self::getUserLocationId();
+        
+        // Admins without location have global access
+        if (empty($userLocationId)) {
+            return true;
+        }
+        
+        // Admins with location can only access their location's resources
+        return $resourceLocationId === $userLocationId;
     }
 
     /**
