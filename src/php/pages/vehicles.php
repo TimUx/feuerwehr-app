@@ -27,9 +27,13 @@ $locations = DataStore::getLocations();
                     <option value="">Alle Standorte</option>
                     <?php
                     foreach ($locations as $location):
+                        if (isset($location['name'])):
                     ?>
                     <option value="<?php echo htmlspecialchars($location['name']); ?>"><?php echo htmlspecialchars($location['name']); ?></option>
-                    <?php endforeach; ?>
+                    <?php
+                        endif;
+                    endforeach;
+                    ?>
                 </select>
             </div>
             <div class="form-group" style="flex: 0 0 150px; margin: 0;">
