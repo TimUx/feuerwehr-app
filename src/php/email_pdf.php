@@ -274,10 +274,16 @@ class EmailPDF {
             return self::generatePDFWithMpdf($html);
         }
         
+        // Log warning that mPDF is not available
+        error_log("WARNING: mPDF library not found. PDF will be generated without formatting. Please run 'composer install' to install dependencies.");
+        
         // Try to use wkhtmltopdf if available
         if (self::isCommandAvailable('wkhtmltopdf')) {
             return self::generatePDFWithWkhtmltopdf($html);
         }
+        
+        // Log warning that no PDF generation library is available
+        error_log("WARNING: No PDF generation library available (mPDF or wkhtmltopdf). Falling back to basic PDF generation.");
         
         // Fallback: Return basic PDF
         return self::generateSimplePDF($html);

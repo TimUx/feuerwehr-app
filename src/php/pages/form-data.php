@@ -112,9 +112,6 @@ function getLocationName($locationId, $allLocations) {
                                 <th>Dauer</th>
                                 <th>Standort</th>
                                 <th>Thema</th>
-                                <th>Übungsleiter</th>
-                                <th>Teilnehmer</th>
-                                <th>Anmerkungen</th>
                                 <th>Aktionen</th>
                             </tr>
                         </thead>
@@ -123,6 +120,20 @@ function getLocationName($locationId, $allLocations) {
                                 $attendeeNames = getPersonnelNames($record['attendees'] ?? [], $personnel);
                                 $locationName = getLocationName($record['location_id'] ?? '', $locations);
                                 $instructors = $record['uebungsleiter'] ?? [];
+                                
+                                // Prepare record data as JSON for details modal
+                                $recordJson = htmlspecialchars(json_encode([
+                                    'id' => $record['id'],
+                                    'datum' => $record['datum'] ?? $record['date'] ?? '-',
+                                    'von' => $record['von'] ?? '-',
+                                    'bis' => $record['bis'] ?? '-',
+                                    'dauer' => (!empty($record['dauer']) ? intval($record['dauer']) : (!empty($record['duration_hours']) ? intval($record['duration_hours'] * 60) : 0)),
+                                    'standort' => $locationName,
+                                    'thema' => $record['thema'] ?? $record['description'] ?? '-',
+                                    'instructors' => $instructors,
+                                    'attendees' => $attendeeNames,
+                                    'anmerkungen' => $record['anmerkungen'] ?? ''
+                                ]), ENT_QUOTES, 'UTF-8');
                             ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($record['datum'] ?? $record['date'] ?? '-'); ?></td>
@@ -143,44 +154,9 @@ function getLocationName($locationId, $allLocations) {
                                 <td><?php echo htmlspecialchars($locationName); ?></td>
                                 <td><?php echo htmlspecialchars($record['thema'] ?? $record['description'] ?? '-'); ?></td>
                                 <td>
-                                    <?php if (!empty($instructors) && is_array($instructors)): ?>
-                                        <?php echo implode(', ', array_map('htmlspecialchars', $instructors)); ?>
-                                    <?php else: ?>
-                                        -
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if (!empty($attendeeNames)): ?>
-                                        <details>
-                                            <summary><?php echo count($attendeeNames); ?> Teilnehmer</summary>
-                                            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
-                                                <?php foreach ($attendeeNames as $name): ?>
-                                                    <li><?php echo htmlspecialchars($name); ?></li>
-                                                <?php endforeach; ?>
-                                            </ul>
-                                        </details>
-                                    <?php else: ?>
-                                        -
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php 
-                                    $anmerkungen = $record['anmerkungen'] ?? '';
-                                    if (!empty($anmerkungen)): 
-                                        $preview = mb_substr($anmerkungen, 0, 50);
-                                        if (mb_strlen($anmerkungen) > 50) {
-                                            $preview .= '...';
-                                        }
-                                    ?>
-                                        <details>
-                                            <summary><?php echo htmlspecialchars($preview); ?></summary>
-                                            <div style="margin-top: 0.5rem; white-space: pre-wrap;"><?php echo htmlspecialchars($anmerkungen); ?></div>
-                                        </details>
-                                    <?php else: ?>
-                                        -
-                                    <?php endif; ?>
-                                </td>
-                                <td>
+                                    <button class="btn btn-sm btn-info" onclick='showAttendanceDetails(<?php echo $recordJson; ?>)' title="Details anzeigen">
+                                        <span class="material-icons" style="font-size: 1rem;">info</span>
+                                    </button>
                                     <button class="btn btn-sm btn-primary" onclick="resendAttendanceEmail('<?php echo htmlspecialchars($record['id']); ?>')" title="E-Mail erneut versenden">
                                         <span class="material-icons" style="font-size: 1rem;">email</span>
                                     </button>
@@ -285,11 +261,33 @@ function getLocationName($locationId, $allLocations) {
     </div>
 </div>
 
+<!-- Details Modal -->
+<div id="detailsModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+            <h2 id="modalTitle">Details</h2>
+            <button class="modal-close" onclick="closeDetailsModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Content will be inserted here -->
+        </div>
+    </div>
+</div>
+
 <style>
 .btn-sm {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
     margin: 0.125rem;
+}
+
+.btn-info {
+    background-color: #2196F3;
+    color: white;
+}
+
+.btn-info:hover {
+    background-color: #1976D2;
 }
 
 .btn-warning {
@@ -321,6 +319,103 @@ function getLocationName($locationId, $allLocations) {
 .table td[colspan] {
     white-space: normal;
 }
+
+/* Modal styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 8px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 90%;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.detail-section {
+    margin-bottom: 1.5rem;
+}
+
+.detail-section h3 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+    color: var(--primary);
+}
+
+.detail-row {
+    display: flex;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-label {
+    font-weight: bold;
+    width: 200px;
+    color: var(--text-secondary);
+}
+
+.detail-value {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+.detail-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0;
+}
+
+.detail-list li {
+    padding: 0.25rem 0;
+}
+
 </style>
 
 <script>
@@ -346,6 +441,97 @@ function switchTab(tabName) {
     activeBtn.style.borderBottom = '3px solid var(--primary)';
     activeBtn.style.color = 'var(--text-primary)';
 }
+
+function showAttendanceDetails(record) {
+    const modal = document.getElementById('detailsModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    
+    modalTitle.textContent = 'Anwesenheitsliste Details';
+    
+    let instructorsHtml = '';
+    if (record.instructors && record.instructors.length > 0) {
+        instructorsHtml = '<ul class="detail-list">';
+        record.instructors.forEach(instructor => {
+            instructorsHtml += `<li>${escapeHtml(instructor)}</li>`;
+        });
+        instructorsHtml += '</ul>';
+    } else {
+        instructorsHtml = '-';
+    }
+    
+    let attendeesHtml = '';
+    if (record.attendees && record.attendees.length > 0) {
+        attendeesHtml = '<ul class="detail-list">';
+        record.attendees.forEach(attendee => {
+            attendeesHtml += `<li>${escapeHtml(attendee)}</li>`;
+        });
+        attendeesHtml += '</ul>';
+    } else {
+        attendeesHtml = '-';
+    }
+    
+    modalBody.innerHTML = `
+        <div class="detail-section">
+            <h3>Grunddaten</h3>
+            <div class="detail-row">
+                <div class="detail-label">Datum:</div>
+                <div class="detail-value">${escapeHtml(record.datum)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Zeitraum:</div>
+                <div class="detail-value">${escapeHtml(record.von)} - ${escapeHtml(record.bis)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Dauer:</div>
+                <div class="detail-value">${record.dauer} Minuten</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Standort:</div>
+                <div class="detail-value">${escapeHtml(record.standort)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Thema:</div>
+                <div class="detail-value">${escapeHtml(record.thema)}</div>
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <h3>Übungsleiter</h3>
+            ${instructorsHtml}
+        </div>
+        
+        <div class="detail-section">
+            <h3>Teilnehmer (${record.attendees ? record.attendees.length : 0})</h3>
+            ${attendeesHtml}
+        </div>
+        
+        <div class="detail-section">
+            <h3>Anmerkungen</h3>
+            <div style="white-space: pre-wrap;">${escapeHtml(record.anmerkungen || '-')}</div>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+function closeDetailsModal() {
+    document.getElementById('detailsModal').style.display = 'none';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('detailsModal');
+    if (event.target === modal) {
+        closeDetailsModal();
+    }
+});
 
 async function resendAttendanceEmail(recordId) {
     if (!confirm('Möchten Sie die E-Mail für diese Anwesenheitsliste erneut versenden?')) {
