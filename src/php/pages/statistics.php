@@ -232,9 +232,10 @@ if ($selectedLocation) {
 
 <script>
 // Handle filter changes without form submission
+const locationEl = document.getElementById('location');
+
 function updateStatistics() {
     const year = document.getElementById('year').value;
-    const locationEl = document.getElementById('location');
     const location = locationEl ? locationEl.value : '';
     const personnel = document.getElementById('personnel').value;
     
@@ -246,7 +247,6 @@ function updateStatistics() {
 }
 
 document.getElementById('year').addEventListener('change', updateStatistics);
-const locationEl = document.getElementById('location');
 if (locationEl) {
     locationEl.addEventListener('change', updateStatistics);
 }
