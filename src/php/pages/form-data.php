@@ -9,8 +9,22 @@ require_once __DIR__ . '/../datastore.php';
 
 Auth::requireOperator();
 
-$attendanceRecords = DataStore::getAttendanceRecords();
-$missionReports = DataStore::getMissionReports();
+// Determine user's location access
+$user = Auth::getUser();
+$userLocationId = $user['location_id'] ?? null;
+// Admins and operators have global access, regular users are restricted to their location
+$isGlobalUser = Auth::isAdmin() || Auth::isOperator();
+
+// Get data filtered by location
+if ($isGlobalUser) {
+    $attendanceRecords = DataStore::getAttendanceRecords();
+    $missionReports = DataStore::getMissionReports();
+} else {
+    // Regular users see only their location's data (or nothing if no location assigned)
+    $attendanceRecords = $userLocationId ? DataStore::getAttendanceRecordsByLocation($userLocationId) : [];
+    $missionReports = $userLocationId ? DataStore::getMissionReportsByLocation($userLocationId) : [];
+}
+
 $personnel = DataStore::getPersonnel();
 $vehicles = DataStore::getVehicles();
 $locations = DataStore::getLocations();
@@ -173,6 +187,12 @@ function getLocationName($locationId, $allLocations) {
                                     <button class="btn btn-sm btn-secondary" onclick="downloadAttendancePDF('<?php echo htmlspecialchars($record['id']); ?>')" title="PDF herunterladen">
                                         <span class="material-icons" style="font-size: 1rem;">download</span>
                                     </button>
+                                    <button class="btn btn-sm btn-warning" onclick="editAttendanceRecord('<?php echo htmlspecialchars($record['id']); ?>')" title="Bearbeiten">
+                                        <span class="material-icons" style="font-size: 1rem;">edit</span>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteAttendanceRecord('<?php echo htmlspecialchars($record['id']); ?>')" title="Löschen">
+                                        <span class="material-icons" style="font-size: 1rem;">delete</span>
+                                    </button>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -248,6 +268,12 @@ function getLocationName($locationId, $allLocations) {
                                     <button class="btn btn-sm btn-secondary" onclick="downloadMissionPDF('<?php echo htmlspecialchars($report['id']); ?>')" title="PDF herunterladen">
                                         <span class="material-icons" style="font-size: 1rem;">download</span>
                                     </button>
+                                    <button class="btn btn-sm btn-warning" onclick="editMissionReport('<?php echo htmlspecialchars($report['id']); ?>')" title="Bearbeiten">
+                                        <span class="material-icons" style="font-size: 1rem;">edit</span>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteMissionReport('<?php echo htmlspecialchars($report['id']); ?>')" title="Löschen">
+                                        <span class="material-icons" style="font-size: 1rem;">delete</span>
+                                    </button>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -264,6 +290,24 @@ function getLocationName($locationId, $allLocations) {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
     margin: 0.125rem;
+}
+
+.btn-warning {
+    background-color: #ff9800;
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #f57c00;
+}
+
+.btn-danger {
+    background-color: #f44336;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #d32f2f;
 }
 
 .table-container {
@@ -428,6 +472,78 @@ async function downloadMissionPDF(reportId) {
     } catch (error) {
         console.error('Error:', error);
         window.feuerwehrApp.showAlert('error', 'Fehler beim Herunterladen des PDFs');
+    }
+}
+
+async function editAttendanceRecord(recordId) {
+    // Redirect to attendance page with edit parameter
+    window.location.href = '/index.php?page=attendance&edit=' + recordId;
+}
+
+async function deleteAttendanceRecord(recordId) {
+    if (!confirm('Möchten Sie diese Anwesenheitsliste wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/src/php/api/attendance.php', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id: recordId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.feuerwehrApp.showAlert('success', result.message || 'Anwesenheitsliste wurde gelöscht');
+            // Reload page to refresh list
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            window.feuerwehrApp.showAlert('error', result.message || 'Fehler beim Löschen der Anwesenheitsliste');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Löschen der Anwesenheitsliste');
+    }
+}
+
+async function editMissionReport(reportId) {
+    // Redirect to mission report page with edit parameter
+    window.location.href = '/index.php?page=mission-report&edit=' + reportId;
+}
+
+async function deleteMissionReport(reportId) {
+    if (!confirm('Möchten Sie diesen Einsatzbericht wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/src/php/api/mission-report.php', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id: reportId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.feuerwehrApp.showAlert('success', result.message || 'Einsatzbericht wurde gelöscht');
+            // Reload page to refresh list
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            window.feuerwehrApp.showAlert('error', result.message || 'Fehler beim Löschen des Einsatzberichts');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Löschen des Einsatzberichts');
     }
 }
 </script>

@@ -363,6 +363,32 @@ class DataStore {
     }
 
     /**
+     * Get attendance records filtered by location (if locationId is null, returns all)
+     */
+    public static function getAttendanceRecordsByLocation($locationId = null) {
+        $records = self::getAttendanceRecords();
+        if ($locationId === null) {
+            return $records;
+        }
+        return array_filter($records, function($record) use ($locationId) {
+            return !isset($record['location_id']) || $record['location_id'] === $locationId;
+        });
+    }
+
+    /**
+     * Get single attendance record by ID
+     */
+    public static function getAttendanceRecordById($id) {
+        $records = self::getAttendanceRecords();
+        foreach ($records as $record) {
+            if ($record['id'] === $id) {
+                return $record;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Create attendance record
      */
     public static function createAttendanceRecord($data) {
@@ -385,6 +411,39 @@ class DataStore {
         return $newRecord;
     }
 
+    /**
+     * Update attendance record
+     */
+    public static function updateAttendanceRecord($id, $data) {
+        $records = self::getAttendanceRecords();
+        
+        foreach ($records as &$record) {
+            if ($record['id'] === $id) {
+                // Merge new data with existing record
+                $record = array_merge($record, $data);
+                $record['updated_at'] = date('Y-m-d H:i:s');
+                
+                self::save('attendance.json', $records);
+                return $record;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Delete attendance record
+     */
+    public static function deleteAttendanceRecord($id) {
+        $records = self::getAttendanceRecords();
+        $records = array_filter($records, function($record) use ($id) {
+            return $record['id'] !== $id;
+        });
+        
+        self::save('attendance.json', array_values($records));
+        return true;
+    }
+
     // ==================== Mission Reports ====================
 
     /**
@@ -392,6 +451,32 @@ class DataStore {
      */
     public static function getMissionReports() {
         return self::load('missions.json');
+    }
+
+    /**
+     * Get mission reports filtered by location (if locationId is null, returns all)
+     */
+    public static function getMissionReportsByLocation($locationId = null) {
+        $reports = self::getMissionReports();
+        if ($locationId === null) {
+            return $reports;
+        }
+        return array_filter($reports, function($report) use ($locationId) {
+            return !isset($report['location_id']) || $report['location_id'] === $locationId;
+        });
+    }
+
+    /**
+     * Get single mission report by ID
+     */
+    public static function getMissionReportById($id) {
+        $reports = self::getMissionReports();
+        foreach ($reports as $report) {
+            if ($report['id'] === $id) {
+                return $report;
+            }
+        }
+        return null;
     }
 
     /**
@@ -409,6 +494,7 @@ class DataStore {
             'participants' => $data['participants'] ?? [],
             'vehicles' => $data['vehicles'] ?? [],
             'duration_hours' => $data['duration_hours'] ?? 0,
+            'location_id' => $data['location_id'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
             'created_by' => $data['created_by'] ?? null
         ];
@@ -416,6 +502,39 @@ class DataStore {
         $reports[] = $newReport;
         self::save('missions.json', $reports);
         return $newReport;
+    }
+
+    /**
+     * Update mission report
+     */
+    public static function updateMissionReport($id, $data) {
+        $reports = self::getMissionReports();
+        
+        foreach ($reports as &$report) {
+            if ($report['id'] === $id) {
+                // Merge new data with existing report
+                $report = array_merge($report, $data);
+                $report['updated_at'] = date('Y-m-d H:i:s');
+                
+                self::save('missions.json', $reports);
+                return $report;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Delete mission report
+     */
+    public static function deleteMissionReport($id) {
+        $reports = self::getMissionReports();
+        $reports = array_filter($reports, function($report) use ($id) {
+            return $report['id'] !== $id;
+        });
+        
+        self::save('missions.json', array_values($reports));
+        return true;
     }
 
     // ==================== Statistics ====================
