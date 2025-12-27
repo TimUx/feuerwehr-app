@@ -26,14 +26,21 @@ try {
             if (isset($_GET['id'])) {
                 $vehicle = DataStore::getVehicleById($_GET['id']);
                 if ($vehicle) {
-                    // Check location access for non-admin/operator users
+                    // Check location access
                     $user = Auth::getUser();
                     $userLocationId = $user['location_id'] ?? null;
-                    // Admins and operators have global access
-                    $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
                     
-                    if (!$isGlobalUser) {
-                        // Regular users can only access their location's vehicles
+                    // Location-restricted admins can only access their location's vehicles
+                    if (Auth::hasLocationRestriction()) {
+                        $vehicleLocationId = $vehicle['location_id'] ?? null;
+                        if (!Auth::canAccessLocation($vehicleLocationId)) {
+                            http_response_code(403);
+                            echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                            exit;
+                        }
+                    }
+                    // Regular users (non-admin/non-operator) also have location restrictions
+                    elseif (!Auth::isAdmin() && !Auth::isOperator()) {
                         if (!$userLocationId || (isset($vehicle['location_id']) && $vehicle['location_id'] !== $userLocationId)) {
                             http_response_code(403);
                             echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
@@ -47,16 +54,20 @@ try {
                     echo json_encode(['success' => false, 'message' => 'Fahrzeug nicht gefunden']);
                 }
             } else {
-                // Filter vehicles by location for non-admin/operator users
+                // Filter vehicles by location
                 $user = Auth::getUser();
                 $userLocationId = $user['location_id'] ?? null;
-                // Admins and operators have global access
-                $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
                 
-                if ($isGlobalUser) {
+                // Location-restricted admins only see their location's vehicles
+                if (Auth::hasLocationRestriction()) {
+                    $vehicles = $userLocationId ? DataStore::getVehiclesByLocation($userLocationId) : [];
+                }
+                // Admins without location restriction have global access
+                elseif (Auth::isAdmin() || Auth::isOperator()) {
                     $vehicles = DataStore::getVehicles();
-                } else {
-                    // Regular users see only their location's vehicles (or nothing if no location)
+                } 
+                // Regular users see only their location's vehicles
+                else {
                     $vehicles = $userLocationId ? DataStore::getVehiclesByLocation($userLocationId) : [];
                 }
                 
@@ -76,6 +87,19 @@ try {
                 break;
             }
 
+            // If admin has location restriction, auto-set location and validate
+            if (Auth::hasLocationRestriction()) {
+                $userLocationId = Auth::getUserLocationId();
+                $data['location_id'] = $userLocationId;
+            }
+            
+            // Validate location access for location-restricted admins
+            if (Auth::hasLocationRestriction() && !Auth::canAccessLocation($data['location_id'] ?? null)) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können nur Fahrzeuge für Ihren Standort verwalten.']);
+                break;
+            }
+
             $vehicle = DataStore::createVehicle($data);
             echo json_encode(['success' => true, 'data' => $vehicle, 'message' => 'Fahrzeug erstellt']);
             break;
@@ -90,6 +114,31 @@ try {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'ID ist erforderlich']);
                 break;
+            }
+
+            // Check if vehicle exists and if admin has access to it
+            $existingVehicle = DataStore::getVehicleById($data['id']);
+            if (!$existingVehicle) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Fahrzeug nicht gefunden']);
+                break;
+            }
+            
+            // Validate location access for location-restricted admins
+            if (Auth::hasLocationRestriction()) {
+                $existingLocationId = $existingVehicle['location_id'] ?? null;
+                if (!Auth::canAccessLocation($existingLocationId)) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können nur Fahrzeuge Ihres Standorts bearbeiten.']);
+                    break;
+                }
+                
+                // Don't allow changing location for location-restricted admins
+                if (isset($data['location_id']) && $data['location_id'] !== $existingLocationId) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Sie können den Standort nicht ändern.']);
+                    break;
+                }
             }
 
             $vehicle = DataStore::updateVehicle($data['id'], $data);
@@ -111,6 +160,24 @@ try {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'ID ist erforderlich']);
                 break;
+            }
+
+            // Check if vehicle exists and if admin has access to it
+            $existingVehicle = DataStore::getVehicleById($data['id']);
+            if (!$existingVehicle) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Fahrzeug nicht gefunden']);
+                break;
+            }
+            
+            // Validate location access for location-restricted admins
+            if (Auth::hasLocationRestriction()) {
+                $existingLocationId = $existingVehicle['location_id'] ?? null;
+                if (!Auth::canAccessLocation($existingLocationId)) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können nur Fahrzeuge Ihres Standorts löschen.']);
+                    break;
+                }
             }
 
             DataStore::deleteVehicle($data['id']);

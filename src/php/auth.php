@@ -213,6 +213,34 @@ class Auth {
     }
 
     /**
+     * Check if an admin user has location-based restrictions
+     * Admins with a location_id set should only manage items for that location
+     */
+    public static function hasLocationRestriction() {
+        return self::isAdmin() && !empty($_SESSION['location_id']);
+    }
+
+    /**
+     * Check if the current admin has access to a resource based on location
+     * Returns true if user has global access OR if the resource matches user's location
+     */
+    public static function canAccessLocation($resourceLocationId) {
+        if (!self::isAdmin()) {
+            return false;
+        }
+        
+        $userLocationId = self::getUserLocationId();
+        
+        // Admins without location have global access
+        if (empty($userLocationId)) {
+            return true;
+        }
+        
+        // Admins with location can only access their location's resources
+        return $resourceLocationId === $userLocationId;
+    }
+
+    /**
      * Load users from encrypted storage
      */
     private static function loadUsers() {

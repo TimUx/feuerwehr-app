@@ -8,8 +8,19 @@ require_once __DIR__ . '/../datastore.php';
 
 Auth::requireAdmin();
 
+// Filter users by location for location-restricted admins
 $users = Auth::listUsers();
+if (Auth::hasLocationRestriction()) {
+    $userLocationId = Auth::getUserLocationId();
+    $users = array_filter($users, function($user) use ($userLocationId) {
+        return ($user['location_id'] ?? null) === $userLocationId;
+    });
+    $users = array_values($users); // Re-index array
+}
+
 $locations = DataStore::getLocations();
+$hasLocationRestriction = Auth::hasLocationRestriction();
+$userLocationId = Auth::getUserLocationId();
 ?>
 
 <div class="card">
@@ -122,18 +133,25 @@ $locations = DataStore::getLocations();
             
             <div class="form-group">
                 <label class="form-label" for="location_id">Standort</label>
-                <select id="location_id" name="location_id" class="form-select">
+                <select id="location_id" name="location_id" class="form-select" <?php if ($hasLocationRestriction): ?>disabled<?php endif; ?>>
                     <option value="">Global (alle Standorte)</option>
                     <?php foreach ($locations as $location): ?>
-                        <option value="<?php echo htmlspecialchars($location['id']); ?>">
+                        <option value="<?php echo htmlspecialchars($location['id']); ?>" <?php if ($hasLocationRestriction && $location['id'] === $userLocationId): ?>selected<?php endif; ?>>
                             <?php echo htmlspecialchars($location['name']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <?php if ($hasLocationRestriction): ?>
+                <input type="hidden" name="location_id" value="<?php echo htmlspecialchars($userLocationId); ?>">
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Der Standort ist auf Ihren zugewiesenen Standort festgelegt.
+                </small>
+                <?php else: ?>
                 <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
                     Global: Benutzer kann alle Standorte sehen und bearbeiten<br>
                     Standort-spezifisch: Benutzer sieht nur Fahrzeuge und Einsatzkräfte des zugewiesenen Standorts
                 </small>
+                <?php endif; ?>
             </div>
             
             <div class="modal-footer">

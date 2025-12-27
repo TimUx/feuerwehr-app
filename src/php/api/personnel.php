@@ -26,14 +26,21 @@ try {
             if (isset($_GET['id'])) {
                 $personnel = DataStore::getPersonnelById($_GET['id']);
                 if ($personnel) {
-                    // Check location access for non-admin/operator users
+                    // Check location access
                     $user = Auth::getUser();
                     $userLocationId = $user['location_id'] ?? null;
-                    // Admins and operators have global access
-                    $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
                     
-                    if (!$isGlobalUser) {
-                        // Regular users can only access their location's personnel
+                    // Location-restricted admins can only access their location's personnel
+                    if (Auth::hasLocationRestriction()) {
+                        $personnelLocationId = $personnel['location_id'] ?? null;
+                        if (!Auth::canAccessLocation($personnelLocationId)) {
+                            http_response_code(403);
+                            echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                            exit;
+                        }
+                    }
+                    // Regular users (non-admin/non-operator) also have location restrictions
+                    elseif (!Auth::isAdmin() && !Auth::isOperator()) {
                         if (!$userLocationId || (isset($personnel['location_id']) && $personnel['location_id'] !== $userLocationId)) {
                             http_response_code(403);
                             echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
@@ -47,16 +54,20 @@ try {
                     echo json_encode(['success' => false, 'message' => 'Einsatzkraft nicht gefunden']);
                 }
             } else {
-                // Filter personnel by location for non-admin/operator users
+                // Filter personnel by location
                 $user = Auth::getUser();
                 $userLocationId = $user['location_id'] ?? null;
-                // Admins and operators have global access
-                $isGlobalUser = Auth::isAdmin() || Auth::isOperator();
                 
-                if ($isGlobalUser) {
+                // Location-restricted admins only see their location's personnel
+                if (Auth::hasLocationRestriction()) {
+                    $personnel = $userLocationId ? DataStore::getPersonnelByLocation($userLocationId) : [];
+                }
+                // Admins without location restriction have global access
+                elseif (Auth::isAdmin() || Auth::isOperator()) {
                     $personnel = DataStore::getPersonnel();
-                } else {
-                    // Regular users see only their location's personnel (or nothing if no location)
+                } 
+                // Regular users see only their location's personnel
+                else {
                     $personnel = $userLocationId ? DataStore::getPersonnelByLocation($userLocationId) : [];
                 }
                 
@@ -76,6 +87,19 @@ try {
                 break;
             }
 
+            // If admin has location restriction, auto-set location and validate
+            if (Auth::hasLocationRestriction()) {
+                $userLocationId = Auth::getUserLocationId();
+                $data['location_id'] = $userLocationId;
+            }
+            
+            // Validate location access for location-restricted admins
+            if (Auth::hasLocationRestriction() && !Auth::canAccessLocation($data['location_id'] ?? null)) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können nur Einsatzkräfte für Ihren Standort verwalten.']);
+                break;
+            }
+
             $personnel = DataStore::createPersonnel($data);
             echo json_encode(['success' => true, 'data' => $personnel, 'message' => 'Einsatzkraft erstellt']);
             break;
@@ -90,6 +114,31 @@ try {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'ID ist erforderlich']);
                 break;
+            }
+
+            // Check if personnel exists and if admin has access to it
+            $existingPersonnel = DataStore::getPersonnelById($data['id']);
+            if (!$existingPersonnel) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Einsatzkraft nicht gefunden']);
+                break;
+            }
+            
+            // Validate location access for location-restricted admins
+            if (Auth::hasLocationRestriction()) {
+                $existingLocationId = $existingPersonnel['location_id'] ?? null;
+                if (!Auth::canAccessLocation($existingLocationId)) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können nur Einsatzkräfte Ihres Standorts bearbeiten.']);
+                    break;
+                }
+                
+                // Don't allow changing location for location-restricted admins
+                if (isset($data['location_id']) && $data['location_id'] !== $existingLocationId) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Sie können den Standort nicht ändern.']);
+                    break;
+                }
             }
 
             $personnel = DataStore::updatePersonnel($data['id'], $data);
@@ -111,6 +160,24 @@ try {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'ID ist erforderlich']);
                 break;
+            }
+
+            // Check if personnel exists and if admin has access to it
+            $existingPersonnel = DataStore::getPersonnelById($data['id']);
+            if (!$existingPersonnel) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Einsatzkraft nicht gefunden']);
+                break;
+            }
+            
+            // Validate location access for location-restricted admins
+            if (Auth::hasLocationRestriction()) {
+                $existingLocationId = $existingPersonnel['location_id'] ?? null;
+                if (!Auth::canAccessLocation($existingLocationId)) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können nur Einsatzkräfte Ihres Standorts löschen.']);
+                    break;
+                }
             }
 
             DataStore::deletePersonnel($data['id']);

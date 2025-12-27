@@ -8,16 +8,27 @@ require_once __DIR__ . '/../datastore.php';
 
 Auth::requireAdmin();
 
-$locations = DataStore::getLocations();
+// Filter locations for location-restricted admins
+if (Auth::hasLocationRestriction()) {
+    $userLocationId = Auth::getUserLocationId();
+    $location = $userLocationId ? DataStore::getLocationById($userLocationId) : null;
+    $locations = $location ? [$location] : [];
+} else {
+    $locations = DataStore::getLocations();
+}
+
+$hasLocationRestriction = Auth::hasLocationRestriction();
 ?>
 
 <div class="card">
     <div class="card-header">
         <span>Einsatzabteilungen / Standorte</span>
+        <?php if (!$hasLocationRestriction): ?>
         <button class="btn btn-primary" onclick="openLocationModal()">
             <span class="material-icons">add</span>
             Hinzufügen
         </button>
+        <?php endif; ?>
     </div>
     <div class="card-content">
         <p style="color: var(--text-secondary); margin-bottom: 1rem;">
@@ -53,9 +64,11 @@ $locations = DataStore::getLocations();
                                 <button class="icon-btn" onclick='editLocation(<?php echo json_encode($location); ?>)' title="Bearbeiten">
                                     <span class="material-icons">edit</span>
                                 </button>
+                                <?php if (!$hasLocationRestriction): ?>
                                 <button class="icon-btn" onclick="deleteLocation('<?php echo $location['id']; ?>', '<?php echo htmlspecialchars($location['name']); ?>')" title="Löschen">
                                     <span class="material-icons">delete</span>
                                 </button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
