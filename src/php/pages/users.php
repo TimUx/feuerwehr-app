@@ -26,6 +26,7 @@ $locations = DataStore::getLocations();
                 <thead>
                     <tr>
                         <th>Benutzername</th>
+                        <th>E-Mail</th>
                         <th>Rolle</th>
                         <th>Standort</th>
                         <th>Erstellt am</th>
@@ -42,6 +43,13 @@ $locations = DataStore::getLocations();
                     ?>
                     <tr>
                         <td><?php echo htmlspecialchars($user['username']); ?></td>
+                        <td>
+                            <?php if (!empty($user['email'])): ?>
+                                <?php echo htmlspecialchars($user['email']); ?>
+                            <?php else: ?>
+                                <span style="color: var(--text-secondary);">Keine E-Mail</span>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <span class="badge badge-<?php echo $user['role'] === 'admin' ? 'primary' : 'info'; ?>">
                                 <?php echo htmlspecialchars($user['role']); ?>
@@ -88,6 +96,14 @@ $locations = DataStore::getLocations();
             <div class="form-group">
                 <label class="form-label" for="username">Benutzername *</label>
                 <input type="text" id="username" name="username" class="form-input" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="email">E-Mail-Adresse</label>
+                <input type="email" id="email" name="email" class="form-input" placeholder="benutzer@example.com">
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                    Optional. Wird für die Passwort-Wiederherstellung benötigt.
+                </small>
             </div>
             
             <div class="form-group">
@@ -147,6 +163,7 @@ function editUser(user) {
     document.getElementById('modal-title').textContent = 'Benutzer bearbeiten';
     document.getElementById('user-id').value = user.id;
     document.getElementById('username').value = user.username;
+    document.getElementById('email').value = user.email || '';
     document.getElementById('password').value = '';
     document.getElementById('password').required = false;
     document.getElementById('password-hint').style.display = 'block';
@@ -188,6 +205,11 @@ document.getElementById('user-form').addEventListener('submit', async (e) => {
         username: formData.get('username'),
         role: formData.get('role')
     };
+    
+    const email = formData.get('email');
+    if (email) {
+        data.email = email;
+    }
     
     const password = formData.get('password');
     if (password) {

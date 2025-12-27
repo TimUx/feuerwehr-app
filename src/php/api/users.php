@@ -34,7 +34,8 @@ try {
 
             $role = $data['role'] ?? 'operator';
             $locationId = isset($data['location_id']) && $data['location_id'] !== '' ? $data['location_id'] : null;
-            $success = Auth::createUser($data['username'], $data['password'], $role, $locationId);
+            $email = isset($data['email']) && $data['email'] !== '' ? $data['email'] : null;
+            $success = Auth::createUser($data['username'], $data['password'], $role, $locationId, $email);
             
             if ($success) {
                 echo json_encode(['success' => true, 'message' => 'Benutzer erstellt']);
@@ -66,6 +67,9 @@ try {
             }
             if (isset($data['location_id'])) {
                 $updateData['location_id'] = $data['location_id'] !== '' ? $data['location_id'] : null;
+            }
+            if (isset($data['email'])) {
+                $updateData['email'] = $data['email'] !== '' ? $data['email'] : null;
             }
 
             $success = Auth::updateUser($data['id'], $updateData);
