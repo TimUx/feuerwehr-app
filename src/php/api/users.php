@@ -46,17 +46,10 @@ try {
             $locationId = isset($data['location_id']) && $data['location_id'] !== '' ? $data['location_id'] : null;
             $email = isset($data['email']) && $data['email'] !== '' ? $data['email'] : null;
             
-            // If admin has location restriction, auto-set location and validate
+            // If admin has location restriction, auto-set location to their assigned location
             if (Auth::hasLocationRestriction()) {
                 $userLocationId = Auth::getUserLocationId();
                 $locationId = $userLocationId;
-            }
-            
-            // Validate location access for location-restricted admins
-            if (Auth::hasLocationRestriction() && !Auth::canAccessLocation($locationId)) {
-                http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können nur Benutzer für Ihren Standort erstellen.']);
-                break;
             }
             
             $success = Auth::createUser($data['username'], $data['password'], $role, $locationId, $email);

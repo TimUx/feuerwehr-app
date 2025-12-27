@@ -151,7 +151,7 @@ $userLocationId = Auth::getUserLocationId();
             
             <div class="form-group">
                 <label class="form-label" for="vehicle-location">Standort *</label>
-                <select id="vehicle-location" name="location_id" class="form-input" required <?php if ($hasLocationRestriction): ?>disabled<?php endif; ?>>
+                <select id="vehicle-location" name="location_id" class="form-input" required <?php if ($hasLocationRestriction): ?>disabled="disabled"<?php endif; ?>>
                     <option value="">-- Standort auswählen --</option>
                     <?php foreach ($locations as $location): ?>
                     <option value="<?php echo htmlspecialchars($location['id']); ?>" <?php if ($hasLocationRestriction && $location['id'] === $userLocationId): ?>selected<?php endif; ?>><?php echo htmlspecialchars($location['name']); ?></option>

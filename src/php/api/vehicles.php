@@ -87,17 +87,10 @@ try {
                 break;
             }
 
-            // If admin has location restriction, auto-set location and validate
+            // If admin has location restriction, auto-set location to their assigned location
             if (Auth::hasLocationRestriction()) {
                 $userLocationId = Auth::getUserLocationId();
                 $data['location_id'] = $userLocationId;
-            }
-            
-            // Validate location access for location-restricted admins
-            if (Auth::hasLocationRestriction() && !Auth::canAccessLocation($data['location_id'] ?? null)) {
-                http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert. Sie können nur Fahrzeuge für Ihren Standort verwalten.']);
-                break;
             }
 
             $vehicle = DataStore::createVehicle($data);

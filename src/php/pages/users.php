@@ -133,7 +133,7 @@ $userLocationId = Auth::getUserLocationId();
             
             <div class="form-group">
                 <label class="form-label" for="location_id">Standort</label>
-                <select id="location_id" name="location_id" class="form-select" <?php if ($hasLocationRestriction): ?>disabled<?php endif; ?>>
+                <select id="location_id" name="location_id" class="form-select" <?php if ($hasLocationRestriction): ?>disabled="disabled"<?php endif; ?>>
                     <option value="">Global (alle Standorte)</option>
                     <?php foreach ($locations as $location): ?>
                         <option value="<?php echo htmlspecialchars($location['id']); ?>" <?php if ($hasLocationRestriction && $location['id'] === $userLocationId): ?>selected<?php endif; ?>>
