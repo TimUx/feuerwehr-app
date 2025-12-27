@@ -1,39 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Red background with rounded corners -->
-  <rect width="512" height="512" fill="#d32f2f" rx="90"/>
+  <!-- Red background -->
+  <rect width="512" height="512" fill="#d32f2f"/>
   
-  <!-- Simple flame design -->
-  <g transform="translate(256, 256)">
-    <!-- Main flame body (white) -->
-    <path d="M 0,-150
-             C -30,-150 -55,-125 -60,-95
-             C -65,-65 -55,-35 -40,-10
-             C -50,15 -55,40 -55,70
-             C -55,120 -20,160 30,170
-             C 50,173 70,170 85,160
-             C 115,140 135,105 135,65
-             C 135,35 128,10 115,-15
-             C 130,-40 140,-65 140,-90
-             C 140,-125 115,-150 80,-150
-             C 60,-150 40,-145 25,-130
-             C 10,-145 -10,-150 -25,-150
-             Z"
-          fill="#ffffff"/>
-    
-    <!-- Inner flame (yellow/orange) -->
-    <path d="M 45,-90
-             C 30,-90 20,-80 18,-65
-             C 16,-50 22,-35 35,-20
-             C 30,0 28,20 28,40
-             C 28,70 45,95 75,105
-             C 85,107 95,105 102,98
-             C 118,85 125,65 125,45
-             C 125,25 120,8 110,-10
-             C 118,-25 122,-40 122,-55
-             C 122,-75 108,-90 88,-90
-             C 75,-90 65,-85 58,-75
-             C 52,-85 45,-90 45,-90
-             Z"
-          fill="#ffc107"/>
-  </g>
+  <!-- White flame emoji -->
+  <text x="256" y="340" font-size="280" text-anchor="middle" fill="white">🔥</text>
 </svg>
