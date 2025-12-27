@@ -19,13 +19,15 @@ $selectedLocation = $_GET['location'] ?? null;
 $stats = DataStore::getStatistics($currentYear);
 
 // Filter personnel and locations based on user's location
-if ($userLocationId && !$isGlobalAdmin) {
+if (!$isGlobalAdmin && $userLocationId) {
     // Non-global users can only see their own location
     $personnel = DataStore::getPersonnelByLocation($userLocationId);
-    $locations = [DataStore::getLocationById($userLocationId)];
+    $location = DataStore::getLocationById($userLocationId);
+    $locations = $location ? [$location] : [];
     
     // Force filter to user's location if not already set or if different
-    if (!$selectedLocation || $selectedLocation !== $userLocationId) {
+    // Cast both to string for comparison since GET parameters are strings
+    if (!$selectedLocation || (string)$selectedLocation !== (string)$userLocationId) {
         $selectedLocation = $userLocationId;
     }
 } else {
