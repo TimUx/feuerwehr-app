@@ -442,6 +442,24 @@ class EmailPDF {
         // Get vehicles as HTML
         $fahrzeuge = isset($data['eingesetzte_fahrzeuge']) ? implode('<br>', array_map('htmlspecialchars', $data['eingesetzte_fahrzeuge'])) : '-';
         
+        // Handle fahrzeugbesatzung - might be stored separately or merged in 'participants'
+        $fahrzeugbesatzung = $data['fahrzeugbesatzung'] ?? [];
+        $beteiligte_personen = $data['beteiligte_personen'] ?? [];
+        
+        // If fahrzeugbesatzung is empty but participants exists, try to extract crew from participants
+        if (empty($fahrzeugbesatzung) && !empty($data['participants'])) {
+            // Separate participants into crew and involved persons based on structure
+            foreach ($data['participants'] as $participant) {
+                if (isset($participant['fahrzeug'])) {
+                    // This is a crew member
+                    $fahrzeugbesatzung[] = $participant;
+                } elseif (isset($participant['beteiligungsart'])) {
+                    // This is an involved person
+                    $beteiligte_personen[] = $participant;
+                }
+            }
+        }
+        
         $html = '<!DOCTYPE html>
 <html>
 <head>
@@ -535,9 +553,9 @@ class EmailPDF {
     </style>
 </head>
 <body>
-    <div class="header-container">
+    <div class="header-container" style="position: relative; margin-bottom: 10px; padding-right: 100px;">
         <h1>' . $fireDepartmentName . $fireDepartmentCity . '</h1>
-        ' . ($logo ? '<img src="' . $logo . '" alt="Logo ' . $fireDepartmentName . '">' : '') . '
+        ' . ($logo ? '<img src="' . $logo . '" alt="Logo ' . $fireDepartmentName . '" style="position: absolute; top: 0; right: 0; max-height: 60px; max-width: 90px; height: auto; width: auto;">' : '') . '
     </div>
     <hr class="header-line">
     <h2>Einsatzbericht</h2>
@@ -598,9 +616,9 @@ class EmailPDF {
     </tbody>
     </table>
     <h3>Fahrzeugbesatzung</h3>
-    ' . self::generateCrewByVehicle($data['fahrzeugbesatzung'] ?? [], $data['eingesetzte_fahrzeuge'] ?? []) . '
+    ' . self::generateCrewByVehicle($fahrzeugbesatzung, $data['eingesetzte_fahrzeuge'] ?? []) . '
     <h3>Beteiligte Personen</h3>
-    ' . self::generateInvolvedPersonsTable($data['beteiligte_personen'] ?? []) . '
+    ' . self::generateInvolvedPersonsTable($beteiligte_personen) . '
 </body>
 </html>';
         
@@ -730,9 +748,9 @@ class EmailPDF {
     </style>
 </head>
 <body>
-    <div class="header-container">
+    <div class="header-container" style="position: relative; margin-bottom: 10px; padding-right: 100px;">
         <h1>' . $fireDepartmentName . $fireDepartmentCity . '</h1>
-        ' . ($logo ? '<img src="' . $logo . '" alt="Logo ' . $fireDepartmentName . '">' : '') . '
+        ' . ($logo ? '<img src="' . $logo . '" alt="Logo ' . $fireDepartmentName . '" style="position: absolute; top: 0; right: 0; max-height: 60px; max-width: 90px; height: auto; width: auto;">' : '') . '
     </div>
     <hr class="header-line">
     <h2>Anwesenheitsliste</h2>

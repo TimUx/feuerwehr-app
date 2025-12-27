@@ -9,6 +9,7 @@ require_once __DIR__ . '/../datastore.php';
 Auth::requireAuth();
 
 $vehicles = DataStore::getVehicles();
+$locations = DataStore::getLocations();
 ?>
 
 <div class="card">
@@ -23,14 +24,16 @@ $vehicles = DataStore::getVehicles();
             </div>
             <div class="form-group" style="flex: 0 0 150px; margin: 0;">
                 <select id="filterLocation" class="form-input">
-                    <option value="">Alle Orte</option>
+                    <option value="">Alle Standorte</option>
                     <?php
-                    $locations = array_unique(array_filter(array_column($vehicles, 'location')));
-                    sort($locations);
                     foreach ($locations as $location):
+                        if (isset($location['name'])):
                     ?>
-                    <option value="<?php echo htmlspecialchars($location); ?>"><?php echo htmlspecialchars($location); ?></option>
-                    <?php endforeach; ?>
+                    <option value="<?php echo htmlspecialchars($location['name']); ?>"><?php echo htmlspecialchars($location['name']); ?></option>
+                    <?php
+                        endif;
+                    endforeach;
+                    ?>
                 </select>
             </div>
             <div class="form-group" style="flex: 0 0 150px; margin: 0;">
@@ -72,12 +75,13 @@ $vehicles = DataStore::getVehicles();
                             return strcasecmp($a['radio_call_sign'] ?? '', $b['radio_call_sign'] ?? '');
                         });
                         foreach ($vehicles as $vehicle): 
+                            $locationName = DataStore::getLocationNameById($vehicle['location_id'] ?? null) ?? $vehicle['location'] ?? '-';
                         ?>
                         <tr data-type="<?php echo htmlspecialchars($vehicle['type']); ?>" 
-                            data-location="<?php echo htmlspecialchars($vehicle['location'] ?? ''); ?>"
+                            data-location="<?php echo htmlspecialchars($locationName); ?>"
                             data-radio="<?php echo htmlspecialchars($vehicle['radio_call_sign'] ?? ''); ?>">
                             <td><strong><?php echo htmlspecialchars($vehicle['type']); ?></strong></td>
-                            <td><?php echo htmlspecialchars($vehicle['location'] ?? '-'); ?></td>
+                            <td><?php echo htmlspecialchars($locationName); ?></td>
                             <td><?php echo htmlspecialchars($vehicle['radio_call_sign'] ?? '-'); ?></td>
                         </tr>
                         <?php endforeach; ?>
