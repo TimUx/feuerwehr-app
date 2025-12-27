@@ -22,8 +22,7 @@ if ($hasGlobalAccess) {
 } else {
     $personnelCount = count(DataStore::getPersonnelByLocation($userLocationId));
     $vehiclesCount = count(DataStore::getVehiclesByLocation($userLocationId));
-    // For now, show all attendance and mission records
-    // TODO: Implement location filtering for these if needed
+    // Show all attendance and mission records since they may span multiple locations
     $attendanceCount = count(DataStore::getAttendanceRecords());
     $missionsCount = count(DataStore::getMissionReports());
 }

@@ -200,6 +200,8 @@ class Auth {
 
     /**
      * Check if user has global access (no location restriction)
+     * This applies to all user types (admin, operator, regular users)
+     * Returns true if the user is not assigned to a specific location
      */
     public static function hasGlobalAccess() {
         return self::isAuthenticated() && empty($_SESSION['location_id']);
