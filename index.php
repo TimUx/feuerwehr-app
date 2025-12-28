@@ -34,7 +34,7 @@ function getSafeRedirectUrl($path) {
 // Handle logout
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     Auth::logout();
-    header('Location: ' . getSafeRedirectUrl('/index.php'));
+    header('Location: /index.php');
     exit;
 }
 
