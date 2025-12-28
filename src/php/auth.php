@@ -108,17 +108,19 @@ class Auth {
                 $_SESSION['login_time'] = time();
                 $_SESSION['last_activity'] = time();
                 
-                // Regenerate session ID and delete old session
-                session_regenerate_id(true);
-                
-                // Handle "Remember Me" functionality
+                // Handle "Remember Me" functionality before regenerating session
                 if ($rememberMe) {
                     self::setRememberMeCookie($user['id']);
                 }
                 
-                // Let session data be written automatically by PHP during script shutdown
-                // After session_regenerate_id(), PHP will send the new session cookie header
-                // The session data will be written when the script ends normally
+                // Regenerate session ID WITHOUT deleting old session immediately
+                // This avoids race conditions where the new session data might not be
+                // fully written before the old session is deleted
+                session_regenerate_id(false);
+                
+                // Now explicitly write and close the session to ensure data is persisted
+                // before the redirect happens
+                session_write_close();
                 
                 return true;
             }

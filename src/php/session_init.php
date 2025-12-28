@@ -34,7 +34,7 @@ function initSecureSession() {
         'domain' => '',
         'secure' => $isSecure,  // Set secure flag on HTTPS to ensure cookies work properly
         'httponly' => true,
-        'samesite' => $isSecure ? 'Lax' : ''  // Use Lax on HTTPS for better security while maintaining functionality
+        'samesite' => 'Lax'  // Use Lax for better security while maintaining functionality
     ]);
     
     // Set additional session settings before session_start()

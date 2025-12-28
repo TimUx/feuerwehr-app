@@ -51,12 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
     $rememberMe = isset($_POST['remember_me']) && $_POST['remember_me'] === '1';
     
     if (Auth::login($username, $password, $rememberMe)) {
-        // Login successful
-        // CRITICAL: Write and close session before redirect to ensure data is persisted
-        // This guarantees that the session cookie and data are properly saved before
-        // the browser receives the redirect response
-        session_write_close();
-        
+        // Login successful - session was already written and closed in Auth::login()
         // Redirect to home
         header('Location: ' . getSafeRedirectUrl('/index.php'));
         exit;
