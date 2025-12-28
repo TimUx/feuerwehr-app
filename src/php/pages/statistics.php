@@ -248,7 +248,7 @@ if ($selectedLocation) {
         
         personnelOptions.forEach(option => {
             const optionLocationId = option.getAttribute('data-location-id') || '';
-            if (!selectedLocationId || optionLocationId === selectedLocationId) {
+            if (!selectedLocationId || optionLocationId == selectedLocationId) {
                 option.style.display = '';
             } else {
                 option.style.display = 'none';
