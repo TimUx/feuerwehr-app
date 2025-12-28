@@ -251,8 +251,26 @@ function runAllTests() {
     if (!$configValid) $criticalFailures++;
     
     // Test 5: Data directory
+    debugLog("Test 5: Checking data directory", 'INFO');
     $dataDirExists = file_exists($dataDir);
     $dataDirWritable = $dataDirExists && is_writable($dataDir);
+    
+    if ($dataDirExists) {
+        debugLog("Data directory exists: $dataDir", 'INFO');
+        debugLog("Data directory writable: " . ($dataDirWritable ? 'yes' : 'no'), $dataDirWritable ? 'INFO' : 'ERROR');
+        if (function_exists('posix_getpwuid')) {
+            $dirOwner = fileowner($dataDir);
+            $dirGroup = filegroup($dataDir);
+            $ownerInfo = posix_getpwuid($dirOwner);
+            $groupInfo = posix_getgrgid($dirGroup);
+            debugLog("Data directory owner: " . ($ownerInfo['name'] ?? $dirOwner) . " (UID: $dirOwner)", 'INFO');
+            debugLog("Data directory group: " . ($groupInfo['name'] ?? $dirGroup) . " (GID: $dirGroup)", 'INFO');
+        }
+        debugLog("Data directory permissions: " . substr(sprintf('%o', fileperms($dataDir)), -4), 'INFO');
+    } else {
+        debugLog("Data directory does NOT exist: $dataDir", 'ERROR');
+    }
+    
     $tests[] = [
         'category' => 'Dateisystem',
         'name' => 'data/ Verzeichnis',
@@ -263,6 +281,165 @@ function runAllTests() {
         'fix' => !$dataDirWritable ? 'chmod 755 ' . $dataDir . ' && chown www-data:www-data ' . $dataDir : null
     ];
     if (!$dataDirWritable) $criticalFailures++;
+    
+    // Test 5a: Detailed filesystem diagnostics for data directory
+    debugLog("Test 5a: Running detailed filesystem diagnostics", 'INFO');
+    
+    // Check parent directory permissions
+    $parentDir = dirname($dataDir);
+    $parentDirExists = file_exists($parentDir);
+    $parentDirWritable = $parentDirExists && is_writable($parentDir);
+    
+    if ($parentDirExists) {
+        debugLog("Parent directory: $parentDir", 'INFO');
+        debugLog("Parent directory writable: " . ($parentDirWritable ? 'yes' : 'no'), $parentDirWritable ? 'INFO' : 'WARN');
+        debugLog("Parent directory permissions: " . substr(sprintf('%o', fileperms($parentDir)), -4), 'INFO');
+        if (function_exists('posix_getpwuid')) {
+            $parentOwner = fileowner($parentDir);
+            $parentGroup = filegroup($parentDir);
+            $ownerInfo = posix_getpwuid($parentOwner);
+            $groupInfo = posix_getgrgid($parentGroup);
+            debugLog("Parent directory owner: " . ($ownerInfo['name'] ?? $parentOwner) . " (UID: $parentOwner)", 'INFO');
+            debugLog("Parent directory group: " . ($groupInfo['name'] ?? $parentGroup) . " (GID: $parentGroup)", 'INFO');
+        }
+    }
+    
+    $tests[] = [
+        'category' => 'Dateisystem',
+        'name' => 'Übergeordnetes Verzeichnis',
+        'status' => $parentDirWritable ? 'pass' : 'warn',
+        'message' => $parentDirWritable ? "Beschreibbar ($parentDir)" : 
+                     ($parentDirExists ? "Nicht beschreibbar ($parentDir)" : "Existiert nicht ($parentDir)"),
+        'critical' => false,
+        'fix' => !$dataDirExists && !$parentDirWritable ? 
+            "Das data/ Verzeichnis kann nicht erstellt werden. Führen Sie aus: chmod 755 $parentDir && chown www-data:www-data $parentDir" : null
+    ];
+    
+    // Test 5b: Actual write test
+    $writeTestSuccess = false;
+    $writeTestError = '';
+    if ($dataDirWritable) {
+        $testFile = $dataDir . '/.write_test_' . uniqid();
+        debugLog("Testing actual write operation to: $testFile", 'INFO');
+        try {
+            $writeResult = @file_put_contents($testFile, 'test');
+            if ($writeResult !== false) {
+                $writeTestSuccess = true;
+                debugLog("Write test successful, wrote $writeResult bytes", 'INFO');
+                @unlink($testFile);
+                debugLog("Test file deleted successfully", 'INFO');
+            } else {
+                $writeTestError = error_get_last()['message'] ?? 'Unbekannter Fehler';
+                debugLog("Write test failed: $writeTestError", 'ERROR');
+            }
+        } catch (Exception $e) {
+            $writeTestError = $e->getMessage();
+            debugLog("Write test exception: $writeTestError", 'ERROR');
+        }
+    } else {
+        $writeTestError = 'Verzeichnis nicht beschreibbar';
+        debugLog("Skipping write test because directory is not writable", 'WARN');
+    }
+    
+    $tests[] = [
+        'category' => 'Dateisystem',
+        'name' => 'Schreibtest',
+        'status' => $writeTestSuccess ? 'pass' : 'fail',
+        'message' => $writeTestSuccess ? 'Erfolgreich Datei geschrieben und gelöscht' : 
+                     "Schreibtest fehlgeschlagen: $writeTestError",
+        'critical' => true,
+        'fix' => !$writeTestSuccess && $dataDirExists ? 
+            "Prüfen Sie Berechtigungen: ls -la $dataDir && sudo chown -R www-data:www-data $dataDir && sudo chmod -R 755 $dataDir" : null
+    ];
+    if (!$writeTestSuccess) $criticalFailures++;
+    
+    // Test 5c: Disk space check
+    debugLog("Test 5c: Checking disk space", 'INFO');
+    $diskFreeBytes = @disk_free_space($parentDir);
+    $diskTotalBytes = @disk_total_space($parentDir);
+    
+    if ($diskFreeBytes !== false && $diskTotalBytes !== false) {
+        $diskFreeMB = round($diskFreeBytes / 1024 / 1024, 2);
+        $diskTotalMB = round($diskTotalBytes / 1024 / 1024, 2);
+        $diskUsedPercent = round((1 - $diskFreeBytes / $diskTotalBytes) * 100, 1);
+        
+        debugLog("Disk space: $diskFreeMB MB free of $diskTotalMB MB total ($diskUsedPercent% used)", 'INFO');
+        
+        $diskSpaceOk = $diskFreeMB > 100; // Require at least 100MB free
+        
+        $tests[] = [
+            'category' => 'Dateisystem',
+            'name' => 'Festplattenspeicher',
+            'status' => $diskSpaceOk ? 'pass' : 'warn',
+            'message' => "$diskFreeMB MB frei von $diskTotalMB MB ($diskUsedPercent% belegt)",
+            'critical' => false,
+            'fix' => !$diskSpaceOk ? 'Wenig Speicherplatz verfügbar. Bereinigen Sie nicht benötigte Dateien.' : null
+        ];
+    } else {
+        debugLog("Could not determine disk space", 'WARN');
+        $tests[] = [
+            'category' => 'Dateisystem',
+            'name' => 'Festplattenspeicher',
+            'status' => 'info',
+            'message' => 'Konnte nicht ermittelt werden',
+            'critical' => false
+        ];
+    }
+    
+    // Test 5d: Check umask
+    debugLog("Test 5d: Checking umask settings", 'INFO');
+    $currentUmask = umask();
+    umask($currentUmask); // Restore original umask
+    $umaskOctal = sprintf('%04o', $currentUmask);
+    debugLog("Current umask: $umaskOctal", 'INFO');
+    
+    // Umask should typically be 0022 or less restrictive for web applications
+    $umaskOk = $currentUmask <= 0027;
+    
+    $tests[] = [
+        'category' => 'Dateisystem',
+        'name' => 'Umask-Einstellung',
+        'status' => $umaskOk ? 'pass' : 'warn',
+        'message' => "Aktuell: $umaskOctal" . (!$umaskOk ? ' (möglicherweise zu restriktiv)' : ''),
+        'critical' => false,
+        'fix' => !$umaskOk ? 'Setzen Sie umask auf 0022 oder weniger restriktiv in der PHP-FPM/Apache-Konfiguration' : null
+    ];
+    
+    // Test 5e: Check if SELinux/AppArmor might be interfering
+    debugLog("Test 5e: Checking for SELinux/AppArmor", 'INFO');
+    $selinuxStatus = 'Nicht aktiv';
+    $selinuxEnabled = false;
+    
+    // Check for SELinux
+    if (file_exists('/usr/sbin/getenforce') && is_executable('/usr/sbin/getenforce')) {
+        $selinuxMode = trim(@shell_exec('/usr/sbin/getenforce 2>/dev/null'));
+        if (!empty($selinuxMode) && $selinuxMode !== 'Disabled') {
+            $selinuxStatus = "SELinux aktiv: $selinuxMode";
+            $selinuxEnabled = true;
+            debugLog("SELinux is enabled: $selinuxMode", 'INFO');
+        }
+    }
+    
+    // Check for AppArmor
+    $apparmorStatus = '';
+    if (file_exists('/sys/kernel/security/apparmor/profiles') && is_readable('/sys/kernel/security/apparmor/profiles')) {
+        $apparmorProfiles = @file_get_contents('/sys/kernel/security/apparmor/profiles');
+        if ($apparmorProfiles !== false && !empty(trim($apparmorProfiles))) {
+            $apparmorStatus = ' / AppArmor aktiv';
+            $selinuxEnabled = true; // Use same flag for any MAC system
+            debugLog("AppArmor is enabled", 'INFO');
+        }
+    }
+    
+    $tests[] = [
+        'category' => 'Dateisystem',
+        'name' => 'Mandatory Access Control',
+        'status' => 'info',
+        'message' => $selinuxStatus . $apparmorStatus,
+        'critical' => false,
+        'fix' => $selinuxEnabled && !$dataDirWritable ? 
+            "SELinux/AppArmor könnte Schreibzugriff blockieren. Führen Sie aus: sudo chcon -Rt httpd_sys_rw_content_t $dataDir (SELinux)" : null
+    ];
     
     // Test 6: users.json
     $usersExists = file_exists($usersFile);
@@ -798,13 +975,30 @@ function runAllTests() {
         debugLog("Found /.dockerenv file - running in Docker", 'INFO');
     }
     
-    // Check cgroup for docker
-    if (@file_exists('/proc/1/cgroup')) {
+    // Check cgroup for docker - use is_readable first to avoid permission warnings
+    if (is_readable('/proc/1/cgroup')) {
+        debugLog("Checking /proc/1/cgroup for Docker indicators", 'INFO');
         $cgroup = @file_get_contents('/proc/1/cgroup');
         if ($cgroup !== false && (strpos($cgroup, 'docker') !== false || strpos($cgroup, 'containerd') !== false)) {
             $isDocker = true;
             $dockerHints[] = 'cgroup contains docker/containerd';
             debugLog("Found docker/containerd in cgroup - running in Docker", 'INFO');
+        } else {
+            debugLog("/proc/1/cgroup readable but no Docker indicators found", 'INFO');
+        }
+    } else {
+        // File not readable - try alternative detection methods
+        debugLog("/proc/1/cgroup not readable (this is normal in some environments)", 'INFO');
+        
+        // Try checking /proc/self/cgroup as fallback
+        if (is_readable('/proc/self/cgroup')) {
+            debugLog("Checking /proc/self/cgroup as fallback", 'INFO');
+            $cgroup = @file_get_contents('/proc/self/cgroup');
+            if ($cgroup !== false && (strpos($cgroup, 'docker') !== false || strpos($cgroup, 'containerd') !== false)) {
+                $isDocker = true;
+                $dockerHints[] = 'proc/self/cgroup contains docker/containerd';
+                debugLog("Found docker/containerd in /proc/self/cgroup - running in Docker", 'INFO');
+            }
         }
     }
     
