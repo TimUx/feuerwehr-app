@@ -358,6 +358,9 @@ function runAllTests() {
     $diskFreeBytes = @disk_free_space($parentDir);
     $diskTotalBytes = @disk_total_space($parentDir);
     
+    // Minimum required free space in MB
+    $minRequiredDiskSpaceMB = 100;
+    
     if ($diskFreeBytes !== false && $diskTotalBytes !== false) {
         $diskFreeMB = round($diskFreeBytes / 1024 / 1024, 2);
         $diskTotalMB = round($diskTotalBytes / 1024 / 1024, 2);
@@ -365,7 +368,7 @@ function runAllTests() {
         
         debugLog("Disk space: $diskFreeMB MB free of $diskTotalMB MB total ($diskUsedPercent% used)", 'INFO');
         
-        $diskSpaceOk = $diskFreeMB > 100; // Require at least 100MB free
+        $diskSpaceOk = $diskFreeMB > $minRequiredDiskSpaceMB;
         
         $tests[] = [
             'category' => 'Dateisystem',
@@ -394,7 +397,9 @@ function runAllTests() {
     debugLog("Current umask: $umaskOctal", 'INFO');
     
     // Umask should typically be 0022 or less restrictive for web applications
-    $umaskOk = $currentUmask <= 0027;
+    // 0027 allows owner full access, group read/execute, and others no access
+    $maxRecommendedUmask = 0027;
+    $umaskOk = $currentUmask <= $maxRecommendedUmask;
     
     $tests[] = [
         'category' => 'Dateisystem',
@@ -408,14 +413,14 @@ function runAllTests() {
     // Test 5e: Check if SELinux/AppArmor might be interfering
     debugLog("Test 5e: Checking for SELinux/AppArmor", 'INFO');
     $selinuxStatus = 'Nicht aktiv';
-    $selinuxEnabled = false;
+    $macSystemEnabled = false; // Mandatory Access Control system enabled
     
     // Check for SELinux
     if (file_exists('/usr/sbin/getenforce') && is_executable('/usr/sbin/getenforce')) {
         $selinuxMode = trim(@shell_exec('/usr/sbin/getenforce 2>/dev/null'));
         if (!empty($selinuxMode) && $selinuxMode !== 'Disabled') {
             $selinuxStatus = "SELinux aktiv: $selinuxMode";
-            $selinuxEnabled = true;
+            $macSystemEnabled = true;
             debugLog("SELinux is enabled: $selinuxMode", 'INFO');
         }
     }
@@ -426,7 +431,7 @@ function runAllTests() {
         $apparmorProfiles = @file_get_contents('/sys/kernel/security/apparmor/profiles');
         if ($apparmorProfiles !== false && !empty(trim($apparmorProfiles))) {
             $apparmorStatus = ' / AppArmor aktiv';
-            $selinuxEnabled = true; // Use same flag for any MAC system
+            $macSystemEnabled = true;
             debugLog("AppArmor is enabled", 'INFO');
         }
     }
@@ -437,7 +442,7 @@ function runAllTests() {
         'status' => 'info',
         'message' => $selinuxStatus . $apparmorStatus,
         'critical' => false,
-        'fix' => $selinuxEnabled && !$dataDirWritable ? 
+        'fix' => $macSystemEnabled && !$dataDirWritable ? 
             "SELinux/AppArmor könnte Schreibzugriff blockieren. Führen Sie aus: sudo chcon -Rt httpd_sys_rw_content_t $dataDir (SELinux)" : null
     ];
     
@@ -996,7 +1001,7 @@ function runAllTests() {
             $cgroup = @file_get_contents('/proc/self/cgroup');
             if ($cgroup !== false && (strpos($cgroup, 'docker') !== false || strpos($cgroup, 'containerd') !== false)) {
                 $isDocker = true;
-                $dockerHints[] = 'proc/self/cgroup contains docker/containerd';
+                $dockerHints[] = '/proc/self/cgroup contains docker/containerd';
                 debugLog("Found docker/containerd in /proc/self/cgroup - running in Docker", 'INFO');
             }
         }
