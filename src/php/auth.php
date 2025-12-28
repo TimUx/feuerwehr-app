@@ -111,14 +111,15 @@ class Auth {
                 // Regenerate session ID and delete old session
                 session_regenerate_id(true);
                 
-                // CRITICAL: Write session data to ensure it's saved before redirect
-                // Without this, the redirect with exit() may terminate before session data is written
-                session_write_close();
-                
-                // Handle "Remember Me" functionality
+                // Handle "Remember Me" functionality (before closing session)
                 if ($rememberMe) {
                     self::setRememberMeCookie($user['id']);
                 }
+                
+                // CRITICAL: Write session data to ensure it's saved before redirect
+                // This must be the last operation before returning
+                // Without this, the redirect with exit() may terminate before session data is written
+                session_write_close();
                 
                 return true;
             }
