@@ -21,7 +21,8 @@ class DataStore {
             // Using is_dir() as primary check since it's more reliable for directories
             if (!is_dir(self::$dataDir)) {
                 // Directory doesn't exist or is not a directory, try to create it
-                if (!@mkdir(self::$dataDir, 0700, true)) {
+                // Use 0755 permissions for better compatibility with shared hosting environments
+                if (!@mkdir(self::$dataDir, 0755, true)) {
                     // mkdir failed, but check again if directory now exists
                     // (could have been created by concurrent request, or might already exist)
                     clearstatcache(true, self::$dataDir);

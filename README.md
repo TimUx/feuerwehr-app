@@ -1125,6 +1125,15 @@ php -r "echo bin2hex(random_bytes(16));"
 'session_timeout' => 3600, // 1 Stunde
 ```
 
+#### Datenverzeichnis-Pfade
+⚠️ **WICHTIG**: Die Pfade für `data_dir` und `backup_dir` sollten **immer** relative Pfade mit `__DIR__` verwenden:
+```php
+'data_dir' => __DIR__ . '/../data',
+'backup_dir' => __DIR__ . '/../data/backups',
+```
+
+**Verwenden Sie KEINE absoluten Pfade** wie `/var/www/html/data`, da diese nicht funktionieren, wenn die Anwendung in einem anderen Verzeichnis installiert wird. Der Installations-Wizard generiert automatisch die korrekten relativen Pfade.
+
 ### Logo konfigurieren
 Platzieren Sie Ihr Feuerwehr-Logo unter:
 ```
