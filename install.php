@@ -12,6 +12,12 @@ initSecureSession();
 /**
  * Test if a directory is writable by attempting an actual write operation
  * This is more reliable than is_writable() in PHP-FPM configurations
+ * 
+ * @param string $dir The directory path to test
+ * @return bool True if directory is writable, false otherwise
+ * 
+ * Side effects: Creates and immediately deletes a temporary test file
+ * named .write_test_[random] in the directory if writable
  */
 function testDirectoryWritable($dir) {
     if (!file_exists($dir)) {
@@ -39,6 +45,12 @@ function testDirectoryWritable($dir) {
 
 /**
  * Test if a directory or its parent is writable (for cases where dir doesn't exist yet)
+ * 
+ * @param string $dir The directory path to test
+ * @return bool True if directory (or parent if dir doesn't exist) is writable, false otherwise
+ * 
+ * For existing directories: tests the directory itself
+ * For non-existent directories: tests if parent directory is writable (to allow creation)
  */
 function testDirectoryOrParentWritable($dir) {
     if (file_exists($dir)) {
