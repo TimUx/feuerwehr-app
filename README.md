@@ -20,13 +20,17 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
   - [Hauptmenü](#hauptmenü)
 - [Administration](#-administration)
   - [Benutzerverwaltung](#benutzerverwaltung)
+  - [Standorte-Verwaltung](#standorte-verwaltung)
   - [Einsatzkräfte-Verwaltung](#einsatzkräfte-verwaltung)
   - [Fahrzeug-Verwaltung](#fahrzeug-verwaltung)
   - [Telefonnummern-Verwaltung](#telefonnummern-verwaltung)
+  - [Allgemeine Einstellungen](#allgemeine-einstellungen)
+  - [E-Mail-Einstellungen](#e-mail-einstellungen)
 - [Operator-Bereich](#-operator-bereich)
   - [Formulare](#formulare)
   - [Einsatztools](#einsatztools)
   - [Statistiken](#statistiken)
+  - [Formulardaten](#formulardaten)
 - [Konfiguration](#️-konfiguration)
 - [Sicherheit](#-sicherheit)
 - [Technologie-Stack](#-technologie-stack)
@@ -286,17 +290,21 @@ Das Hauptmenü ist in zwei Bereiche unterteilt:
 - 📋 Anwesenheitsliste
 - 🚒 Einsatzbericht
 - 🚗 Fahrzeuge (Ansicht)
+- 📞 Wichtige Telefonnummern
 - 🗺️ Online Karte
 - ⚠️ Gefahrenmatrix
 - ☣️ Gefahrstoffkennzeichen
-- 📞 Wichtige Telefonnummern
 - 📊 Statistiken
+- 📁 Formulardaten
 
 **Administration** (nur für Admins sichtbar):
-- 👥 Einsatzkräfte verwalten
+- 📍 Standorte verwalten
 - 🔧 Fahrzeuge verwalten
+- 👥 Einsatzkräfte verwalten
 - 📞 Telefonnummern verwalten
 - 👤 Benutzerverwaltung
+- ⚙️ Allgemeine Einstellungen (nur Global-Admin)
+- ✉️ E-Mail-Einstellungen (nur Global-Admin)
 
 ---
 
@@ -366,6 +374,26 @@ Die Benutzerverwaltung ermöglicht das Erstellen und Verwalten von App-Benutzern
 - 📍 Standort zuweisen (für Standort-Admins und Operators)
 - 👁️ Übersicht aller Benutzer (Global-Admin) oder Standort-Benutzer (Standort-Admin)
 
+### Standorte-Verwaltung
+
+Zentrale Verwaltung aller Einsatzabteilungen und Standorte der Feuerwehr.
+
+<img src="screenshots/16-locations-management.png" width="390" alt="Standorte-Verwaltung">
+
+**Verwaltete Informationen:**
+- Name des Standorts
+- Adresse
+- E-Mail-Adresse (für standortspezifische E-Mails)
+
+**Funktionen**:
+- ➕ Standort hinzufügen (nur Global-Admin)
+- ✏️ Standort bearbeiten
+- 🗑️ Standort löschen (nur Global-Admin)
+- 🔍 Übersichtliche Tabellen-Darstellung
+
+**Verwendung:**
+Standorte werden bei der Verwaltung von Fahrzeugen, Einsatzkräften und in Formularen als Dropdown zur Verfügung gestellt. Standort-Admins sehen nur ihren zugewiesenen Standort, Global-Admins können alle Standorte verwalten.
+
 ### Einsatzkräfte-Verwaltung
 
 Zentrale Verwaltung aller Feuerwehrmitglieder mit umfassenden Informationen zu Qualifikationen und Führungsrollen.
@@ -427,6 +455,46 @@ Verwaltung wichtiger Notfallkontakte und Telefonnummern für schnellen Zugriff i
 - 🗑️ Telefonnummer löschen
 
 Die Telefonnummern sind für alle Benutzer (auch Operators) im Hauptmenü sichtbar und können direkt per tel:-Link angerufen werden.
+
+### Allgemeine Einstellungen
+
+Konfiguration der Feuerwehr-Informationen und des Logos (nur Global-Admin).
+
+<img src="screenshots/17-general-settings.png" width="390" alt="Allgemeine Einstellungen">
+
+**Verwaltete Einstellungen:**
+- **Name der Feuerwehr**: Wird in E-Mails und PDFs verwendet
+- **Stadt/Gemeinde**: Optional, wird auf separater Zeile angezeigt
+- **Logo**: Upload und Verwaltung des Feuerwehr-Logos für E-Mails und PDFs
+
+**Funktionen**:
+- ✏️ Feuerwehr-Informationen bearbeiten
+- 📤 Logo hochladen (PNG, max. 2MB)
+- 🗑️ Logo entfernen
+- 💾 Einstellungen speichern
+
+**Hinweis:** Diese Einstellungen sind nur für Global-Admins zugänglich und wirken sich auf alle Standorte aus.
+
+### E-Mail-Einstellungen
+
+SMTP-Konfiguration für den automatischen Versand von Formular-E-Mails (nur Global-Admin).
+
+<img src="screenshots/18-email-settings.png" width="390" alt="E-Mail-Einstellungen">
+
+**Konfigurierbare Parameter:**
+- **SMTP Server**: Hostname oder IP-Adresse
+- **Port**: SMTP-Port (z.B. 25, 465, 587)
+- **Verschlüsselung**: Keine, TLS oder SSL
+- **Authentifizierung**: Optional mit Benutzername und Passwort
+- **Absender**: E-Mail-Adresse und Name
+- **Standard-Empfänger**: E-Mail-Adressen für Formular-Versand
+
+**Funktionen**:
+- ✏️ SMTP-Einstellungen bearbeiten
+- 🧪 Testmail senden zur Überprüfung
+- 💾 Konfiguration speichern
+
+**Hinweis:** Diese Einstellungen sind nur für Global-Admins zugänglich und gelten für alle Standorte.
 
 ---
 
@@ -587,6 +655,29 @@ Umfassende Auswertungen für Übungsdienste und Einsätze auf Abteilungs- und Pe
   - Teilgenommene Einsätze
   - Absolvierte Einsatzstunden
   - Gesamtstunden
+
+### Formulardaten
+
+Archiv aller eingereichten Formulare mit Übersicht, Detailansicht und Verwaltungsfunktionen.
+
+<img src="screenshots/19-form-data.png" width="390" alt="Formulardaten">
+
+**Verfügbare Daten:**
+- **Anwesenheitslisten**: Alle eingereichten Übungsdienste
+- **Einsatzberichte**: Alle dokumentierten Einsätze
+
+**Funktionen**:
+- 📋 Übersicht aller Formulare nach Datum sortiert
+- 🔍 Details einzelner Formulare anzeigen
+- 📄 PDF-Dokumente anzeigen/herunterladen
+- ✉️ Formulare erneut per E-Mail versenden
+- 🗑️ Formulare löschen (nur Admins)
+- 🔎 Filterung nach Typ (Anwesenheit/Einsatz)
+
+**Datenschutz:**
+- Standort-beschränkte Benutzer sehen nur Formulare ihres Standorts
+- Global-Admins haben Zugriff auf alle Formulare
+- Alle Daten sind verschlüsselt gespeichert
 
 ---
 
