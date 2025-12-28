@@ -883,6 +883,8 @@ class EmailPDF {
             return '<p>Keine Fahrzeugbesatzung angegeben</p>';
         }
         
+        require_once __DIR__ . '/datastore.php';
+        
         // Group crew by vehicle
         $groupedCrew = [];
         foreach ($crewData as $member) {
@@ -902,9 +904,19 @@ class EmailPDF {
             
             foreach ($members as $member) {
                 if (!empty($member['name']) || !empty($member['funktion'])) {
+                    // Convert personnel ID to name if needed
+                    $name = $member['name'] ?? '-';
+                    if (strpos($name, 'pers_') === 0) {
+                        // It's an ID, get the actual name
+                        $person = DataStore::getPersonnelById($name);
+                        if ($person) {
+                            $name = $person['name'];
+                        }
+                    }
+                    
                     $html .= '<tr>';
                     $html .= '<td>' . htmlspecialchars($member['funktion'] ?? '-') . '</td>';
-                    $html .= '<td>' . htmlspecialchars($member['name'] ?? '-') . '</td>';
+                    $html .= '<td>' . htmlspecialchars($name) . '</td>';
                     $html .= '<td>' . (isset($member['verdienstausfall']) && $member['verdienstausfall'] === 'ja' ? 'Ja' : 'Nein') . '</td>';
                     $html .= '</tr>';
                 }
