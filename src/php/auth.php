@@ -150,6 +150,14 @@ class Auth {
     }
 
     /**
+     * Check if user is a global admin (admin without location restriction)
+     * Global admins have full access to all settings including general and email settings
+     */
+    public static function isGlobalAdmin() {
+        return self::isAdmin() && self::hasGlobalAccess();
+    }
+
+    /**
      * Require authentication
      */
     public static function requireAuth() {
@@ -168,6 +176,18 @@ class Auth {
         if (!self::isAdmin()) {
             http_response_code(403);
             die('Access denied. Admin privileges required.');
+        }
+    }
+
+    /**
+     * Require global admin role (admin without location restriction)
+     * Used for sensitive settings like general settings and email configuration
+     */
+    public static function requireGlobalAdmin() {
+        self::requireAuth();
+        if (!self::isGlobalAdmin()) {
+            http_response_code(403);
+            die('Access denied. Global administrator privileges required.');
         }
     }
 

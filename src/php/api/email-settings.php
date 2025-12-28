@@ -10,8 +10,8 @@ header('Content-Type: application/json');
 // Initialize authentication
 Auth::init();
 
-// Check authentication and admin role
-if (!Auth::isAuthenticated() || !Auth::isAdmin()) {
+// Check authentication and global admin role
+if (!Auth::isAuthenticated() || !Auth::isGlobalAdmin()) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'Unauthorized']);
     exit;
