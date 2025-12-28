@@ -18,8 +18,6 @@ PR #77 attempted to fix this by REMOVING `session_write_close()`, thinking it ca
 
 The correct approach is:
 
-The correct approach is:
-
 1. Set all session variables FIRST
 2. Call `session_regenerate_id(true)` to create new session ID
 3. Call `session_write_close()` IMMEDIATELY AFTER to ensure session is written synchronously
@@ -75,8 +73,6 @@ session_write_close();
 
 return true;
 ```
-
-`session_write_close()` is a SYNCHRONOUS operation that:
 
 `session_write_close()` is a SYNCHRONOUS operation that:
 - Writes ALL session data to the session file on disk
