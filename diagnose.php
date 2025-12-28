@@ -1791,19 +1791,30 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                     
                     if ($action === 'create_data_dir') {
                         $dataDir = __DIR__ . '/data';
-                        if (!file_exists($dataDir)) {
+                        clearstatcache(true, $dataDir);
+                        
+                        // Using is_dir() as primary check since it's more reliable for directories
+                        if (!is_dir($dataDir)) {
                             $result = mkdir($dataDir, 0755, true);
                             if ($result) {
                                 $fixSuccess = true;
                                 $fixMessage = 'data/ Verzeichnis erfolgreich erstellt!';
                                 error_log("diagnose.php: Successfully created data directory");
                             } else {
-                                $lastError = error_get_last();
-                                $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
-                                error_log("diagnose.php: Failed to create data directory: " . $errorMsg);
-                                $fixMessage = 'Fehler beim Erstellen des data/ Verzeichnisses. Bitte setzen Sie die Berechtigungen manuell über FTP.';
+                                // mkdir failed, check if directory now exists (race condition)
+                                clearstatcache(true, $dataDir);
+                                if (is_dir($dataDir)) {
+                                    $fixSuccess = true;
+                                    $fixMessage = 'data/ Verzeichnis existiert bereits.';
+                                } else {
+                                    $lastError = error_get_last();
+                                    $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
+                                    error_log("diagnose.php: Failed to create data directory: " . $errorMsg);
+                                    $fixMessage = 'Fehler beim Erstellen des data/ Verzeichnisses. Bitte setzen Sie die Berechtigungen manuell über FTP.';
+                                }
                             }
                         } else {
+                            $fixSuccess = true;
                             $fixMessage = 'data/ Verzeichnis existiert bereits.';
                         }
                     } elseif ($action === 'fix_permissions') {

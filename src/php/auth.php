@@ -29,33 +29,29 @@ class Auth {
             // Clear stat cache to ensure we get current filesystem state
             clearstatcache(true, self::$dataDir);
             
-            // Ensure data directory exists and is writable
-            if (!file_exists(self::$dataDir)) {
-                // Directory doesn't exist, try to create it
-                if (!@mkdir(self::$dataDir, 0700, true)) {
-                    error_log("Failed to create data directory: " . self::$dataDir . ". Please ensure the web server has write permissions to the parent directory.");
-                    
-                    // Redirect to diagnose.php for better error diagnostics
-                    if (php_sapi_name() !== 'cli' && !headers_sent()) {
-                        header('Location: diagnose.php?error=' . urlencode('data_dir_create_failed') . '&details=' . urlencode('Failed to create data directory. Check server error logs for details.'));
-                        exit;
-                    }
-                    
-                    die("Configuration Error: Unable to create data directory. Please contact your system administrator or check file permissions.<br><br><a href='diagnose.php'>Run System Diagnostics</a>");
-                }
-            }
-            
-            // Verify it's actually a directory
+            // Ensure data directory exists and is a directory
+            // Using is_dir() as primary check since it's more reliable for directories
             if (!is_dir(self::$dataDir)) {
-                error_log("Data directory path exists but is not a directory: " . self::$dataDir);
-                
-                // Redirect to diagnose.php for better error diagnostics
-                if (php_sapi_name() !== 'cli' && !headers_sent()) {
-                    header('Location: diagnose.php?error=' . urlencode('data_dir_not_directory') . '&details=' . urlencode('Data directory path exists but is not a directory. Check server error logs for details.'));
-                    exit;
+                // Directory doesn't exist or is not a directory, try to create it
+                if (!@mkdir(self::$dataDir, 0700, true)) {
+                    // mkdir failed, but check again if directory now exists
+                    // (could have been created by concurrent request, or might already exist)
+                    clearstatcache(true, self::$dataDir);
+                    
+                    if (!is_dir(self::$dataDir)) {
+                        // Directory truly doesn't exist and couldn't be created
+                        error_log("Failed to create data directory: " . self::$dataDir . ". Please ensure the web server has write permissions to the parent directory.");
+                        
+                        // Redirect to diagnose.php for better error diagnostics
+                        if (php_sapi_name() !== 'cli' && !headers_sent()) {
+                            header('Location: diagnose.php?error=' . urlencode('data_dir_create_failed') . '&details=' . urlencode('Failed to create data directory. Check server error logs for details.'));
+                            exit;
+                        }
+                        
+                        die("Configuration Error: Unable to create data directory. Please contact your system administrator or check file permissions.<br><br><a href='diagnose.php'>Run System Diagnostics</a>");
+                    }
+                    // else: Directory exists now, continue normally
                 }
-                
-                die("Configuration Error: Data directory path is not a directory. Please contact your system administrator.<br><br><a href='diagnose.php'>Run System Diagnostics</a>");
             }
             
             // Verify it's writable with an actual write test
