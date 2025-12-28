@@ -298,6 +298,10 @@ class EmailPDF {
             self::init();
             $dataDir = self::$config['data_dir'] ?? __DIR__ . '/../../data';
             $tempDir = $dataDir . '/tmp';
+            
+            // Clear stat cache to ensure we get current filesystem state
+            clearstatcache(true, $tempDir);
+            
             if (!file_exists($tempDir)) {
                 if (!mkdir($tempDir, 0700, true)) {
                     error_log("Failed to create temp directory: {$tempDir}");
