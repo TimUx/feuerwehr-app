@@ -116,12 +116,9 @@ class Auth {
                     self::setRememberMeCookie($user['id']);
                 }
                 
-                // Session data will be automatically written by PHP when script ends
-                // Removed explicit session_write_close() as it was causing race conditions:
-                // When followed by a redirect (header() + exit()), the script may terminate
-                // before session data is fully written to storage, causing the next request
-                // to not see the authenticated session. Letting PHP handle this automatically
-                // during shutdown ensures proper ordering and prevents the login redirect loop.
+                // Let session data be written automatically by PHP during script shutdown
+                // After session_regenerate_id(), PHP will send the new session cookie header
+                // The session data will be written when the script ends normally
                 
                 return true;
             }
