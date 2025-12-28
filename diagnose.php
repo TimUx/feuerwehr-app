@@ -1767,7 +1767,7 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                                 $fixMessage = 'data/ Verzeichnis erfolgreich erstellt!';
                                 error_log("diagnose.php: Successfully created data directory");
                             } else {
-                                    $lastError = error_get_last();
+                                $lastError = error_get_last();
                                 $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
                                 error_log("diagnose.php: Failed to create data directory: " . $errorMsg);
                                 $fixMessage = 'Fehler beim Erstellen des data/ Verzeichnisses. Bitte setzen Sie die Berechtigungen manuell über FTP.';
