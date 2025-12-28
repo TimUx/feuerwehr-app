@@ -124,7 +124,9 @@ class Auth {
                 }
                 
                 // Explicitly write and close the session to ensure data is persisted
-                // synchronously before the redirect happens
+                // synchronously before the redirect happens. This is critical to prevent
+                // the session data from being lost if the script exits before PHP's
+                // shutdown handler has a chance to write the session.
                 session_write_close();
                 
                 // Log that session was written
