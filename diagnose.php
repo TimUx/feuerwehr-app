@@ -1670,7 +1670,7 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                 <div class="alert alert-error" style="margin-top: 20px;">
                     <span class="material-icons">report_problem</span>
                     <div>
-                        <strong>🔴 Grund für die Weiterleitung hierher:</strong><br>
+                        <strong style="color: #d32f2f;">Grund für die Weiterleitung hierher:</strong><br>
                         <strong><?php echo htmlspecialchars($errorTitle); ?></strong>
                         <?php if ($redirectDetails): ?>
                             <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 4px; font-family: monospace; font-size: 12px;">

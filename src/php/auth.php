@@ -37,7 +37,7 @@ class Auth {
                     
                     // Redirect to diagnose.php for better error diagnostics
                     if (php_sapi_name() !== 'cli' && !headers_sent()) {
-                        header('Location: diagnose.php?error=' . urlencode('data_dir_create_failed') . '&details=' . urlencode('Failed to create data directory: ' . self::$dataDir));
+                        header('Location: diagnose.php?error=' . urlencode('data_dir_create_failed') . '&details=' . urlencode('Failed to create data directory. Check server error logs for details.'));
                         exit;
                     }
                     
@@ -51,7 +51,7 @@ class Auth {
                 
                 // Redirect to diagnose.php for better error diagnostics
                 if (php_sapi_name() !== 'cli' && !headers_sent()) {
-                    header('Location: diagnose.php?error=' . urlencode('data_dir_not_directory') . '&details=' . urlencode('Data directory path exists but is not a directory: ' . self::$dataDir));
+                    header('Location: diagnose.php?error=' . urlencode('data_dir_not_directory') . '&details=' . urlencode('Data directory path exists but is not a directory. Check server error logs for details.'));
                     exit;
                 }
                 
@@ -80,7 +80,7 @@ class Auth {
                 
                 // Redirect to diagnose.php for better error diagnostics
                 if (php_sapi_name() !== 'cli' && !headers_sent()) {
-                    header('Location: diagnose.php?error=' . urlencode('data_dir_not_writable') . '&details=' . urlencode('Data directory is not writable: ' . self::$dataDir . '. Error: ' . $errorMsg));
+                    header('Location: diagnose.php?error=' . urlencode('data_dir_not_writable') . '&details=' . urlencode('Data directory is not writable. Error: ' . $errorMsg));
                     exit;
                 }
                 
