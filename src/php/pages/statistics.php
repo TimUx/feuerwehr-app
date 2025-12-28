@@ -86,7 +86,9 @@ if ($selectedLocation) {
                 <select id="personnel" name="personnel" class="form-select">
                     <option value="">-- Alle Einsatzkräfte --</option>
                     <?php foreach ($personnel as $person): ?>
-                        <option value="<?php echo $person['id']; ?>" <?php echo $selectedPersonnel == $person['id'] ? 'selected' : ''; ?>>
+                        <option value="<?php echo $person['id']; ?>" 
+                                data-location-id="<?php echo htmlspecialchars($person['location_id'] ?? ''); ?>"
+                                <?php echo $selectedPersonnel == $person['id'] ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($person['name']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -233,11 +235,35 @@ if ($selectedLocation) {
 <script>
 // Handle filter changes without form submission
 const locationEl = document.getElementById('location');
+const personnelEl = document.getElementById('personnel');
+const yearEl = document.getElementById('year');
+
+// Filter personnel dropdown based on selected location
+function filterPersonnelByLocation() {
+    if (!locationEl || !personnelEl) return;
+    
+    const selectedLocationId = locationEl.value;
+    const personnelOptions = personnelEl.querySelectorAll('option[data-location-id]');
+    
+    personnelOptions.forEach(option => {
+        const optionLocationId = option.getAttribute('data-location-id') || '';
+        if (!selectedLocationId || optionLocationId === selectedLocationId) {
+            option.style.display = '';
+        } else {
+            option.style.display = 'none';
+            // Deselect if it was selected and is now hidden
+            if (option.selected) {
+                option.selected = false;
+                personnelEl.value = ''; // Reset to "All"
+            }
+        }
+    });
+}
 
 function updateStatistics() {
-    const year = document.getElementById('year').value;
+    const year = yearEl.value;
     const location = locationEl ? locationEl.value : '';
-    const personnel = document.getElementById('personnel').value;
+    const personnel = personnelEl.value;
     
     const params = { year: year };
     if (location) params.location = location;
@@ -246,9 +272,18 @@ function updateStatistics() {
     window.feuerwehrApp.navigateTo('statistics', params);
 }
 
-document.getElementById('year').addEventListener('change', updateStatistics);
+yearEl.addEventListener('change', updateStatistics);
 if (locationEl) {
-    locationEl.addEventListener('change', updateStatistics);
+    locationEl.addEventListener('change', function() {
+        // Filter personnel first, then update statistics
+        filterPersonnelByLocation();
+        updateStatistics();
+    });
 }
-document.getElementById('personnel').addEventListener('change', updateStatistics);
+personnelEl.addEventListener('change', updateStatistics);
+
+// Initialize filtering on page load
+if (locationEl) {
+    filterPersonnelByLocation();
+}
 </script>

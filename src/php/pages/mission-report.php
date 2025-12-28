@@ -321,7 +321,7 @@ function filterByLocation() {
     });
     
     // Trigger crew update when location changes
-    updateCrewFields();
+    updateCrewSections();
 }
 
 // Get filtered personnel based on selected location
@@ -335,6 +335,12 @@ function getFilteredPersonnel() {
 
 // Add event listener for location filter
 document.getElementById('standort-filter').addEventListener('change', filterByLocation);
+
+// Initialize filtering on page load (for Global Admin with pre-selected location)
+const standortFilterMission = document.getElementById('standort-filter');
+if (standortFilterMission && standortFilterMission.value) {
+    filterByLocation();
+}
 
 // Set default date to today
 const einsatzdatumField = document.getElementById('einsatzdatum');

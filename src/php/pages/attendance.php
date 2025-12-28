@@ -275,6 +275,12 @@ function filterByLocation() {
 // Add event listener for location filter
 document.getElementById('standort-filter').addEventListener('change', filterByLocation);
 
+// Initialize filtering on page load (for Global Admin with pre-selected location)
+const standortFilter = document.getElementById('standort-filter');
+if (standortFilter && standortFilter.value) {
+    filterByLocation();
+}
+
 // Calculate duration automatically
 function calculateDuration() {
     const vonInput = document.getElementById('von');
