@@ -108,33 +108,29 @@ class Auth {
                 $_SESSION['login_time'] = time();
                 $_SESSION['last_activity'] = time();
                 
-                // Handle "Remember Me" functionality before regenerating session
+                // Regenerate session ID and delete old session for security
+                // This must be done BEFORE setting remember me cookie to ensure
+                // the cookie is associated with the new session ID
+                $oldSessionId = session_id();
+                session_regenerate_id(true);
+                $newSessionId = session_id();
+                
+                // Log the session regeneration for debugging
+                error_log("Login successful for user '{$user['username']}'. Old session: {$oldSessionId}, New session: {$newSessionId}");
+                
+                // Handle "Remember Me" functionality after regenerating session
                 if ($rememberMe) {
                     self::setRememberMeCookie($user['id']);
                 }
                 
-                // Store old session ID for cleanup
-                $oldSessionId = session_id();
-                
-                // Regenerate session ID WITHOUT deleting old session immediately
-                // This avoids race conditions where the new session data might not be
-                // fully written before the old session is deleted
-                session_regenerate_id(false);
-                
-                // Now explicitly write and close the session to ensure data is persisted
-                // before the redirect happens
+                // Explicitly write and close the session to ensure data is persisted
+                // synchronously before the redirect happens. This is critical to prevent
+                // the session data from being lost if the script exits before PHP's
+                // shutdown handler has a chance to write the session.
                 session_write_close();
                 
-                // Clean up old session file explicitly for security
-                // This is more reliable than relying on garbage collection
-                $sessionPath = session_save_path();
-                if (empty($sessionPath)) {
-                    $sessionPath = sys_get_temp_dir();
-                }
-                $oldSessionFile = $sessionPath . '/sess_' . $oldSessionId;
-                if (file_exists($oldSessionFile)) {
-                    @unlink($oldSessionFile);
-                }
+                // Log that session was written
+                error_log("Session written and closed. Session data should be persisted to disk.");
                 
                 return true;
             }
@@ -181,13 +177,21 @@ class Auth {
     public static function isAuthenticated() {
         self::init();
         
+        // Log session state for debugging
+        $sessionId = session_id();
+        $authenticated = isset($_SESSION['authenticated']) ? $_SESSION['authenticated'] : 'not set';
+        $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set';
+        error_log("isAuthenticated check: Session ID: {$sessionId}, Authenticated: {$authenticated}, User ID: {$userId}");
+        
         // Check if authenticated flag is set
         if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
+            error_log("isAuthenticated: authenticated flag not set or false");
             return false;
         }
         
         // Check if user_id exists
         if (!isset($_SESSION['user_id'])) {
+            error_log("isAuthenticated: user_id not set");
             return false;
         }
         
