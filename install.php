@@ -9,6 +9,59 @@ require_once __DIR__ . '/src/php/session_init.php';
 // Start session at the beginning
 initSecureSession();
 
+/**
+ * Test if a directory is writable by attempting an actual write operation
+ * This is more reliable than is_writable() in PHP-FPM configurations
+ * 
+ * @param string $dir The directory path to test
+ * @return bool True if directory is writable, false otherwise
+ * 
+ * Side effects: Creates and immediately deletes a temporary test file
+ * named .write_test_[random] in the directory if writable
+ */
+function testDirectoryWritable($dir) {
+    if (!file_exists($dir)) {
+        return false;
+    }
+    if (!is_dir($dir)) {
+        return false;
+    }
+    
+    // Perform actual write test
+    $testFile = $dir . '/.write_test_' . bin2hex(random_bytes(8));
+    
+    // Clear any previous errors
+    error_clear_last();
+    
+    $writeResult = @file_put_contents($testFile, 'test');
+    $success = $writeResult !== false;
+    
+    if ($success) {
+        @unlink($testFile);
+    }
+    
+    return $success;
+}
+
+/**
+ * Test if a directory or its parent is writable (for cases where dir doesn't exist yet)
+ * 
+ * @param string $dir The directory path to test
+ * @return bool True if directory (or parent if dir doesn't exist) is writable, false otherwise
+ * 
+ * For existing directories: tests the directory itself
+ * For non-existent directories: tests if parent directory is writable (to allow creation)
+ */
+function testDirectoryOrParentWritable($dir) {
+    if (file_exists($dir)) {
+        return testDirectoryWritable($dir);
+    } else {
+        // If directory doesn't exist, check if parent is writable
+        $parentDir = dirname($dir);
+        return testDirectoryWritable($parentDir);
+    }
+}
+
 // Security: Prevent running if already installed
 $configFile = __DIR__ . '/config/config.php';
 if (file_exists($configFile)) {
@@ -72,7 +125,7 @@ function checkSystemRequirements() {
     
     // Check directory permissions
     $configDir = __DIR__ . '/config';
-    $configDirWritable = is_writable($configDir) || (!file_exists($configDir) && is_writable(__DIR__));
+    $configDirWritable = testDirectoryOrParentWritable($configDir);
     $checks[] = [
         'name' => 'config/ Verzeichnis',
         'required' => 'Schreibrechte erforderlich',
@@ -83,7 +136,7 @@ function checkSystemRequirements() {
     if (!$configDirWritable) $allPassed = false;
     
     $dataDir = __DIR__ . '/data';
-    $dataDirWritable = is_writable($dataDir) || (!file_exists($dataDir) && is_writable(__DIR__));
+    $dataDirWritable = testDirectoryOrParentWritable($dataDir);
     $checks[] = [
         'name' => 'data/ Verzeichnis',
         'required' => 'Schreibrechte erforderlich',
@@ -418,7 +471,7 @@ function runDiagnosticTests() {
     // Test 3: Data directory exists and is writable
     $dataDir = __DIR__ . '/data';
     $dataDirExists = file_exists($dataDir);
-    $dataDirWritable = $dataDirExists && is_writable($dataDir);
+    $dataDirWritable = $dataDirExists && testDirectoryWritable($dataDir);
     
     $results[] = [
         'name' => 'Datenverzeichnis',
