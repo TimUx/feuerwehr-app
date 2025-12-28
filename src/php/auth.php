@@ -58,8 +58,17 @@ class Auth {
                 die("Configuration Error: Data directory path is not a directory. Please contact your system administrator.<br><br><a href='diagnose.php'>Run System Diagnostics</a>");
             }
             
-            // Verify it's writable
-            if (!is_writable(self::$dataDir)) {
+            // Verify it's writable with an actual write test
+            // Note: is_writable() can return false positives in some PHP-FPM configurations
+            // so we perform an actual write test instead
+            $testFile = self::$dataDir . '/.write_test_' . uniqid();
+            $writeTestSuccess = @file_put_contents($testFile, 'test') !== false;
+            
+            if ($writeTestSuccess) {
+                // Clean up test file
+                @unlink($testFile);
+            } else {
+                // Write test failed - directory is not writable
                 error_log("Data directory exists but is not writable: " . self::$dataDir . ". Please check file permissions.");
                 
                 // Redirect to diagnose.php for better error diagnostics
