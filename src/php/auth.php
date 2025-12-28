@@ -26,6 +26,9 @@ class Auth {
             self::$config = require __DIR__ . '/../../config/config.php';
             self::$dataDir = self::$config['data_dir'];
             
+            // Clear stat cache to ensure we get current filesystem state
+            clearstatcache(true, self::$dataDir);
+            
             // Ensure data directory exists and is writable
             if (!file_exists(self::$dataDir)) {
                 // Directory doesn't exist, try to create it

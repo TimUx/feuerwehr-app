@@ -10,6 +10,10 @@
 function initSecureSession() {
     // Configure session save path BEFORE checking status
     $sessionPath = '/tmp/php_sessions';
+    
+    // Clear stat cache to ensure we get current filesystem state
+    clearstatcache(true, $sessionPath);
+    
     if (!file_exists($sessionPath)) {
         if (!@mkdir($sessionPath, 0700, true)) {
             error_log("Failed to create session directory: " . $sessionPath . ". Please ensure the web server has write permissions to /tmp.");
