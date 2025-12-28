@@ -52,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
     
     if (Auth::login($username, $password, $rememberMe)) {
         // Login successful - session was already written and closed in Auth::login()
-        // Redirect to home
-        header('Location: ' . getSafeRedirectUrl('/index.php'));
+        // Redirect to home using relative URL to ensure cookies are sent
+        header('Location: /index.php');
         exit;
     } else {
         $loginError = 'Ungültiger Benutzername oder Passwort';
