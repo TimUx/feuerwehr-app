@@ -179,10 +179,15 @@ class OfflineUI {
    * Auto-sync when coming online
    */
   async autoSync() {
-    const count = await this.offlineStorage.getPendingCount();
-    if (count > 0) {
-      console.log('[OfflineUI] Auto-syncing pending forms');
-      await this.performSync();
+    try {
+      const count = await this.offlineStorage.getPendingCount();
+      if (count > 0) {
+        console.log('[OfflineUI] Auto-syncing pending forms');
+        await this.performSync();
+      }
+    } catch (error) {
+      console.error('[OfflineUI] Auto-sync failed:', error);
+      this.showNotification('Automatische Synchronisierung fehlgeschlagen. Bitte versuchen Sie es manuell.', 'warning');
     }
   }
 

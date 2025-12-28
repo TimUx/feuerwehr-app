@@ -482,7 +482,7 @@ class FeuerwehrApp {
       console.error('Form submission error:', error);
       
       // Handle offline submission for supported forms
-      if (isOfflineSupportedForm && !navigator.onLine && window.OfflineStorage) {
+      if (isOfflineSupportedForm && !navigator.onLine && window.OfflineStorage && window.OfflineStorage.db) {
         try {
           const formType = action.includes('attendance') ? 'Anwesenheitsliste' : 'Einsatzbericht';
           await window.OfflineStorage.saveForm(formType, action, formData);

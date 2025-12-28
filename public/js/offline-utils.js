@@ -18,12 +18,28 @@ function updateOfflineBanner(bannerId = 'offline-banner') {
  * @param {string} bannerId - ID of the banner element
  */
 function initOfflineBanner(bannerId = 'offline-banner') {
-  // Update banner on page load
-  updateOfflineBanner(bannerId);
+  // Function to setup banner
+  const setup = () => {
+    const banner = document.getElementById(bannerId);
+    if (!banner) {
+      console.warn('[OfflineUtils] Banner element not found:', bannerId);
+      return;
+    }
+    
+    // Update banner on page load
+    updateOfflineBanner(bannerId);
+    
+    // Update banner when online/offline status changes
+    window.addEventListener('online', () => updateOfflineBanner(bannerId));
+    window.addEventListener('offline', () => updateOfflineBanner(bannerId));
+  };
   
-  // Update banner when online/offline status changes
-  window.addEventListener('online', () => updateOfflineBanner(bannerId));
-  window.addEventListener('offline', () => updateOfflineBanner(bannerId));
+  // Check if DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
 }
 
 // Export functions
