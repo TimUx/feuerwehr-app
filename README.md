@@ -15,6 +15,8 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
   - [Voraussetzungen](#voraussetzungen)
   - [Installation mit Web-Installer](#installation-mit-web-installer-empfohlen)
   - [Manuelle Installation](#manuelle-installation-alternativ)
+  - [PWA-Installation](#pwa-installation-mobile)
+- [Offline-Funktionalität](#-offline-funktionalität)
 - [Erste Schritte](#-erste-schritte)
   - [Login](#login)
   - [Hauptmenü](#hauptmenü)
@@ -240,6 +242,140 @@ Navigieren Sie zu Ihrer Domain im Browser und melden Sie sich an.
 1. Öffnen Sie die App im Browser auf Ihrem Smartphone
 2. Tippen Sie auf "Zum Startbildschirm hinzufügen" (iOS) oder "Installieren" (Android)
 3. Die App erscheint als eigenständige Anwendung auf Ihrem Gerät
+
+---
+
+## 📱 Offline-Funktionalität
+
+Die App unterstützt vollständige Offline-Funktionalität für kritische Features - perfekt für den Einsatz in Gebieten mit schlechter Netzabdeckung.
+
+### ✨ Features
+
+**Erweiterte Caching-Strategie**
+- Cache-First für statische Assets (CSS, JS, Icons, Fonts)
+- Network-First mit Cache-Fallback für API-Endpunkte
+- Dynamisches Caching für Seiteninhalte
+- Intelligentes Cache-Versioning und automatisches Cleanup
+
+**Offline-Formular-Speicherung**
+- Formulare können offline ausgefüllt werden
+- Daten werden lokal in IndexedDB gespeichert
+- Automatische Synchronisation bei Verbindungswiederherstellung
+- Background Sync API für automatische Formular-Übermittlung im Hintergrund
+
+**Benutzeroberfläche**
+- Online/Offline-Statusanzeige (unten rechts)
+- Sync-Button mit Badge für ausstehende Formulare
+- Benachrichtigungssystem für Sync-Feedback
+- Offline-Banner auf Formularseiten
+
+### 📋 Verwendung
+
+#### Offline-Formulare ausfüllen
+
+1. **Navigieren Sie zu einem Formular** (Anwesenheitsliste oder Einsatzbericht)
+2. **Wenn offline:** Ein gelber Banner wird oben im Formular angezeigt
+3. **Füllen Sie das Formular aus** wie gewohnt
+4. **Klicken Sie auf "Absenden"**
+5. **Das Formular wird lokal gespeichert** und zeigt eine Bestätigung
+
+#### Synchronisation
+
+**Automatisch:**
+- Wenn die Verbindung wiederhergestellt wird, synchronisiert die App automatisch alle ausstehenden Formulare
+- Eine Benachrichtigung bestätigt erfolgreiche Synchronisationen
+
+**Manuell:**
+- Klicken Sie auf das Sync-Symbol (🔄) in der Kopfzeile
+- Das Badge zeigt die Anzahl der ausstehenden Formulare
+- Nach dem Klicken werden alle ausstehenden Formulare sofort übermittelt
+
+#### Offline-Status
+
+- **Grünes Symbol:** Online und synchronisiert
+- **Rotes Symbol:** Offline-Modus aktiv
+- Der Status wird automatisch aktualisiert
+
+### 🛠️ Technische Details
+
+**Unterstützte Formulare:**
+- ✅ Anwesenheitsliste
+- ✅ Einsatzbericht
+
+**Cache-Strategien:**
+
+*Cache-First (Statische Assets)*
+```
+Request → Cache → Network (fallback)
+```
+Verwendet für CSS, JavaScript, Bilder, Icons und Fonts
+
+*Network-First (API & Pages)*
+```
+Request → Network → Cache (fallback)
+```
+Verwendet für API-Endpunkte, Seiteninhalte und dynamische Daten
+
+*Network-Only (Formulare & Verwaltung)*
+```
+Request → Network (no cache)
+```
+Verwendet für Formular-Submissions (außer bei Offline), Admin-Funktionen und Benutzer-Verwaltung
+
+**Browser-Unterstützung:**
+
+| Feature | Chrome/Edge | Firefox | Safari | Mobile |
+|---------|------------|---------|--------|--------|
+| Service Worker | ✅ | ✅ | ✅ | ✅ |
+| IndexedDB | ✅ | ✅ | ✅ | ✅ |
+| Background Sync | ✅ | ⚠️* | ⚠️* | ⚠️** |
+| Cache API | ✅ | ✅ | ✅ | ✅ |
+
+*Fallback auf manuelle Synchronisation verfügbar  
+**Teilweise unterstützt auf Android Chrome
+
+**Datenspeicherung:**
+
+Alle offline gespeicherten Formulare werden in IndexedDB gespeichert:
+- **Datenbank:** `FeuerwehrAppDB`
+- **Object Store:** `pending-forms`
+- **Gespeicherte Felder:** ID, Formulartyp, Ziel-URL, FormData, Zeitstempel, Status
+
+### 🔒 Sicherheit
+
+- ✅ Alle Daten werden nur lokal im Browser gespeichert
+- ✅ Keine sensiblen Daten werden im Cache gespeichert
+- ✅ Formulardaten werden nach erfolgreicher Synchronisation gelöscht
+- ✅ HTTPS erforderlich für Service Worker in Produktion
+
+### ⚠️ Bekannte Einschränkungen
+
+1. **Datei-Uploads:** Datei-Uploads in der Anwesenheitsliste funktionieren offline, werden aber mit dem Formular gespeichert
+2. **Browser-Storage-Limits:** IndexedDB hat Browser-abhängige Speichergrenzen (typisch 50-100MB)
+3. **Background Sync:** Nicht in allen Browsern verfügbar (siehe Browser-Unterstützung)
+
+### 🐛 Fehlerbehebung
+
+**Problem: Formulare werden nicht synchronisiert**
+
+Lösung:
+1. Überprüfen Sie die Internetverbindung
+2. Klicken Sie auf das Sync-Symbol in der Kopfzeile
+3. Öffnen Sie die Browser-Konsole (F12) für Details
+
+**Problem: Offline-Status wird nicht angezeigt**
+
+Lösung:
+1. Stellen Sie sicher, dass JavaScript aktiviert ist
+2. Löschen Sie den Browser-Cache und laden Sie die Seite neu
+3. Überprüfen Sie, dass der Service Worker registriert ist (F12 → Application → Service Workers)
+
+**Problem: Cache wird nicht aktualisiert**
+
+Lösung:
+1. Die App verwendet Cache-Versionierung - alte Caches werden automatisch gelöscht
+2. Bei Problemen: Browser-Cache manuell löschen
+3. Service Worker-Update erzwingen: F12 → Application → Service Workers → "Update"
 
 ---
 
