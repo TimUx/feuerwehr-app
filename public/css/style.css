@@ -1395,3 +1395,210 @@ body {
 .table th[onclick]:hover {
     background-color: var(--border-color);
 }
+
+/* ==================== Offline UI Styles ==================== */
+
+/* Offline Status Indicator */
+.offline-status-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: var(--bg-card);
+  border: 2px solid var(--error-color);
+  border-radius: 24px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow-large);
+  z-index: 9999;
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.offline-status-indicator.offline {
+  opacity: 1;
+  transform: translateY(0);
+  border-color: var(--error-color);
+}
+
+.offline-status-indicator.online {
+  border-color: var(--success-color);
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.offline-status-indicator .status-icon {
+  font-size: 20px;
+  color: var(--error-color);
+}
+
+.offline-status-indicator.online .status-icon {
+  color: var(--success-color);
+}
+
+.offline-status-indicator .status-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Sync Button Badge */
+.sync-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: var(--error-color);
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* Rotating animation for sync icon */
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+/* Offline Notification */
+.offline-notification {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background-color: var(--bg-card);
+  border-radius: 8px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-large);
+  z-index: 9998;
+  max-width: 400px;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s ease;
+  border-left: 4px solid;
+}
+
+.offline-notification.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.offline-notification.success {
+  border-left-color: var(--success-color);
+}
+
+.offline-notification.success .material-icons {
+  color: var(--success-color);
+}
+
+.offline-notification.error {
+  border-left-color: var(--error-color);
+}
+
+.offline-notification.error .material-icons {
+  color: var(--error-color);
+}
+
+.offline-notification.warning {
+  border-left-color: var(--warning-color);
+}
+
+.offline-notification.warning .material-icons {
+  color: var(--warning-color);
+}
+
+.offline-notification.info {
+  border-left-color: var(--info-color);
+}
+
+.offline-notification.info .material-icons {
+  color: var(--info-color);
+}
+
+.offline-notification .material-icons {
+  font-size: 24px;
+}
+
+.offline-notification span:not(.material-icons) {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+/* Offline Form Banner */
+.offline-form-banner {
+  background-color: var(--warning-color);
+  color: white;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-small);
+}
+
+.offline-form-banner .material-icons {
+  font-size: 24px;
+}
+
+.offline-form-banner-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.offline-form-banner-text strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .offline-status-indicator {
+    bottom: 10px;
+    right: 10px;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .offline-status-indicator .status-icon {
+    font-size: 18px;
+  }
+
+  .offline-notification {
+    top: 70px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+}

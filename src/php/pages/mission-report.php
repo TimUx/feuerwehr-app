@@ -48,6 +48,15 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
         <?php echo $editMode ? 'Einsatzbericht bearbeiten' : 'Einsatzbericht'; ?>
     </div>
     <div class="card-content">
+        <!-- Offline Support Banner -->
+        <div class="offline-form-banner" id="offline-banner" style="display: none;">
+            <span class="material-icons">cloud_off</span>
+            <div class="offline-form-banner-text">
+                <strong>Offline-Modus</strong>
+                Formulare können offline ausgefüllt werden und werden automatisch gesendet, sobald Sie wieder online sind.
+            </div>
+        </div>
+        
         <?php if ($editMode): ?>
         <div class="alert alert-info" style="margin-bottom: 1rem; padding: 0.75rem; background-color: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
             <strong>Bearbeitungsmodus:</strong> Sie bearbeiten einen vorhandenen Einsatzbericht.
@@ -787,4 +796,10 @@ updateCrewSections();
     }
 })();
 <?php endif; ?>
+
+<script>
+// Initialize offline banner using shared utility
+if (typeof initOfflineBanner === 'function') {
+  initOfflineBanner('offline-banner');
+}
 </script>

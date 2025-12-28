@@ -482,6 +482,9 @@ $user = Auth::getUser();
     <?php endif; ?>
 
     <!-- JavaScript -->
+    <script src="/public/js/offline-utils.js"></script>
+    <script src="/public/js/offline-storage.js"></script>
+    <script src="/public/js/offline-ui.js"></script>
     <script src="/public/js/app.js"></script>
 </body>
 </html>
