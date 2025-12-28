@@ -261,10 +261,14 @@ function runAllTests() {
         if (function_exists('posix_getpwuid')) {
             $dirOwner = fileowner($dataDir);
             $dirGroup = filegroup($dataDir);
-            $ownerInfo = posix_getpwuid($dirOwner);
-            $groupInfo = posix_getgrgid($dirGroup);
-            debugLog("Data directory owner: " . ($ownerInfo['name'] ?? $dirOwner) . " (UID: $dirOwner)", 'INFO');
-            debugLog("Data directory group: " . ($groupInfo['name'] ?? $dirGroup) . " (GID: $dirGroup)", 'INFO');
+            $ownerInfo = @posix_getpwuid($dirOwner);
+            $groupInfo = @posix_getgrgid($dirGroup);
+            if ($ownerInfo !== false && $groupInfo !== false) {
+                debugLog("Data directory owner: " . ($ownerInfo['name'] ?? $dirOwner) . " (UID: $dirOwner)", 'INFO');
+                debugLog("Data directory group: " . ($groupInfo['name'] ?? $dirGroup) . " (GID: $dirGroup)", 'INFO');
+            } else {
+                debugLog("Data directory owner UID: $dirOwner, GID: $dirGroup (name lookup failed)", 'INFO');
+            }
         }
         debugLog("Data directory permissions: " . substr(sprintf('%o', fileperms($dataDir)), -4), 'INFO');
     } else {
@@ -297,10 +301,14 @@ function runAllTests() {
         if (function_exists('posix_getpwuid')) {
             $parentOwner = fileowner($parentDir);
             $parentGroup = filegroup($parentDir);
-            $ownerInfo = posix_getpwuid($parentOwner);
-            $groupInfo = posix_getgrgid($parentGroup);
-            debugLog("Parent directory owner: " . ($ownerInfo['name'] ?? $parentOwner) . " (UID: $parentOwner)", 'INFO');
-            debugLog("Parent directory group: " . ($groupInfo['name'] ?? $parentGroup) . " (GID: $parentGroup)", 'INFO');
+            $ownerInfo = @posix_getpwuid($parentOwner);
+            $groupInfo = @posix_getgrgid($parentGroup);
+            if ($ownerInfo !== false && $groupInfo !== false) {
+                debugLog("Parent directory owner: " . ($ownerInfo['name'] ?? $parentOwner) . " (UID: $parentOwner)", 'INFO');
+                debugLog("Parent directory group: " . ($groupInfo['name'] ?? $parentGroup) . " (GID: $parentGroup)", 'INFO');
+            } else {
+                debugLog("Parent directory owner UID: $parentOwner, GID: $parentGroup (name lookup failed)", 'INFO');
+            }
         }
     }
     
@@ -391,15 +399,14 @@ function runAllTests() {
     
     // Test 5d: Check umask
     debugLog("Test 5d: Checking umask settings", 'INFO');
-    $currentUmask = umask();
-    umask($currentUmask); // Restore original umask
-    $umaskOctal = sprintf('%04o', $currentUmask);
+    $originalUmask = umask();
+    $umaskOctal = sprintf('%04o', $originalUmask);
     debugLog("Current umask: $umaskOctal", 'INFO');
     
     // Umask should typically be 0022 or less restrictive for web applications
     // 0027 allows owner full access, group read/execute, and others no access
     $maxRecommendedUmask = 0027;
-    $umaskOk = $currentUmask <= $maxRecommendedUmask;
+    $umaskOk = $originalUmask <= $maxRecommendedUmask;
     
     $tests[] = [
         'category' => 'Dateisystem',

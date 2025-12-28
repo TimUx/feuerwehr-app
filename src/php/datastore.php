@@ -22,20 +22,41 @@ class DataStore {
                 // Directory doesn't exist, try to create it
                 if (!@mkdir(self::$dataDir, 0700, true)) {
                     error_log("Failed to create data directory: " . self::$dataDir . ". Please ensure the web server has write permissions to the parent directory.");
-                    die("Configuration Error: Unable to create data directory. Please contact your system administrator or check file permissions.");
+                    
+                    // Redirect to diagnose.php for better error diagnostics
+                    if (php_sapi_name() !== 'cli' && !headers_sent()) {
+                        header('Location: diagnose.php');
+                        exit;
+                    }
+                    
+                    die("Configuration Error: Unable to create data directory. Please contact your system administrator or check file permissions.<br><br><a href='diagnose.php'>Run System Diagnostics</a>");
                 }
             }
             
             // Verify it's actually a directory
             if (!is_dir(self::$dataDir)) {
                 error_log("Data directory path exists but is not a directory: " . self::$dataDir);
-                die("Configuration Error: Data directory path is not a directory. Please contact your system administrator.");
+                
+                // Redirect to diagnose.php for better error diagnostics
+                if (php_sapi_name() !== 'cli' && !headers_sent()) {
+                    header('Location: diagnose.php');
+                    exit;
+                }
+                
+                die("Configuration Error: Data directory path is not a directory. Please contact your system administrator.<br><br><a href='diagnose.php'>Run System Diagnostics</a>");
             }
             
             // Verify it's writable
             if (!is_writable(self::$dataDir)) {
                 error_log("Data directory exists but is not writable: " . self::$dataDir . ". Please check file permissions.");
-                die("Configuration Error: Data directory is not writable. Please contact your system administrator or check file permissions.");
+                
+                // Redirect to diagnose.php for better error diagnostics
+                if (php_sapi_name() !== 'cli' && !headers_sent()) {
+                    header('Location: diagnose.php');
+                    exit;
+                }
+                
+                die("Configuration Error: Data directory is not writable. Please contact your system administrator or check file permissions.<br><br><a href='diagnose.php'>Run System Diagnostics</a>");
             }
         }
     }
