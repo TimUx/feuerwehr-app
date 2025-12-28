@@ -1749,10 +1749,15 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                 if ($action === 'create_data_dir') {
                     $dataDir = __DIR__ . '/data';
                     if (!file_exists($dataDir)) {
-                        if (@mkdir($dataDir, 0755, true)) {
+                        $result = mkdir($dataDir, 0755, true);
+                        if ($result) {
                             $fixSuccess = true;
                             $fixMessage = 'data/ Verzeichnis erfolgreich erstellt!';
+                            error_log("diagnose.php: Successfully created data directory");
                         } else {
+                            $lastError = error_get_last();
+                            $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
+                            error_log("diagnose.php: Failed to create data directory: " . $errorMsg);
                             $fixMessage = 'Fehler beim Erstellen des data/ Verzeichnisses. Bitte setzen Sie die Berechtigungen manuell über FTP.';
                         }
                     } else {
@@ -1761,10 +1766,15 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                 } elseif ($action === 'fix_permissions') {
                     $dataDir = __DIR__ . '/data';
                     if (file_exists($dataDir)) {
-                        if (@chmod($dataDir, 0755)) {
+                        $result = chmod($dataDir, 0755);
+                        if ($result) {
                             $fixSuccess = true;
                             $fixMessage = 'Berechtigungen für data/ Verzeichnis erfolgreich gesetzt!';
+                            error_log("diagnose.php: Successfully changed permissions for data directory");
                         } else {
+                            $lastError = error_get_last();
+                            $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
+                            error_log("diagnose.php: Failed to change permissions for data directory: " . $errorMsg);
                             $fixMessage = 'Fehler beim Setzen der Berechtigungen. Bitte verwenden Sie FTP.';
                         }
                     } else {
@@ -1772,18 +1782,23 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                     }
                 }
                 
-                // Redirect to avoid form resubmission
-                if ($fixSuccess) {
-                    header('Location: ?fix_success=' . urlencode($fixMessage));
+                // Use session to pass message (more secure than GET parameter)
+                if ($fixSuccess || $fixAttempted) {
+                    $_SESSION['fix_attempted'] = true;
+                    $_SESSION['fix_success'] = $fixSuccess;
+                    $_SESSION['fix_message'] = $fixMessage;
+                    header('Location: ?');
                     exit;
                 }
             }
             
-            // Show success message from redirect
-            if (isset($_GET['fix_success'])) {
-                $fixAttempted = true;
-                $fixSuccess = true;
-                $fixMessage = $_GET['fix_success'];
+            // Retrieve fix result from session
+            if (isset($_SESSION['fix_attempted'])) {
+                $fixAttempted = $_SESSION['fix_attempted'];
+                $fixSuccess = $_SESSION['fix_success'];
+                $fixMessage = $_SESSION['fix_message'];
+                // Clear session variables
+                unset($_SESSION['fix_attempted'], $_SESSION['fix_success'], $_SESSION['fix_message']);
             }
             ?>
             
