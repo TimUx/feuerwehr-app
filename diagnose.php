@@ -1760,48 +1760,50 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                     
                     if ($action === 'create_data_dir') {
                         $dataDir = __DIR__ . '/data';
-                    if (!file_exists($dataDir)) {
-                        $result = mkdir($dataDir, 0755, true);
-                        if ($result) {
-                            $fixSuccess = true;
-                            $fixMessage = 'data/ Verzeichnis erfolgreich erstellt!';
-                            error_log("diagnose.php: Successfully created data directory");
+                        if (!file_exists($dataDir)) {
+                            $result = mkdir($dataDir, 0755, true);
+                            if ($result) {
+                                $fixSuccess = true;
+                                $fixMessage = 'data/ Verzeichnis erfolgreich erstellt!';
+                                error_log("diagnose.php: Successfully created data directory");
+                            } else {
+                                    $lastError = error_get_last();
+                                $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
+                                error_log("diagnose.php: Failed to create data directory: " . $errorMsg);
+                                $fixMessage = 'Fehler beim Erstellen des data/ Verzeichnisses. Bitte setzen Sie die Berechtigungen manuell über FTP.';
+                            }
                         } else {
-                            $lastError = error_get_last();
-                            $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
-                            error_log("diagnose.php: Failed to create data directory: " . $errorMsg);
-                            $fixMessage = 'Fehler beim Erstellen des data/ Verzeichnisses. Bitte setzen Sie die Berechtigungen manuell über FTP.';
+                            $fixMessage = 'data/ Verzeichnis existiert bereits.';
                         }
-                    } else {
-                        $fixMessage = 'data/ Verzeichnis existiert bereits.';
-                    }
-                } elseif ($action === 'fix_permissions') {
-                    $dataDir = __DIR__ . '/data';
-                    if (file_exists($dataDir)) {
-                        $result = chmod($dataDir, 0755);
-                        if ($result) {
-                            $fixSuccess = true;
-                            $fixMessage = 'Berechtigungen für data/ Verzeichnis erfolgreich gesetzt!';
-                            error_log("diagnose.php: Successfully changed permissions for data directory");
+                    } elseif ($action === 'fix_permissions') {
+                        $dataDir = __DIR__ . '/data';
+                        if (file_exists($dataDir)) {
+                            $result = chmod($dataDir, 0755);
+                            if ($result) {
+                                $fixSuccess = true;
+                                $fixMessage = 'Berechtigungen für data/ Verzeichnis erfolgreich gesetzt!';
+                                error_log("diagnose.php: Successfully changed permissions for data directory");
+                            } else {
+                                $lastError = error_get_last();
+                                $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
+                                error_log("diagnose.php: Failed to change permissions for data directory: " . $errorMsg);
+                                $fixMessage = 'Fehler beim Setzen der Berechtigungen. Bitte verwenden Sie FTP.';
+                            }
                         } else {
-                            $lastError = error_get_last();
-                            $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
-                            error_log("diagnose.php: Failed to change permissions for data directory: " . $errorMsg);
-                            $fixMessage = 'Fehler beim Setzen der Berechtigungen. Bitte verwenden Sie FTP.';
+                            $fixMessage = 'data/ Verzeichnis existiert nicht.';
                         }
-                    } else {
-                        $fixMessage = 'data/ Verzeichnis existiert nicht.';
                     }
-                }
-                
+                    
                     // Use session to pass message (more secure than GET parameter)
                     if ($fixAttempted) {
                         $_SESSION['fix_attempted'] = true;
                         $_SESSION['fix_success'] = $fixSuccess;
                         $_SESSION['fix_message'] = $fixMessage;
-                        // Build proper absolute URL
+                        // Build proper absolute URL with validated host
                         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-                        $host = $_SERVER['HTTP_HOST'];
+                        // Sanitize host to prevent header injection
+                        $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+                        $host = preg_replace('/[^a-zA-Z0-9.:-]/', '', $host);
                         $uri = strtok($_SERVER['REQUEST_URI'], '?');
                         header("Location: {$protocol}://{$host}{$uri}");
                         exit;
