@@ -315,13 +315,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Clear stat cache to ensure we get current filesystem state
             clearstatcache(true, $dataDir);
             
-            if (!file_exists($dataDir)) {
+            // Using is_dir() as primary check since it's more reliable for directories
+            if (!is_dir($dataDir)) {
                 if (!@mkdir($dataDir, 0700, true)) {
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Fehler: Das Datenverzeichnis konnte nicht erstellt werden. Bitte stellen Sie sicher, dass der Webserver Schreibrechte im Installationsverzeichnis hat.'
-                    ]);
-                    exit;
+                    // mkdir failed, but check again if directory now exists
+                    clearstatcache(true, $dataDir);
+                    
+                    if (!is_dir($dataDir)) {
+                        // Directory truly doesn't exist and couldn't be created
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'Fehler: Das Datenverzeichnis konnte nicht erstellt werden. Bitte stellen Sie sicher, dass der Webserver Schreibrechte im Installationsverzeichnis hat.'
+                        ]);
+                        exit;
+                    }
                 }
             }
             
