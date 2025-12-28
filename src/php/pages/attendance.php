@@ -276,10 +276,12 @@ function filterByLocation() {
 document.getElementById('standort-filter').addEventListener('change', filterByLocation);
 
 // Initialize filtering on page load (for Global Admin with pre-selected location)
-const standortFilter = document.getElementById('standort-filter');
-if (standortFilter && standortFilter.value) {
-    filterByLocation();
-}
+(function() {
+    const standortFilter = document.getElementById('standort-filter');
+    if (standortFilter && standortFilter.value) {
+        filterByLocation();
+    }
+})();
 
 // Calculate duration automatically
 function calculateDuration() {
@@ -469,6 +471,7 @@ document.getElementById('attendance-form').addEventListener('submit', async (e) 
     }
 })();
 <?php endif; ?>
+</script>
 
 <script>
 // Initialize offline banner using shared utility

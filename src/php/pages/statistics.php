@@ -234,56 +234,58 @@ if ($selectedLocation) {
 
 <script>
 // Handle filter changes without form submission
-const locationEl = document.getElementById('location');
-const personnelEl = document.getElementById('personnel');
-const yearEl = document.getElementById('year');
+(function() {
+    const locationEl = document.getElementById('location');
+    const personnelEl = document.getElementById('personnel');
+    const yearEl = document.getElementById('year');
 
-// Filter personnel dropdown based on selected location
-function filterPersonnelByLocation() {
-    if (!locationEl || !personnelEl) return;
-    
-    const selectedLocationId = locationEl.value;
-    const personnelOptions = personnelEl.querySelectorAll('option[data-location-id]');
-    
-    personnelOptions.forEach(option => {
-        const optionLocationId = option.getAttribute('data-location-id') || '';
-        if (!selectedLocationId || optionLocationId === selectedLocationId) {
-            option.style.display = '';
-        } else {
-            option.style.display = 'none';
-            // Deselect if it was selected and is now hidden
-            if (option.selected) {
-                option.selected = false;
-                personnelEl.value = ''; // Reset to "All"
+    // Filter personnel dropdown based on selected location
+    function filterPersonnelByLocation() {
+        if (!locationEl || !personnelEl) return;
+        
+        const selectedLocationId = locationEl.value;
+        const personnelOptions = personnelEl.querySelectorAll('option[data-location-id]');
+        
+        personnelOptions.forEach(option => {
+            const optionLocationId = option.getAttribute('data-location-id') || '';
+            if (!selectedLocationId || optionLocationId === selectedLocationId) {
+                option.style.display = '';
+            } else {
+                option.style.display = 'none';
+                // Deselect if it was selected and is now hidden
+                if (option.selected) {
+                    option.selected = false;
+                    personnelEl.value = ''; // Reset to "All"
+                }
             }
-        }
-    });
-}
+        });
+    }
 
-function updateStatistics() {
-    const year = yearEl.value;
-    const location = locationEl ? locationEl.value : '';
-    const personnel = personnelEl.value;
-    
-    const params = { year: year };
-    if (location) params.location = location;
-    if (personnel) params.personnel = personnel;
-    
-    window.feuerwehrApp.navigateTo('statistics', params);
-}
+    function updateStatistics() {
+        const year = yearEl.value;
+        const location = locationEl ? locationEl.value : '';
+        const personnel = personnelEl.value;
+        
+        const params = { year: year };
+        if (location) params.location = location;
+        if (personnel) params.personnel = personnel;
+        
+        window.feuerwehrApp.navigateTo('statistics', params);
+    }
 
-yearEl.addEventListener('change', updateStatistics);
-if (locationEl) {
-    locationEl.addEventListener('change', function() {
-        // Filter personnel first, then update statistics
+    yearEl.addEventListener('change', updateStatistics);
+    if (locationEl) {
+        locationEl.addEventListener('change', function() {
+            // Filter personnel first, then update statistics
+            filterPersonnelByLocation();
+            updateStatistics();
+        });
+    }
+    personnelEl.addEventListener('change', updateStatistics);
+
+    // Initialize filtering on page load
+    if (locationEl) {
         filterPersonnelByLocation();
-        updateStatistics();
-    });
-}
-personnelEl.addEventListener('change', updateStatistics);
-
-// Initialize filtering on page load
-if (locationEl) {
-    filterPersonnelByLocation();
-}
+    }
+})();
 </script>

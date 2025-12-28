@@ -337,16 +337,20 @@ function getFilteredPersonnel() {
 document.getElementById('standort-filter').addEventListener('change', filterByLocation);
 
 // Initialize filtering on page load (for Global Admin with pre-selected location)
-const standortFilterMission = document.getElementById('standort-filter');
-if (standortFilterMission && standortFilterMission.value) {
-    filterByLocation();
-}
+(function() {
+    const standortFilterMission = document.getElementById('standort-filter');
+    if (standortFilterMission && standortFilterMission.value) {
+        filterByLocation();
+    }
+})();
 
 // Set default date to today
-const einsatzdatumField = document.getElementById('einsatzdatum');
-if (einsatzdatumField) {
-    einsatzdatumField.valueAsDate = new Date();
-}
+(function() {
+    const einsatzdatumField = document.getElementById('einsatzdatum');
+    if (einsatzdatumField) {
+        einsatzdatumField.valueAsDate = new Date();
+    }
+})();
 
 // Calculate duration when start/end times change
 function calculateDuration() {
@@ -802,6 +806,7 @@ updateCrewSections();
     }
 })();
 <?php endif; ?>
+</script>
 
 <script>
 // Initialize offline banner using shared utility
