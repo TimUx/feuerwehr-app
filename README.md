@@ -99,11 +99,11 @@ Alle Screenshots in iPhone 13 Pro Auflösung (390x844px):
 <tr>
 <td width="50%">
 <b>Light Mode</b><br/>
-<img src="https://github.com/user-attachments/assets/c73c05ff-c7d3-4250-a646-3d2b6d78817d" width="100%" alt="Login Light Mode">
+<img src="https://github.com/user-attachments/assets/2e6c5878-2535-4470-a6bc-6ef6d8523a3c" width="100%" alt="Login Light Mode">
 </td>
 <td width="50%">
 <b>Dark Mode</b><br/>
-<img src="https://github.com/user-attachments/assets/0217fc88-360c-4ce0-bc5f-d57b26eb7ec3" width="100%" alt="Login Dark Mode">
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/03-login-dark.png" width="100%" alt="Login Dark Mode">
 </td>
 </tr>
 </table>
@@ -113,23 +113,26 @@ Alle Screenshots in iPhone 13 Pro Auflösung (390x844px):
 <tr>
 <td width="50%">
 <b>Light Mode</b><br/>
-<img src="https://github.com/user-attachments/assets/e463670a-8c82-4dd6-99da-970c9b8a705f" width="100%" alt="Hauptmenü Light Mode">
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/02-main-menu-light.png" width="100%" alt="Hauptmenü Light Mode">
 </td>
 <td width="50%">
 <b>Dark Mode</b><br/>
-<img src="https://github.com/user-attachments/assets/bc864160-3420-4735-b789-7f93805408fc" width="100%" alt="Hauptmenü Dark Mode">
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/04-main-menu-dark.png" width="100%" alt="Hauptmenü Dark Mode">
 </td>
 </tr>
 </table>
 
-### Navigation
-<img src="https://github.com/user-attachments/assets/d25dc4d8-e078-4ad1-aae7-465f7e572a68" width="390" alt="Navigation Menü">
-
 ### Einsatzkräfte-Verwaltung
-<img src="https://github.com/user-attachments/assets/3cce9076-9a4e-4a47-8d0e-a454b4fd60cd" width="390" alt="Einsatzkräfte Verwaltung">
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/06-personnel-management.png" width="390" alt="Einsatzkräfte Verwaltung">
+
+### Fahrzeug-Verwaltung
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/07-vehicle-management.png" width="390" alt="Fahrzeug Verwaltung">
+
+### Anwesenheitsliste-Formular
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/08-attendance-form.png" width="390" alt="Anwesenheitsliste Formular">
 
 ### Einsatzbericht-Formular
-<img src="https://github.com/user-attachments/assets/22bcbf18-e2d1-4f82-a609-7bfc2bda3add" width="390" alt="Einsatzbericht Formular">
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/09-mission-report-form.png" width="390" alt="Einsatzbericht Formular">
 
 ---
 
@@ -411,6 +414,8 @@ OpenStreetMap-Integration mit MapLibre GL JS:
 - 🗺️ Hardware-beschleunigte Kartendarstellung
 - 🎯 Interaktive Marker für Start- und Zielpunkte
 
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/12-map.png" width="390" alt="Online Karte">
+
 #### ⚠️ Gefahrenmatrix
 Interaktive AAAA-CCCC-EEEE Einsatzstellengefahren-Matrix:
 - **A** - Atemgifte, Angstreaktionen, Ausbreitung, Atomare Gefahren
@@ -420,6 +425,8 @@ Interaktive AAAA-CCCC-EEEE Einsatzstellengefahren-Matrix:
 - ✓ Antippen zum Markieren identifizierter Gefahren
 - 📋 Echtzeit-Zusammenfassung markierter Gefahren
 - 🔄 Reset-Funktion
+
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/10-danger-matrix.png" width="390" alt="Gefahrenmatrix">
 
 #### ☣️ Gefahrstoffkennzeichen
 Umfassende Gefahrstoff-Datenbank:
@@ -441,12 +448,16 @@ Umfassende Gefahrstoff-Datenbank:
   - Freisetzungsmaßnahmen
 - Schnellreferenz-Buttons für häufige Stoffe
 
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/11-hazmat.png" width="390" alt="Gefahrstoffkennzeichen">
+
 #### 📞 Wichtige Telefonnummern
 Notfallkontakte-Verwaltung:
 - Admin-CRUD-Interface (Erstellen/Bearbeiten/Löschen)
 - Felder: Name, Firma, Funktion, Telefonnummer
 - Anzeige für alle Benutzer
 - 📱 Direkter Anruf via tel:-Link (One-Tap-Calling)
+
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/13-phone-numbers.png" width="390" alt="Wichtige Telefonnummern">
 
 ---
 
@@ -469,6 +480,8 @@ Umfassende Auswertungen für:
   - Teilgenommene Einsätze
   - Absolvierte Einsatzstunden
   - Gesamtstunden
+
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/14-statistics.png" width="390" alt="Statistiken">
 
 ---
 
@@ -533,6 +546,8 @@ Die App unterstützt verschiedene Benutzerrollen mit unterschiedlichen Zugriffsr
 - 🗑️ Benutzer löschen
 - 📍 Standort zuweisen (für Standort-Admins und Operators)
 - 👁️ Übersicht aller Benutzer (Global-Admin) oder Standort-Benutzer (Standort-Admin)
+
+<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/15-user-management.png" width="390" alt="Benutzerverwaltung">
 
 ---
 
