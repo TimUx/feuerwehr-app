@@ -1737,17 +1737,29 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
             </table>
             
             <?php
+            // Generate CSRF token if not exists
+            if (!isset($_SESSION['csrf_token'])) {
+                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+            }
+            $csrfToken = $_SESSION['csrf_token'];
+            
             // Handle PHP-based fixes
             $fixAttempted = false;
             $fixSuccess = false;
             $fixMessage = '';
             
             if (isset($_POST['fix_action'])) {
-                $fixAttempted = true;
-                $action = $_POST['fix_action'];
-                
-                if ($action === 'create_data_dir') {
-                    $dataDir = __DIR__ . '/data';
+                // Verify CSRF token
+                if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+                    $fixAttempted = true;
+                    $fixSuccess = false;
+                    $fixMessage = 'Sicherheitsfehler: Ungültiges Token. Bitte versuchen Sie es erneut.';
+                } else {
+                    $fixAttempted = true;
+                    $action = $_POST['fix_action'];
+                    
+                    if ($action === 'create_data_dir') {
+                        $dataDir = __DIR__ . '/data';
                     if (!file_exists($dataDir)) {
                         $result = mkdir($dataDir, 0755, true);
                         if ($result) {
@@ -1782,17 +1794,18 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                     }
                 }
                 
-                // Use session to pass message (more secure than GET parameter)
-                if ($fixAttempted) {
-                    $_SESSION['fix_attempted'] = true;
-                    $_SESSION['fix_success'] = $fixSuccess;
-                    $_SESSION['fix_message'] = $fixMessage;
-                    // Build proper absolute URL
-                    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-                    $host = $_SERVER['HTTP_HOST'];
-                    $uri = strtok($_SERVER['REQUEST_URI'], '?');
-                    header("Location: {$protocol}://{$host}{$uri}");
-                    exit;
+                    // Use session to pass message (more secure than GET parameter)
+                    if ($fixAttempted) {
+                        $_SESSION['fix_attempted'] = true;
+                        $_SESSION['fix_success'] = $fixSuccess;
+                        $_SESSION['fix_message'] = $fixMessage;
+                        // Build proper absolute URL
+                        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                        $host = $_SERVER['HTTP_HOST'];
+                        $uri = strtok($_SERVER['REQUEST_URI'], '?');
+                        header("Location: {$protocol}://{$host}{$uri}");
+                        exit;
+                    }
                 }
             }
             
@@ -1830,6 +1843,7 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                     <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                         <?php if (!file_exists(__DIR__ . '/data')): ?>
                             <form method="POST" style="margin: 0;">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                 <input type="hidden" name="fix_action" value="create_data_dir">
                                 <button type="submit" class="btn btn-primary" style="cursor: pointer;">
                                     <span class="material-icons">create_new_folder</span>
@@ -1838,6 +1852,7 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                             </form>
                         <?php elseif (!is_writable(__DIR__ . '/data')): ?>
                             <form method="POST" style="margin: 0;">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                 <input type="hidden" name="fix_action" value="fix_permissions">
                                 <button type="submit" class="btn btn-primary" style="cursor: pointer;">
                                     <span class="material-icons">lock_open</span>
