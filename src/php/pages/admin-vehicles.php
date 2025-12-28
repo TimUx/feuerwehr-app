@@ -132,14 +132,15 @@ $userLocationId = Auth::getUserLocationId();
                     <option value="">-- Fahrzeugtyp auswählen --</option>
                     <option value="LF 8" data-crew="6">LF 8 - Löschgruppenfahrzeug 8 (Besatzung: 1/5)</option>
                     <option value="LF 10" data-crew="9">LF 10 - Löschgruppenfahrzeug 10 (Besatzung: 1/8)</option>
+                    <option value="LF10 KatS" data-crew="9">LF10 KatS - Löschgruppenfahrzeug 10 Katastrophenschutz (Besatzung: 1/8)</option>
                     <option value="HLF 10" data-crew="9">HLF 10 - Hilfeleistungslöschgruppenfahrzeug 10 (Besatzung: 1/8)</option>
                     <option value="TSF" data-crew="6">TSF - Tragkraftspritzenfahrzeug (Besatzung: 1/5)</option>
                     <option value="TSF-W" data-crew="6">TSF-W - Tragkraftspritzenfahrzeug mit Löschwasserbehälter (Besatzung: 1/5)</option>
-                    <option value="MTF" data-crew="9">MTF - Mannschaftstransportfahrzeug (Besatzung: 1/8)</option>
+                    <option value="MTF/MTW" data-crew="9">MTF/MTW - Mannschaftstransportfahrzeug (Besatzung: 1/8)</option>
                     <option value="MLF" data-crew="6">MLF - Mittleres Löschfahrzeug (Besatzung: 1/5)</option>
                     <option value="ELW 1" data-crew="3">ELW 1 - Einsatzleitwagen 1 (Besatzung: 1/2)</option>
                     <option value="GW-L" data-crew="3">GW-L - Gerätewagen Logistik (Besatzung: 1/2)</option>
-                    <option value="RW" data-crew="3">RW - Rüstwagen (Besatzung: 1/2)</option>
+                    <option value="RW1" data-crew="3">RW1 - Rüstwagen (Besatzung: 1/2)</option>
                 </select>
             </div>
             
