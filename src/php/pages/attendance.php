@@ -37,6 +37,15 @@ if (isset($_GET['edit'])) {
         <?php echo $editMode ? 'Anwesenheitsliste bearbeiten' : 'Anwesenheitsliste'; ?>
     </div>
     <div class="card-content">
+        <!-- Offline Support Banner -->
+        <div class="offline-form-banner" id="offline-banner" style="display: none;">
+            <span class="material-icons">cloud_off</span>
+            <div class="offline-form-banner-text">
+                <strong>Offline-Modus</strong>
+                Formulare können offline ausgefüllt werden und werden automatisch gesendet, sobald Sie wieder online sind.
+            </div>
+        </div>
+        
         <?php if ($editMode): ?>
         <div class="alert alert-info" style="margin-bottom: 1rem; padding: 0.75rem; background-color: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
             <strong>Bearbeitungsmodus:</strong> Sie bearbeiten eine vorhandene Anwesenheitsliste.
@@ -450,4 +459,21 @@ document.getElementById('attendance-form').addEventListener('submit', async (e) 
     }
 })();
 <?php endif; ?>
+</script>
+
+<script>
+// Show offline banner when offline
+function updateOfflineBanner() {
+    const banner = document.getElementById('offline-banner');
+    if (banner) {
+        banner.style.display = navigator.onLine ? 'none' : 'flex';
+    }
+}
+
+// Update banner on page load
+updateOfflineBanner();
+
+// Update banner when online/offline status changes
+window.addEventListener('online', updateOfflineBanner);
+window.addEventListener('offline', updateOfflineBanner);
 </script>

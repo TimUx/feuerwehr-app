@@ -7,11 +7,13 @@ class FeuerwehrApp {
     this.theme = localStorage.getItem('theme') || 'light';
     this.deferredPrompt = null;
     this.pageScripts = []; // Track scripts added by pages for cleanup
+    this.offlineUI = null;
     this.init();
   }
 
   init() {
     this.setupServiceWorker();
+    this.setupOfflineSupport();
     this.setupTheme();
     this.setupNavigation();
     this.setupEventListeners();
@@ -29,6 +31,18 @@ class FeuerwehrApp {
     
     // Load the initial page
     this.loadPage(this.currentPage);
+  }
+
+  // Setup offline support
+  setupOfflineSupport() {
+    // Initialize offline storage and UI only when authenticated
+    if (document.body.classList.contains('authenticated') || 
+        !document.querySelector('.login-container')) {
+      if (typeof OfflineStorage !== 'undefined' && typeof OfflineUI !== 'undefined') {
+        this.offlineUI = new OfflineUI(window.OfflineStorage);
+        console.log('[App] Offline support initialized');
+      }
+    }
   }
 
   // Register Service Worker for PWA
@@ -432,6 +446,10 @@ class FeuerwehrApp {
   async handleFormSubmit(form) {
     const formData = new FormData(form);
     const action = form.getAttribute('action');
+    
+    // Check if this is a form that should support offline (attendance or mission report)
+    const isOfflineSupportedForm = action.includes('/forms/submit_attendance.php') || 
+                                     action.includes('/forms/submit_mission_report.php');
 
     try {
       const response = await fetch(action, {
@@ -457,7 +475,38 @@ class FeuerwehrApp {
       }
     } catch (error) {
       console.error('Form submission error:', error);
-      this.showAlert('error', 'Fehler beim Senden des Formulars');
+      
+      // Handle offline submission for supported forms
+      if (isOfflineSupportedForm && !navigator.onLine && window.OfflineStorage) {
+        try {
+          const formType = action.includes('attendance') ? 'Anwesenheitsliste' : 'Einsatzbericht';
+          await window.OfflineStorage.saveForm(formType, action, formData);
+          
+          this.showAlert('warning', `Keine Internetverbindung. ${formType} wurde offline gespeichert und wird automatisch gesendet, sobald Sie wieder online sind.`);
+          
+          // Update pending count
+          if (this.offlineUI) {
+            await this.offlineUI.updatePendingCount();
+          }
+          
+          // Register background sync if available
+          await window.OfflineStorage.registerBackgroundSync();
+          
+          // Reset form
+          form.reset();
+          
+          // Close modal if form is in modal
+          const modal = form.closest('.modal');
+          if (modal) {
+            this.closeModal(modal.id);
+          }
+        } catch (offlineError) {
+          console.error('Offline storage error:', offlineError);
+          this.showAlert('error', 'Fehler beim Speichern für Offline-Nutzung');
+        }
+      } else {
+        this.showAlert('error', 'Fehler beim Senden des Formulars. Bitte überprüfen Sie Ihre Internetverbindung.');
+      }
     }
   }
 
