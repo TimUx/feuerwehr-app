@@ -66,9 +66,9 @@ class DataStore {
         if ($locationId === null) {
             return $personnel;
         }
-        return array_filter($personnel, function($person) use ($locationId) {
+        return array_values(array_filter($personnel, function($person) use ($locationId) {
             return !isset($person['location_id']) || $person['location_id'] === $locationId;
-        });
+        }));
     }
 
     /**
@@ -169,9 +169,9 @@ class DataStore {
         if ($locationId === null) {
             return $vehicles;
         }
-        return array_filter($vehicles, function($vehicle) use ($locationId) {
+        return array_values(array_filter($vehicles, function($vehicle) use ($locationId) {
             return !isset($vehicle['location_id']) || $vehicle['location_id'] === $locationId;
-        });
+        }));
     }
 
     /**
@@ -370,9 +370,9 @@ class DataStore {
         if ($locationId === null) {
             return $records;
         }
-        return array_filter($records, function($record) use ($locationId) {
+        return array_values(array_filter($records, function($record) use ($locationId) {
             return !isset($record['location_id']) || $record['location_id'] === $locationId;
-        });
+        }));
     }
 
     /**
@@ -461,9 +461,9 @@ class DataStore {
         if ($locationId === null) {
             return $reports;
         }
-        return array_filter($reports, function($report) use ($locationId) {
+        return array_values(array_filter($reports, function($report) use ($locationId) {
             return !isset($report['location_id']) || $report['location_id'] === $locationId;
-        });
+        }));
     }
 
     /**
