@@ -61,15 +61,18 @@ class Auth {
             // Verify it's writable with an actual write test
             // Note: is_writable() can return false positives in some PHP-FPM configurations
             // so we perform an actual write test instead
-            $testFile = self::$dataDir . '/.write_test_' . uniqid();
-            $writeTestSuccess = @file_put_contents($testFile, 'test') !== false;
+            $testFile = self::$dataDir . '/.write_test_' . uniqid('', true);
+            $writeResult = @file_put_contents($testFile, 'test');
+            $writeTestSuccess = $writeResult !== false;
             
             if ($writeTestSuccess) {
                 // Clean up test file
                 @unlink($testFile);
             } else {
                 // Write test failed - directory is not writable
-                error_log("Data directory exists but is not writable: " . self::$dataDir . ". Please check file permissions.");
+                $lastError = error_get_last();
+                $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
+                error_log("Data directory exists but is not writable: " . self::$dataDir . ". Write test error: " . $errorMsg);
                 
                 // Redirect to diagnose.php for better error diagnostics
                 if (php_sapi_name() !== 'cli' && !headers_sent()) {
