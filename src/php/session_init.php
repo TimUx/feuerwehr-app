@@ -8,27 +8,14 @@
  * Initialize a secure PHP session
  */
 function initSecureSession() {
-    // Configure session save path BEFORE checking status
-    $sessionPath = '/tmp/php_sessions';
-    
-    // Clear stat cache to ensure we get current filesystem state
-    clearstatcache(true, $sessionPath);
-    
-    if (!file_exists($sessionPath)) {
-        // Use 0755 permissions for better compatibility with shared hosting environments
-        if (!@mkdir($sessionPath, 0755, true)) {
-            error_log("Failed to create session directory: " . $sessionPath . ". Please ensure the web server has write permissions to /tmp.");
-            die("Configuration Error: Unable to create session directory. Please contact your system administrator or check file permissions.");
-        }
-    }
-    
     // Only start session once
     if (session_status() === PHP_SESSION_ACTIVE) {
         return;
     }
     
-    // Set session save path before any other session operations
-    session_save_path($sessionPath);
+    // Use PHP's default session save path instead of custom path
+    // This avoids permission issues on shared hosting and various server configurations
+    // The default session.save_path from php.ini is used automatically
     
     // Detect HTTPS
     $isSecure = (
