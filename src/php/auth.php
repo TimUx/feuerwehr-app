@@ -117,8 +117,11 @@ class Auth {
                 }
                 
                 // Session data will be automatically written by PHP when script ends
-                // Removed explicit session_write_close() as it was causing race conditions
-                // with the redirect, preventing session data from being available on next request
+                // Removed explicit session_write_close() as it was causing race conditions:
+                // When followed by a redirect (header() + exit()), the script may terminate
+                // before session data is fully written to storage, causing the next request
+                // to not see the authenticated session. Letting PHP handle this automatically
+                // during shutdown ensures proper ordering and prevents the login redirect loop.
                 
                 return true;
             }
