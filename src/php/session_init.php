@@ -11,7 +11,10 @@ function initSecureSession() {
     // Configure session save path BEFORE checking status
     $sessionPath = '/tmp/php_sessions';
     if (!file_exists($sessionPath)) {
-        mkdir($sessionPath, 0700, true);
+        if (!@mkdir($sessionPath, 0700, true)) {
+            error_log("Failed to create session directory: " . $sessionPath . ". Please ensure the web server has write permissions to /tmp.");
+            die("Configuration Error: Unable to create session directory. Please contact your system administrator or check file permissions.");
+        }
     }
     
     // Only start session once

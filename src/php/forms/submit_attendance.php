@@ -24,7 +24,10 @@ try {
     if (isset($_FILES['datei']) && $_FILES['datei']['error'] === UPLOAD_ERR_OK) {
         $uploadDir = __DIR__ . '/../../data/uploads/';
         if (!file_exists($uploadDir)) {
-            mkdir($uploadDir, 0700, true);
+            if (!@mkdir($uploadDir, 0700, true)) {
+                error_log("Failed to create upload directory: " . $uploadDir);
+                throw new Exception("Fehler: Upload-Verzeichnis konnte nicht erstellt werden. Bitte kontaktieren Sie den Administrator.");
+            }
         }
         
         $fileName = uniqid() . '_' . basename($_FILES['datei']['name']);

@@ -111,9 +111,13 @@ function handleLogoUpload($file) {
     }
     
     // Create settings directory if it doesn't exist
+    // Uses 0755 permissions because logo files are served directly via HTTP
     $uploadDir = __DIR__ . '/../../../data/settings';
     if (!file_exists($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
+        if (!@mkdir($uploadDir, 0755, true)) {
+            error_log("Failed to create settings directory: " . $uploadDir);
+            return ['success' => false, 'message' => 'Fehler beim Erstellen des Upload-Verzeichnisses. Bitte prüfen Sie die Dateirechte.'];
+        }
     }
     
     // Generate unique filename
