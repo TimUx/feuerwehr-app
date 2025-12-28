@@ -61,7 +61,11 @@ class Auth {
             // Verify it's writable with an actual write test
             // Note: is_writable() can return false negatives in some PHP-FPM configurations
             // so we perform an actual write test instead
-            $testFile = self::$dataDir . '/.write_test_' . uniqid('', true);
+            $testFile = self::$dataDir . '/.write_test_' . bin2hex(random_bytes(8));
+            
+            // Clear any previous errors
+            error_clear_last();
+            
             $writeResult = @file_put_contents($testFile, 'test');
             $writeTestSuccess = $writeResult !== false;
             

@@ -22,7 +22,11 @@ function testDirectoryWritable($dir) {
     }
     
     // Perform actual write test
-    $testFile = $dir . '/.write_test_' . uniqid('', true);
+    $testFile = $dir . '/.write_test_' . bin2hex(random_bytes(8));
+    
+    // Clear any previous errors
+    error_clear_last();
+    
     $writeResult = @file_put_contents($testFile, 'test');
     $success = $writeResult !== false;
     
