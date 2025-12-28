@@ -275,6 +275,14 @@ function filterByLocation() {
 // Add event listener for location filter
 document.getElementById('standort-filter').addEventListener('change', filterByLocation);
 
+// Initialize filtering on page load (for Global Admin with pre-selected location)
+(function() {
+    const standortFilter = document.getElementById('standort-filter');
+    if (standortFilter && standortFilter.value) {
+        filterByLocation();
+    }
+})();
+
 // Calculate duration automatically
 function calculateDuration() {
     const vonInput = document.getElementById('von');
@@ -322,10 +330,14 @@ function updateTotalCount() {
     document.getElementById('total-count').textContent = total;
 }
 
-// Select all attendees
+// Select all attendees (only visible ones)
 function selectAllAttendees() {
     document.querySelectorAll('.attendee-checkbox').forEach(cb => {
-        cb.checked = true;
+        // Only check visible checkboxes
+        const formCheck = cb.closest('.form-check');
+        if (formCheck && formCheck.style.display !== 'none') {
+            cb.checked = true;
+        }
     });
     updateTotalCount();
 }
@@ -459,6 +471,7 @@ document.getElementById('attendance-form').addEventListener('submit', async (e) 
     }
 })();
 <?php endif; ?>
+</script>
 
 <script>
 // Initialize offline banner using shared utility

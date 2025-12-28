@@ -321,7 +321,7 @@ function filterByLocation() {
     });
     
     // Trigger crew update when location changes
-    updateCrewFields();
+    updateCrewSections();
 }
 
 // Get filtered personnel based on selected location
@@ -330,17 +330,27 @@ function getFilteredPersonnel() {
     if (!selectedLocationId) {
         return personnel;
     }
-    return personnel.filter(p => p.location_id === selectedLocationId);
+    return personnel.filter(p => p.location_id == selectedLocationId);
 }
 
 // Add event listener for location filter
 document.getElementById('standort-filter').addEventListener('change', filterByLocation);
 
+// Initialize filtering on page load (for Global Admin with pre-selected location)
+(function() {
+    const standortFilterMission = document.getElementById('standort-filter');
+    if (standortFilterMission && standortFilterMission.value) {
+        filterByLocation();
+    }
+})();
+
 // Set default date to today
-const einsatzdatumField = document.getElementById('einsatzdatum');
-if (einsatzdatumField) {
-    einsatzdatumField.valueAsDate = new Date();
-}
+(function() {
+    const einsatzdatumField = document.getElementById('einsatzdatum');
+    if (einsatzdatumField) {
+        einsatzdatumField.valueAsDate = new Date();
+    }
+})();
 
 // Calculate duration when start/end times change
 function calculateDuration() {
@@ -796,6 +806,7 @@ updateCrewSections();
     }
 })();
 <?php endif; ?>
+</script>
 
 <script>
 // Initialize offline banner using shared utility
