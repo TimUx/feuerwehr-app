@@ -801,7 +801,7 @@ function runAllTests() {
     // Check cgroup for docker
     if (@file_exists('/proc/1/cgroup')) {
         $cgroup = @file_get_contents('/proc/1/cgroup');
-        if ($cgroup && (strpos($cgroup, 'docker') !== false || strpos($cgroup, 'containerd') !== false)) {
+        if ($cgroup !== false && (strpos($cgroup, 'docker') !== false || strpos($cgroup, 'containerd') !== false)) {
             $isDocker = true;
             $dockerHints[] = 'cgroup contains docker/containerd';
             debugLog("Found docker/containerd in cgroup - running in Docker", 'INFO');
