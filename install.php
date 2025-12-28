@@ -243,13 +243,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Ensure config directory exists
             $configDir = __DIR__ . '/config';
             if (!file_exists($configDir)) {
-                mkdir($configDir, 0700, true);
+                if (!@mkdir($configDir, 0700, true)) {
+                    echo json_encode([
+                        'success' => false, 
+                        'message' => 'Fehler: Das Konfigurationsverzeichnis konnte nicht erstellt werden. Bitte stellen Sie sicher, dass der Webserver Schreibrechte im Installationsverzeichnis hat.'
+                    ]);
+                    exit;
+                }
             }
             
             // Create data directory
             $dataDir = __DIR__ . '/data';
             if (!file_exists($dataDir)) {
-                mkdir($dataDir, 0700, true);
+                if (!@mkdir($dataDir, 0700, true)) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Fehler: Das Datenverzeichnis konnte nicht erstellt werden. Bitte stellen Sie sicher, dass der Webserver Schreibrechte im Installationsverzeichnis hat.'
+                    ]);
+                    exit;
+                }
             }
             
             // Create admin user data

@@ -28,7 +28,10 @@ class Auth {
             
             // Ensure data directory exists
             if (!file_exists(self::$dataDir)) {
-                mkdir(self::$dataDir, 0700, true);
+                if (!@mkdir(self::$dataDir, 0700, true)) {
+                    error_log("Failed to create data directory: " . self::$dataDir . ". Please ensure the web server has write permissions to the parent directory.");
+                    die("Configuration Error: Unable to create data directory. Please contact your system administrator or check file permissions.");
+                }
             }
         }
         
