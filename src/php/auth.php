@@ -27,14 +27,22 @@ class Auth {
             self::$dataDir = self::$config['data_dir'];
             
             // Ensure data directory exists and is writable
-            if (!is_dir(self::$dataDir)) {
+            if (!file_exists(self::$dataDir)) {
                 // Directory doesn't exist, try to create it
                 if (!@mkdir(self::$dataDir, 0700, true)) {
                     error_log("Failed to create data directory: " . self::$dataDir . ". Please ensure the web server has write permissions to the parent directory.");
                     die("Configuration Error: Unable to create data directory. Please contact your system administrator or check file permissions.");
                 }
-            } elseif (!is_writable(self::$dataDir)) {
-                // Directory exists but is not writable
+            }
+            
+            // Verify it's actually a directory
+            if (!is_dir(self::$dataDir)) {
+                error_log("Data directory path exists but is not a directory: " . self::$dataDir);
+                die("Configuration Error: Data directory path is not a directory. Please contact your system administrator.");
+            }
+            
+            // Verify it's writable
+            if (!is_writable(self::$dataDir)) {
                 error_log("Data directory exists but is not writable: " . self::$dataDir . ". Please check file permissions.");
                 die("Configuration Error: Data directory is not writable. Please contact your system administrator or check file permissions.");
             }
