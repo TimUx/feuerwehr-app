@@ -10,7 +10,6 @@
 function initSecureSession() {
     // Only start session once
     if (session_status() === PHP_SESSION_ACTIVE) {
-        error_log("initSecureSession: Session already active with ID: " . session_id());
         return;
     }
     
@@ -24,15 +23,8 @@ function initSecureSession() {
         (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
     );
     
-    // Log the detected protocol
-    error_log("initSecureSession: Detected protocol: " . ($isSecure ? 'HTTPS' : 'HTTP'));
-    
     // Set session name before any other session operations
     session_name('FWAPP_SESSION');
-    
-    // Log cookie from browser
-    $cookieValue = isset($_COOKIE['FWAPP_SESSION']) ? $_COOKIE['FWAPP_SESSION'] : 'not set';
-    error_log("initSecureSession: Cookie 'FWAPP_SESSION' from browser: {$cookieValue}");
     
     // Configure session parameters BEFORE starting the session
     // Use secure cookies when on HTTPS to ensure browser sends the cookie
@@ -52,7 +44,4 @@ function initSecureSession() {
     
     // Start the session
     session_start();
-    
-    // Log the session ID and data after starting
-    error_log("initSecureSession: Session started with ID: " . session_id() . ", Session data: " . json_encode($_SESSION));
 }

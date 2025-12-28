@@ -111,26 +111,19 @@ class Auth {
                 // Regenerate session ID and delete old session for security
                 // This must be done BEFORE setting remember me cookie to ensure
                 // the cookie is associated with the new session ID
-                $oldSessionId = session_id();
                 session_regenerate_id(true);
-                $newSessionId = session_id();
-                
-                // Log the session regeneration for debugging
-                error_log("Login successful for user '{$user['username']}'. Old session: {$oldSessionId}, New session: {$newSessionId}");
                 
                 // Handle "Remember Me" functionality after regenerating session
                 if ($rememberMe) {
                     self::setRememberMeCookie($user['id']);
                 }
                 
-                // Explicitly write and close the session to ensure data is persisted
-                // synchronously before the redirect happens. This is critical to prevent
-                // the session data from being lost if the script exits before PHP's
-                // shutdown handler has a chance to write the session.
-                session_write_close();
-                
-                // Log that session was written
-                error_log("Session written and closed. Session data should be persisted to disk.");
+                // NOTE: We do NOT call session_write_close() here!
+                // PHP will automatically write the session data when the script ends.
+                // Calling session_write_close() before the redirect can cause race conditions
+                // where the session cookie is sent but the session file is not fully accessible yet.
+                // The session data will be written by PHP's shutdown handler, which ensures
+                // proper synchronization before the HTTP response is sent.
                 
                 return true;
             }
@@ -177,21 +170,13 @@ class Auth {
     public static function isAuthenticated() {
         self::init();
         
-        // Log session state for debugging
-        $sessionId = session_id();
-        $authenticated = isset($_SESSION['authenticated']) ? $_SESSION['authenticated'] : 'not set';
-        $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set';
-        error_log("isAuthenticated check: Session ID: {$sessionId}, Authenticated: {$authenticated}, User ID: {$userId}");
-        
         // Check if authenticated flag is set
         if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
-            error_log("isAuthenticated: authenticated flag not set or false");
             return false;
         }
         
         // Check if user_id exists
         if (!isset($_SESSION['user_id'])) {
-            error_log("isAuthenticated: user_id not set");
             return false;
         }
         
