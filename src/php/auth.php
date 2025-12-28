@@ -113,6 +113,9 @@ class Auth {
                     self::setRememberMeCookie($user['id']);
                 }
                 
+                // Store old session ID for cleanup
+                $oldSessionId = session_id();
+                
                 // Regenerate session ID WITHOUT deleting old session immediately
                 // This avoids race conditions where the new session data might not be
                 // fully written before the old session is deleted
@@ -121,6 +124,17 @@ class Auth {
                 // Now explicitly write and close the session to ensure data is persisted
                 // before the redirect happens
                 session_write_close();
+                
+                // Clean up old session file explicitly for security
+                // This is more reliable than relying on garbage collection
+                $sessionPath = session_save_path();
+                if (empty($sessionPath)) {
+                    $sessionPath = sys_get_temp_dir();
+                }
+                $oldSessionFile = $sessionPath . '/sess_' . $oldSessionId;
+                if (file_exists($oldSessionFile)) {
+                    @unlink($oldSessionFile);
+                }
                 
                 return true;
             }
