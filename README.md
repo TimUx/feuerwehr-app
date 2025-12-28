@@ -11,16 +11,26 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
 ## 📑 Inhaltsverzeichnis
 
 - [Features](#-features)
-- [Screenshots](#-screenshots)
 - [Installation](#-installation)
-- [App-Bereiche](#-app-bereiche)
+  - [Voraussetzungen](#voraussetzungen)
+  - [Installation mit Web-Installer](#installation-mit-web-installer-empfohlen)
+  - [Manuelle Installation](#manuelle-installation-alternativ)
+- [Erste Schritte](#-erste-schritte)
+  - [Login](#login)
   - [Hauptmenü](#hauptmenü)
+- [Administration](#-administration)
+  - [Benutzerverwaltung](#benutzerverwaltung)
+  - [Standorte-Verwaltung](#standorte-verwaltung)
   - [Einsatzkräfte-Verwaltung](#einsatzkräfte-verwaltung)
   - [Fahrzeug-Verwaltung](#fahrzeug-verwaltung)
+  - [Telefonnummern-Verwaltung](#telefonnummern-verwaltung)
+  - [Allgemeine Einstellungen](#allgemeine-einstellungen)
+  - [E-Mail-Einstellungen](#e-mail-einstellungen)
+- [Operator-Bereich](#-operator-bereich)
   - [Formulare](#formulare)
   - [Einsatztools](#einsatztools)
   - [Statistiken](#statistiken)
-  - [Benutzerverwaltung](#benutzerverwaltung)
+  - [Formulardaten](#formulardaten)
 - [Konfiguration](#️-konfiguration)
 - [Sicherheit](#-sicherheit)
 - [Technologie-Stack](#-technologie-stack)
@@ -87,52 +97,6 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
 - **Touch-optimiert**: Große Buttons für mobile Bedienung
 - **Material Design Icons**: Moderne, intuitive Benutzeroberfläche
 - **Offline-Funktionalität**: Service Worker für Offline-Nutzung
-
----
-
-## 📱 Screenshots
-
-Alle Screenshots in iPhone 13 Pro Auflösung (390x844px):
-
-### Login
-<table>
-<tr>
-<td width="50%">
-<b>Light Mode</b><br/>
-<img src="https://github.com/user-attachments/assets/2e6c5878-2535-4470-a6bc-6ef6d8523a3c" width="100%" alt="Login Light Mode">
-</td>
-<td width="50%">
-<b>Dark Mode</b><br/>
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/03-login-dark.png" width="100%" alt="Login Dark Mode">
-</td>
-</tr>
-</table>
-
-### Hauptmenü
-<table>
-<tr>
-<td width="50%">
-<b>Light Mode</b><br/>
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/02-main-menu-light.png" width="100%" alt="Hauptmenü Light Mode">
-</td>
-<td width="50%">
-<b>Dark Mode</b><br/>
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/04-main-menu-dark.png" width="100%" alt="Hauptmenü Dark Mode">
-</td>
-</tr>
-</table>
-
-### Einsatzkräfte-Verwaltung
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/06-personnel-management.png" width="390" alt="Einsatzkräfte Verwaltung">
-
-### Fahrzeug-Verwaltung
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/07-vehicle-management.png" width="390" alt="Fahrzeug Verwaltung">
-
-### Anwesenheitsliste-Formular
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/08-attendance-form.png" width="390" alt="Anwesenheitsliste Formular">
-
-### Einsatzbericht-Formular
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/09-mission-report-form.png" width="390" alt="Einsatzbericht Formular">
 
 ---
 
@@ -279,219 +243,82 @@ Navigieren Sie zu Ihrer Domain im Browser und melden Sie sich an.
 
 ---
 
-## 📂 App-Bereiche
+## 🚀 Erste Schritte
+
+### Login
+
+Nach der Installation können Sie sich mit Ihrem Administrator-Benutzer anmelden. Die App bietet einen modernen Login-Bildschirm im Light- und Dark-Mode:
+
+<table>
+<tr>
+<td width="50%">
+<b>Light Mode</b><br/>
+<img src="screenshots/01-login-light.png" width="100%" alt="Login Light Mode">
+</td>
+<td width="50%">
+<b>Dark Mode</b><br/>
+<img src="screenshots/03-login-dark.png" width="100%" alt="Login Dark Mode">
+</td>
+</tr>
+</table>
+
+Die App unterstützt **drei Benutzerrollen**:
+- **Global-Admin**: Vollzugriff auf alle Standorte und Systemeinstellungen
+- **Standort-Admin**: Verwaltung eines spezifischen Standorts
+- **Operator**: Zugriff auf Formulare und Ansichten (keine Verwaltung)
 
 ### Hauptmenü
-Das Hauptmenü bietet schnellen Zugriff auf alle wichtigen Funktionen mit großen, touch-optimierten Buttons:
 
-**Funktionen** (für alle Benutzer):
+Nach erfolgreicher Anmeldung gelangen Sie zum Hauptmenü, das schnellen Zugriff auf alle wichtigen Funktionen bietet:
+
+<table>
+<tr>
+<td width="50%">
+<b>Light Mode</b><br/>
+<img src="screenshots/02-main-menu-light.png" width="100%" alt="Hauptmenü Light Mode">
+</td>
+<td width="50%">
+<b>Dark Mode</b><br/>
+<img src="screenshots/04-main-menu-dark.png" width="100%" alt="Hauptmenü Dark Mode">
+</td>
+</tr>
+</table>
+
+Das Hauptmenü ist in zwei Bereiche unterteilt:
+
+**Operator-Funktionen** (für alle Benutzer verfügbar):
 - 📋 Anwesenheitsliste
 - 🚒 Einsatzbericht
 - 🚗 Fahrzeuge (Ansicht)
+- 📞 Wichtige Telefonnummern
 - 🗺️ Online Karte
 - ⚠️ Gefahrenmatrix
 - ☣️ Gefahrstoffkennzeichen
-- 📞 Wichtige Telefonnummern
 - 📊 Statistiken
+- 📁 Formulardaten
 
-**Administration** (nur für Admins):
-- 👥 Einsatzkräfte verwalten
+**Administration** (nur für Admins sichtbar):
+- 📍 Standorte verwalten
 - 🔧 Fahrzeuge verwalten
+- 👥 Einsatzkräfte verwalten
 - 📞 Telefonnummern verwalten
 - 👤 Benutzerverwaltung
+- ⚙️ Allgemeine Einstellungen (nur Global-Admin)
+- ✉️ E-Mail-Einstellungen (nur Global-Admin)
 
 ---
 
-### Einsatzkräfte-Verwaltung
+## 🔧 Administration
 
-Zentrale Verwaltung aller Feuerwehrmitglieder mit folgenden Informationen:
-
-- **Persönliche Daten**: Name
-- **Qualifikationen**: 
-  - AGT (Atemschutzgeräteträger)
-  - Maschinist
-  - Sanitäter
-- **Führungsrollen**:
-  - Truppführer
-  - Gruppenführer
-  - Zugführer
-  - Verbandsführer
-- **Ausbilder**: Kennzeichnung für Übungsleiter
-
-**Funktionen**:
-- ➕ Einsatzkraft hinzufügen
-- ✏️ Einsatzkraft bearbeiten
-- 🗑️ Einsatzkraft löschen
-- 🔍 Übersichtliche Tabellen-Darstellung
-
----
-
-### Fahrzeug-Verwaltung
-
-Verwaltung aller Feuerwehrfahrzeuge mit:
-
-- **Standort** (Ort)
-- **Fahrzeugtyp** (z.B. TSF-W, LF 16)
-- **Funkrufname** (z.B. Florian Willingshausen 1/44)
-
-Fahrzeuge werden automatisch in allen Formularen zur Auswahl bereitgestellt.
-
----
-
-### Formulare
-
-#### Anwesenheitsliste (Übungsdienste)
-
-Vollständiges Formular zur Dokumentation von Übungsdiensten:
-
-**Felder**:
-- 📅 Datum & Uhrzeit (Von/Bis mit automatischer Dauerberechnung)
-- 📝 Thema der Übung
-- 👨‍🏫 Übungsleiter (nur Einsatzkräfte mit "Ausbilder"-Kennzeichnung oder Freitext)
-- 👥 Teilnehmer (Multi-Select aus Einsatzkräften)
-- 🔢 Automatische Teilnehmerzählung
-- 💬 Anmerkungen (optional)
-- 📎 Datei-Upload (optional, wird per E-Mail mitgeschickt)
-
-**Ausgabe**:
-- ✉️ HTML-E-Mail mit formatiertem Bericht
-- 📄 PDF-Anhang
-- 💾 Lokale verschlüsselte Speicherung
-
----
-
-#### Einsatzbericht
-
-Umfangreiches Formular basierend auf JetForm-Spezifikation:
-
-**Basis-Informationen**:
-- 🚨 Einsatzgrund (max. 150 Zeichen) *
-- 📅 Einsatzdatum *
-- ⏰ Beginn & Ende (mit automatischer Dauerberechnung) *
-- 📍 Einsatzort *
-- 👨‍🚒 Einsatzleiter *
-
-**Einsatz-Details**:
-- 📋 Einsatzlage (Beschreibung) *
-- ⚙️ Tätigkeiten der Feuerwehr *
-- 🧯 Verbrauchte Mittel (optional)
-- ⚠️ Besondere Vorkommnisse (optional)
-- 💰 Einsatz kostenpflichtig? (Ja/Nein)
-
-**Fahrzeuge & Besatzung**:
-- 🚒 Eingesetzte Fahrzeuge * (Multi-Select aus Fahrzeug-Verwaltung + Sonstiges)
-- 👥 **Dynamische Fahrzeugbesatzung** (1-20 Einsatzkräfte):
-  - Funktion (Dropdown: Fahrzeugführer, Melder, Maschinist, Angriffstrupp-, Wassertrupp-, Schlauchtrupp- Führer/Mann)
-  - Name (aus Einsatzkräfte-Liste)
-  - Fahrzeug (aus ausgewählten Fahrzeugen)
-  - Verdienstausfall (Checkbox)
-
-**Beteiligte Personen**:
-- 👤 **Dynamische Beteiligte Personen** (0-10):
-  - Beteiligungsart (Verursacher, Geschädigter, Zeuge, Sonstiges)
-  - Name
-  - Telefonnummer
-  - Adresse
-  - KFZ-Kennzeichen
-
-(*) = Pflichtfelder
-
-**Ausgabe**:
-- ✉️ HTML-E-Mail mit vollständigem Einsatzbericht
-- 📄 PDF-Anhang mit Fahrzeugbesatzungs- und Personentabellen
-- 💾 Lokale verschlüsselte Speicherung mit eindeutiger ID
-
----
-
-### Einsatztools
-
-#### 🗺️ Online Karte
-OpenStreetMap-Integration mit MapLibre GL JS:
-- 📍 Aktuelle Position ermitteln
-- 🛣️ Routenberechnung zwischen zwei Adressen (OSRM)
-- 📏 Entfernungs- und Zeitanzeige
-- 📱 Touch-optimierte Bedienung
-- 🗺️ Hardware-beschleunigte Kartendarstellung
-- 🎯 Interaktive Marker für Start- und Zielpunkte
-
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/12-map.png" width="390" alt="Online Karte">
-
-#### ⚠️ Gefahrenmatrix
-Interaktive AAAA-CCCC-EEEE Einsatzstellengefahren-Matrix:
-- **A** - Atemgifte, Angstreaktionen, Ausbreitung, Atomare Gefahren
-- **C** - Chemische Stoffe, Container, Strahlende Stoffe, Elektrizität
-- **E** - Erkrankung/Verletzung, Explosion, Einsturz
-- Weitere: Tiere, Gewalt, Wasser, Hitze, Verkehr, Umwelt, Radioaktiv
-- ✓ Antippen zum Markieren identifizierter Gefahren
-- 📋 Echtzeit-Zusammenfassung markierter Gefahren
-- 🔄 Reset-Funktion
-
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/10-danger-matrix.png" width="390" alt="Gefahrenmatrix">
-
-#### ☣️ Gefahrstoffkennzeichen
-Umfassende Gefahrstoff-Datenbank:
-
-**GHS-Piktogramme** (9 Symbole):
-- Explosiv, Entzündbar, Oxidierend, Druckgase, Ätzend
-- Giftig, Gesundheitsschädlich, Gesundheitsgefahr, Umweltgefährlich
-
-**ADR-Gefahrgutklassen** (1-9):
-- Mit detaillierten Beschreibungen
-
-**UN-Nummern Suche**:
-- Datenbank mit 15+ häufigen Gefahrstoffen
-- Detailansicht mit:
-  - Beschreibung
-  - Gefahren
-  - Erste-Hilfe-Maßnahmen
-  - Brandbekämpfung
-  - Freisetzungsmaßnahmen
-- Schnellreferenz-Buttons für häufige Stoffe
-
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/11-hazmat.png" width="390" alt="Gefahrstoffkennzeichen">
-
-#### 📞 Wichtige Telefonnummern
-Notfallkontakte-Verwaltung:
-- Admin-CRUD-Interface (Erstellen/Bearbeiten/Löschen)
-- Felder: Name, Firma, Funktion, Telefonnummer
-- Anzeige für alle Benutzer
-- 📱 Direkter Anruf via tel:-Link (One-Tap-Calling)
-
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/13-phone-numbers.png" width="390" alt="Wichtige Telefonnummern">
-
----
-
-### Statistiken
-
-Umfassende Auswertungen für:
-
-#### Abteilungs-Statistik (Jahresansicht)
-- 📊 Anzahl Übungsdienste
-- ⏱️ Gesamte Übungsstunden
-- 🚒 Anzahl Einsätze
-- ⏱️ Gesamte Einsatzstunden
-- 📅 Jahres-Auswahl per Dropdown
-
-#### Personen-Statistik
-- 👤 Auswahl einzelner Einsatzkraft
-- 📊 Detaillierte Aufschlüsselung:
-  - Teilgenommene Übungen
-  - Absolvierte Übungsstunden
-  - Teilgenommene Einsätze
-  - Absolvierte Einsatzstunden
-  - Gesamtstunden
-
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/14-statistics.png" width="390" alt="Statistiken">
-
----
+Der Administrationsbereich steht nur Benutzern mit Admin-Rechten (Global-Admin oder Standort-Admin) zur Verfügung.
 
 ### Benutzerverwaltung
 
-Verwaltung der App-Benutzer (nur für Admins):
+Die Benutzerverwaltung ermöglicht das Erstellen und Verwalten von App-Benutzern mit verschiedenen Rollen und Zugriff.
+
+<img src="screenshots/15-user-management.png" width="390" alt="Benutzerverwaltung">
 
 #### Benutzerrollen
-
-Die App unterstützt verschiedene Benutzerrollen mit unterschiedlichen Zugriffsrechten:
 
 ##### 1. **Global-Admin** (Globaler Administrator)
 - 🌍 **Vollzugriff** auf das gesamte System
@@ -547,7 +374,310 @@ Die App unterstützt verschiedene Benutzerrollen mit unterschiedlichen Zugriffsr
 - 📍 Standort zuweisen (für Standort-Admins und Operators)
 - 👁️ Übersicht aller Benutzer (Global-Admin) oder Standort-Benutzer (Standort-Admin)
 
-<img src="https://raw.githubusercontent.com/TimUx/feuerwehr-app/copilot/update-screenshots-in-readme/screenshots/15-user-management.png" width="390" alt="Benutzerverwaltung">
+### Standorte-Verwaltung
+
+Zentrale Verwaltung aller Einsatzabteilungen und Standorte der Feuerwehr.
+
+<img src="screenshots/16-locations-management.png" width="390" alt="Standorte-Verwaltung">
+
+**Verwaltete Informationen:**
+- Name des Standorts
+- Adresse
+- E-Mail-Adresse (für standortspezifische E-Mails)
+
+**Funktionen**:
+- ➕ Standort hinzufügen (nur Global-Admin)
+- ✏️ Standort bearbeiten
+- 🗑️ Standort löschen (nur Global-Admin)
+- 🔍 Übersichtliche Tabellen-Darstellung
+
+**Verwendung:**
+Standorte werden bei der Verwaltung von Fahrzeugen, Einsatzkräften und in Formularen als Dropdown zur Verfügung gestellt. Standort-Admins sehen nur ihren zugewiesenen Standort, Global-Admins können alle Standorte verwalten.
+
+### Einsatzkräfte-Verwaltung
+
+Zentrale Verwaltung aller Feuerwehrmitglieder mit umfassenden Informationen zu Qualifikationen und Führungsrollen.
+
+<img src="screenshots/06-personnel-management.png" width="390" alt="Einsatzkräfte-Verwaltung">
+
+**Verwaltete Informationen:**
+- **Persönliche Daten**: Name
+- **Qualifikationen**: 
+  - AGT (Atemschutzgeräteträger)
+  - Maschinist
+  - Sanitäter
+- **Führungsrollen**:
+  - Truppführer
+  - Gruppenführer
+  - Zugführer
+  - Verbandsführer
+- **Ausbilder**: Kennzeichnung für Übungsleiter
+
+**Funktionen**:
+- ➕ Einsatzkraft hinzufügen
+- ✏️ Einsatzkraft bearbeiten
+- 🗑️ Einsatzkraft löschen
+- 🔍 Übersichtliche Tabellen-Darstellung
+
+Die Einsatzkräfte werden automatisch in allen Formularen (Anwesenheitsliste, Einsatzbericht) zur Auswahl bereitgestellt.
+
+### Fahrzeug-Verwaltung
+
+Verwaltung aller Feuerwehrfahrzeuge mit detaillierten Informationen für den Einsatz.
+
+<img src="screenshots/07-vehicle-management.png" width="390" alt="Fahrzeug-Verwaltung">
+
+**Verwaltete Informationen:**
+- **Standort** (Ort)
+- **Fahrzeugtyp** (z.B. TSF-W, LF 16)
+- **Funkrufname** (z.B. Florian Willingshausen 1/44)
+
+**Funktionen**:
+- ➕ Fahrzeug hinzufügen
+- ✏️ Fahrzeug bearbeiten
+- 🗑️ Fahrzeug löschen
+
+Fahrzeuge werden automatisch in allen Formularen (Einsatzbericht) zur Auswahl bereitgestellt.
+
+### Telefonnummern-Verwaltung
+
+Verwaltung wichtiger Notfallkontakte und Telefonnummern für schnellen Zugriff im Einsatzfall.
+
+**Verwaltete Informationen:**
+- Name
+- Firma/Organisation
+- Funktion
+- Telefonnummer
+
+**Funktionen**:
+- ➕ Telefonnummer hinzufügen
+- ✏️ Telefonnummer bearbeiten
+- 🗑️ Telefonnummer löschen
+
+Die Telefonnummern sind für alle Benutzer (auch Operators) im Hauptmenü sichtbar und können direkt per tel:-Link angerufen werden.
+
+### Allgemeine Einstellungen
+
+Konfiguration der Feuerwehr-Informationen und des Logos (nur Global-Admin).
+
+<img src="screenshots/17-general-settings.png" width="390" alt="Allgemeine Einstellungen">
+
+**Verwaltete Einstellungen:**
+- **Name der Feuerwehr**: Wird in E-Mails und PDFs verwendet
+- **Stadt/Gemeinde**: Optional, wird auf separater Zeile angezeigt
+- **Logo**: Upload und Verwaltung des Feuerwehr-Logos für E-Mails und PDFs
+
+**Funktionen**:
+- ✏️ Feuerwehr-Informationen bearbeiten
+- 📤 Logo hochladen (PNG, max. 2MB)
+- 🗑️ Logo entfernen
+- 💾 Einstellungen speichern
+
+**Hinweis:** Diese Einstellungen sind nur für Global-Admins zugänglich und wirken sich auf alle Standorte aus.
+
+### E-Mail-Einstellungen
+
+SMTP-Konfiguration für den automatischen Versand von Formular-E-Mails (nur Global-Admin).
+
+<img src="screenshots/18-email-settings.png" width="390" alt="E-Mail-Einstellungen">
+
+**Konfigurierbare Parameter:**
+- **SMTP Server**: Hostname oder IP-Adresse
+- **Port**: SMTP-Port (z.B. 25, 465, 587)
+- **Verschlüsselung**: Keine, TLS oder SSL
+- **Authentifizierung**: Optional mit Benutzername und Passwort
+- **Absender**: E-Mail-Adresse und Name
+- **Standard-Empfänger**: E-Mail-Adressen für Formular-Versand
+
+**Funktionen**:
+- ✏️ SMTP-Einstellungen bearbeiten
+- 🧪 Testmail senden zur Überprüfung
+- 💾 Konfiguration speichern
+
+**Hinweis:** Diese Einstellungen sind nur für Global-Admins zugänglich und gelten für alle Standorte.
+
+---
+
+## 👤 Operator-Bereich
+
+Der Operator-Bereich steht allen angemeldeten Benutzern zur Verfügung und bietet Zugriff auf Formulare, Einsatztools und Statistiken.
+
+### Formulare
+
+#### Anwesenheitsliste (Übungsdienste)
+
+Vollständiges Formular zur Dokumentation von Übungsdiensten mit automatischer Berechnung und E-Mail-Versand.
+
+<img src="screenshots/08-attendance-form.png" width="390" alt="Anwesenheitsliste-Formular">
+
+**Felder**:
+- 📅 Datum & Uhrzeit (Von/Bis mit automatischer Dauerberechnung)
+- 📝 Thema der Übung
+- 👨‍🏫 Übungsleiter (nur Einsatzkräfte mit "Ausbilder"-Kennzeichnung oder Freitext)
+- 👥 Teilnehmer (Multi-Select aus Einsatzkräften)
+- 🔢 Automatische Teilnehmerzählung
+- 💬 Anmerkungen (optional)
+- 📎 Datei-Upload (optional, wird per E-Mail mitgeschickt)
+
+**Ausgabe**:
+- ✉️ HTML-E-Mail mit formatiertem Bericht
+- 📄 PDF-Anhang
+- 💾 Lokale verschlüsselte Speicherung
+
+#### Einsatzbericht
+
+Umfangreiches Formular basierend auf JetForm-Spezifikation zur vollständigen Dokumentation von Einsätzen.
+
+<img src="screenshots/09-mission-report-form.png" width="390" alt="Einsatzbericht-Formular">
+
+**Basis-Informationen**:
+- 🚨 Einsatzgrund (max. 150 Zeichen) *
+- 📅 Einsatzdatum *
+- ⏰ Beginn & Ende (mit automatischer Dauerberechnung) *
+- 📍 Einsatzort *
+- 👨‍🚒 Einsatzleiter *
+
+**Einsatz-Details**:
+- 📋 Einsatzlage (Beschreibung) *
+- ⚙️ Tätigkeiten der Feuerwehr *
+- 🧯 Verbrauchte Mittel (optional)
+- ⚠️ Besondere Vorkommnisse (optional)
+- 💰 Einsatz kostenpflichtig? (Ja/Nein)
+
+**Fahrzeuge & Besatzung**:
+- 🚒 Eingesetzte Fahrzeuge * (Multi-Select aus Fahrzeug-Verwaltung + Sonstiges)
+- 👥 **Dynamische Fahrzeugbesatzung** (1-20 Einsatzkräfte):
+  - Funktion (Dropdown: Fahrzeugführer, Melder, Maschinist, Angriffstrupp-, Wassertrupp-, Schlauchtrupp- Führer/Mann)
+  - Name (aus Einsatzkräfte-Liste)
+  - Fahrzeug (aus ausgewählten Fahrzeugen)
+  - Verdienstausfall (Checkbox)
+
+**Beteiligte Personen**:
+- 👤 **Dynamische Beteiligte Personen** (0-10):
+  - Beteiligungsart (Verursacher, Geschädigter, Zeuge, Sonstiges)
+  - Name
+  - Telefonnummer
+  - Adresse
+  - KFZ-Kennzeichen
+
+(*) = Pflichtfelder
+
+**Ausgabe**:
+- ✉️ HTML-E-Mail mit vollständigem Einsatzbericht
+- 📄 PDF-Anhang mit Fahrzeugbesatzungs- und Personentabellen
+- 💾 Lokale verschlüsselte Speicherung mit eindeutiger ID
+
+### Einsatztools
+
+#### 🗺️ Online Karte
+
+OpenStreetMap-Integration mit MapLibre GL JS für Routenplanung und Navigation im Einsatz.
+
+<img src="screenshots/12-map.png" width="390" alt="Online Karte">
+
+**Funktionen**:
+- 📍 Aktuelle Position ermitteln
+- 🛣️ Routenberechnung zwischen zwei Adressen (OSRM)
+- 📏 Entfernungs- und Zeitanzeige
+- 📱 Touch-optimierte Bedienung
+- 🗺️ Hardware-beschleunigte Kartendarstellung
+- 🎯 Interaktive Marker für Start- und Zielpunkte
+
+#### ⚠️ Gefahrenmatrix
+
+Interaktive AAAA-CCCC-EEEE Einsatzstellengefahren-Matrix zur systematischen Gefahrenerkennung.
+
+<img src="screenshots/10-danger-matrix.png" width="390" alt="Gefahrenmatrix">
+
+**Gefahrenkategorien**:
+- **A** - Atemgifte, Angstreaktionen, Ausbreitung, Atomare Gefahren
+- **C** - Chemische Stoffe, Container, Strahlende Stoffe, Elektrizität
+- **E** - Erkrankung/Verletzung, Explosion, Einsturz
+- Weitere: Tiere, Gewalt, Wasser, Hitze, Verkehr, Umwelt, Radioaktiv
+
+**Funktionen**:
+- ✓ Antippen zum Markieren identifizierter Gefahren
+- 📋 Echtzeit-Zusammenfassung markierter Gefahren
+- 🔄 Reset-Funktion
+
+#### ☣️ Gefahrstoffkennzeichen
+
+Umfassende Gefahrstoff-Datenbank mit GHS-Piktogrammen, ADR-Klassen und UN-Nummern.
+
+<img src="screenshots/11-hazmat.png" width="390" alt="Gefahrstoffkennzeichen">
+
+**GHS-Piktogramme** (9 Symbole):
+- Explosiv, Entzündbar, Oxidierend, Druckgase, Ätzend
+- Giftig, Gesundheitsschädlich, Gesundheitsgefahr, Umweltgefährlich
+
+**ADR-Gefahrgutklassen** (1-9):
+- Mit detaillierten Beschreibungen
+
+**UN-Nummern Suche**:
+- Datenbank mit 15+ häufigen Gefahrstoffen
+- Detailansicht mit:
+  - Beschreibung
+  - Gefahren
+  - Erste-Hilfe-Maßnahmen
+  - Brandbekämpfung
+  - Freisetzungsmaßnahmen
+- Schnellreferenz-Buttons für häufige Stoffe
+
+#### 📞 Wichtige Telefonnummern
+
+Schneller Zugriff auf wichtige Notfallkontakte mit One-Tap-Calling.
+
+<img src="screenshots/13-phone-numbers.png" width="390" alt="Wichtige Telefonnummern">
+
+**Funktionen**:
+- 📋 Übersichtliche Liste aller Kontakte
+- 📱 Direkter Anruf via tel:-Link (One-Tap-Calling)
+- 🔍 Anzeige von Name, Firma, Funktion und Telefonnummer
+
+### Statistiken
+
+Umfassende Auswertungen für Übungsdienste und Einsätze auf Abteilungs- und Personenebene.
+
+<img src="screenshots/14-statistics.png" width="390" alt="Statistiken">
+
+#### Abteilungs-Statistik (Jahresansicht)
+- 📊 Anzahl Übungsdienste
+- ⏱️ Gesamte Übungsstunden
+- 🚒 Anzahl Einsätze
+- ⏱️ Gesamte Einsatzstunden
+- 📅 Jahres-Auswahl per Dropdown
+
+#### Personen-Statistik
+- 👤 Auswahl einzelner Einsatzkraft
+- 📊 Detaillierte Aufschlüsselung:
+  - Teilgenommene Übungen
+  - Absolvierte Übungsstunden
+  - Teilgenommene Einsätze
+  - Absolvierte Einsatzstunden
+  - Gesamtstunden
+
+### Formulardaten
+
+Archiv aller eingereichten Formulare mit Übersicht, Detailansicht und Verwaltungsfunktionen.
+
+<img src="screenshots/19-form-data.png" width="390" alt="Formulardaten">
+
+**Verfügbare Daten:**
+- **Anwesenheitslisten**: Alle eingereichten Übungsdienste
+- **Einsatzberichte**: Alle dokumentierten Einsätze
+
+**Funktionen**:
+- 📋 Übersicht aller Formulare nach Datum sortiert
+- 🔍 Details einzelner Formulare anzeigen
+- 📄 PDF-Dokumente anzeigen/herunterladen
+- ✉️ Formulare erneut per E-Mail versenden
+- 🗑️ Formulare löschen (nur Admins)
+- 🔎 Filterung nach Typ (Anwesenheit/Einsatz)
+
+**Datenschutz:**
+- Standort-beschränkte Benutzer sehen nur Formulare ihres Standorts
+- Global-Admins haben Zugriff auf alle Formulare
+- Alle Daten sind verschlüsselt gespeichert
 
 ---
 
