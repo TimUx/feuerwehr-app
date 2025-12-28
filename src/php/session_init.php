@@ -13,9 +13,8 @@ function initSecureSession() {
         return;
     }
     
-    // Use PHP's default session save path instead of custom path
-    // This avoids permission issues on shared hosting and various server configurations
-    // The default session.save_path from php.ini is used automatically
+    // Use PHP's default session save path from php.ini to avoid permission issues
+    // on shared hosting and various server configurations
     
     // Detect HTTPS
     $isSecure = (
