@@ -242,6 +242,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Ensure config directory exists
             $configDir = __DIR__ . '/config';
+            
+            // Clear stat cache to ensure we get current filesystem state
+            clearstatcache(true, $configDir);
+            
             if (!file_exists($configDir)) {
                 if (!@mkdir($configDir, 0700, true)) {
                     echo json_encode([
@@ -254,6 +258,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Create data directory
             $dataDir = __DIR__ . '/data';
+            
+            // Clear stat cache to ensure we get current filesystem state
+            clearstatcache(true, $dataDir);
+            
             if (!file_exists($dataDir)) {
                 if (!@mkdir($dataDir, 0700, true)) {
                     echo json_encode([
