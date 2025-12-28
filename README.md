@@ -481,10 +481,10 @@ Verwendet für Formular-Submissions (außer bei Offline), Admin-Funktionen und B
 | Background Sync | ✅ 49+ | ⚠️* | ⚠️* | ⚠️** |
 | Cache API | ✅ 40+ | ✅ 41+ | ✅ 11.1+ | ✅ |
 
-*Fallback auf manuelle Synchronisation verfügbar
+*Fallback auf manuelle Synchronisation verfügbar  
 **Teilweise unterstützt auf Android Chrome
 
-⚠️ = Manuelle Synchronisation verfügbar als Fallback
+⚠️ Hinweis: Manuelle Synchronisation steht als Fallback in allen Browsern zur Verfügung
 
 **Datenspeicherung:**
 
