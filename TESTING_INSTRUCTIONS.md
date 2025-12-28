@@ -4,9 +4,9 @@
 
 The login redirect issue where users were redirected back to the login page after successfully logging in has been fixed.
 
-**Root Cause:** Calling `session_write_close()` immediately after `session_regenerate_id()` created a race condition where the session file wasn't fully accessible on the first redirect.
+**Root Cause:** PR #77 REMOVED `session_write_close()`, thinking it caused a race condition. However, this was incorrect. WITHOUT `session_write_close()`, PHP's shutdown handler writes the session asynchronously, and the HTTP redirect response can be sent BEFORE the session file is fully written to disk. This causes the browser's next request to find no session data.
 
-**Solution:** Removed the `session_write_close()` call and let PHP handle session writing automatically via its shutdown handler.
+**Solution:** Added `session_write_close()` back at the CORRECT position - AFTER `session_regenerate_id(true)` and BEFORE returning from `Auth::login()`. This forces synchronous session writing, ensuring the session file exists before the redirect.
 
 ## How to Test
 
@@ -59,16 +59,17 @@ The login redirect issue where users were redirected back to the login page afte
 ### Files Modified
 
 1. **src/php/auth.php**
-   - Removed `session_write_close()` call from `login()` method
-   - Removed debug `error_log()` calls from `login()` and `isAuthenticated()` methods
-   - Added comment explaining why we don't call `session_write_close()`
+   - Added `session_write_close()` call back after `session_regenerate_id(true)`
+   - This call is CRITICAL - it ensures the session is written synchronously to disk
+   - Added detailed comments explaining why this is necessary
 
-2. **src/php/session_init.php**
-   - Removed all debug `error_log()` calls from `initSecureSession()` function
+2. **FIX_SUMMARY.md**
+   - Complete rewrite explaining the actual root cause
+   - Documented why PR #77's approach (removing session_write_close) was incorrect
+   - Explained the race condition in detail
 
-3. **FIX_SUMMARY.md**
-   - Updated with complete root cause analysis
-   - Documented the solution and technical details
+3. **TESTING_INSTRUCTIONS.md**
+   - Updated with correct explanation of the fix
 
 ### What Was NOT Changed
 
@@ -77,6 +78,14 @@ The login redirect issue where users were redirected back to the login page afte
 - Password hashing and verification remains the same
 - Remember me functionality remains the same
 - All other features remain unchanged
+
+### Why This Fix is Different from PR #77
+
+PR #77 removed `session_write_close()`, believing it caused problems. However:
+- `session_write_close()` is a SYNCHRONOUS operation that blocks until complete
+- It PREVENTS race conditions by ensuring the session file is written before continuing
+- Without it, PHP's shutdown handler is asynchronous and may not complete before the HTTP response is sent
+- The timing-dependent behavior (second login works) is classic async race condition symptom
 
 ## If Issues Persist
 
