@@ -183,6 +183,7 @@ async function syncPendingForms() {
   try {
     // Open IndexedDB
     const db = await openDB();
+    
     const tx = db.transaction('pending-forms', 'readonly');
     const store = tx.objectStore('pending-forms');
     const forms = await getAllFromStore(store);
@@ -198,10 +199,14 @@ async function syncPendingForms() {
         });
         
         if (response.ok) {
-          // Remove from IndexedDB on success
-          const deleteTx = db.transaction('pending-forms', 'readwrite');
+          // Remove from IndexedDB on success - use fresh transaction
+          const deleteDb = await openDB();
+          const deleteTx = deleteDb.transaction('pending-forms', 'readwrite');
           const deleteStore = deleteTx.objectStore('pending-forms');
           await deleteStore.delete(formData.id);
+          await deleteTx.complete;
+          deleteDb.close();
+          
           console.log('[SW] Successfully synced form:', formData.id);
           
           // Notify all clients
@@ -217,6 +222,8 @@ async function syncPendingForms() {
         console.log('[SW] Failed to sync form:', formData.id, error);
       }
     }
+    
+    db.close();
   } catch (error) {
     console.error('[SW] Error syncing forms:', error);
   }
@@ -228,7 +235,15 @@ function openDB() {
     const request = indexedDB.open('FeuerwehrAppDB', 1);
     
     request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
+    
+    request.onsuccess = () => {
+      const db = request.result;
+      // Handle version change for proper cleanup
+      db.onversionchange = () => {
+        db.close();
+      };
+      resolve(db);
+    };
     
     request.onupgradeneeded = (event) => {
       const db = event.target.result;

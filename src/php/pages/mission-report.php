@@ -796,21 +796,10 @@ updateCrewSections();
     }
 })();
 <?php endif; ?>
-</script>
 
 <script>
-// Show offline banner when offline
-function updateOfflineBanner() {
-    const banner = document.getElementById('offline-banner');
-    if (banner) {
-        banner.style.display = navigator.onLine ? 'none' : 'flex';
-    }
+// Initialize offline banner using shared utility
+if (typeof initOfflineBanner === 'function') {
+  initOfflineBanner('offline-banner');
 }
-
-// Update banner on page load
-updateOfflineBanner();
-
-// Update banner when online/offline status changes
-window.addEventListener('online', updateOfflineBanner);
-window.addEventListener('offline', updateOfflineBanner);
 </script>

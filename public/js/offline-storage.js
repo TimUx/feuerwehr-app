@@ -195,8 +195,13 @@ class OfflineStorage {
           });
 
           if (response.ok) {
-            const result = await response.json();
-            console.log('[OfflineStorage] Form submitted successfully:', form.id);
+            // Try to parse JSON response for logging, but don't fail if it's not JSON
+            try {
+              const result = await response.json();
+              console.log('[OfflineStorage] Form submitted successfully:', form.id, result);
+            } catch (e) {
+              console.log('[OfflineStorage] Form submitted successfully:', form.id);
+            }
             await this.deleteForm(form.id);
             results.success++;
           } else {

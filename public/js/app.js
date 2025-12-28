@@ -1,5 +1,11 @@
 // Feuerwehr App - Main JavaScript
 
+// Configuration for offline-supported forms
+const OFFLINE_SUPPORTED_FORMS = [
+  '/src/php/forms/submit_attendance.php',
+  '/src/php/forms/submit_mission_report.php'
+];
+
 class FeuerwehrApp {
   constructor() {
     this.currentPage = 'home';
@@ -447,9 +453,8 @@ class FeuerwehrApp {
     const formData = new FormData(form);
     const action = form.getAttribute('action');
     
-    // Check if this is a form that should support offline (attendance or mission report)
-    const isOfflineSupportedForm = action.includes('/forms/submit_attendance.php') || 
-                                     action.includes('/forms/submit_mission_report.php');
+    // Check if this is a form that should support offline
+    const isOfflineSupportedForm = OFFLINE_SUPPORTED_FORMS.some(url => action.includes(url));
 
     try {
       const response = await fetch(action, {

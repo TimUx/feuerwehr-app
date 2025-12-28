@@ -150,21 +150,28 @@ class OfflineUI {
         if (count > 0) {
           this.pendingBadge.textContent = count;
           this.pendingBadge.style.display = 'flex';
-          if (this.syncButton) {
-            this.syncButton.style.display = 'block';
-          }
         } else {
           this.pendingBadge.style.display = 'none';
-          if (this.syncButton && !navigator.onLine) {
-            // Keep button visible when offline even if no pending forms
-            this.syncButton.style.display = 'block';
-          } else if (this.syncButton) {
-            this.syncButton.style.display = 'none';
-          }
         }
       }
+      
+      this.updateSyncButtonVisibility(count);
     } catch (error) {
       console.error('[OfflineUI] Error updating pending count:', error);
+    }
+  }
+
+  /**
+   * Update sync button visibility based on pending count and online status
+   */
+  updateSyncButtonVisibility(count = 0) {
+    if (!this.syncButton) return;
+    
+    // Show button if there are pending forms or if offline
+    if (count > 0 || !navigator.onLine) {
+      this.syncButton.style.display = 'block';
+    } else {
+      this.syncButton.style.display = 'none';
     }
   }
 
