@@ -111,6 +111,7 @@ function handleLogoUpload($file) {
     }
     
     // Create settings directory if it doesn't exist
+    // Uses 0755 permissions because logo files are served directly via HTTP
     $uploadDir = __DIR__ . '/../../../data/settings';
     if (!file_exists($uploadDir)) {
         if (!@mkdir($uploadDir, 0755, true)) {
