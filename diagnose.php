@@ -1654,6 +1654,37 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                 </div>
             <?php endif; ?>
             
+            <?php 
+            // Display redirect error information if present
+            $redirectError = isset($_GET['error']) ? $_GET['error'] : null;
+            $redirectDetails = isset($_GET['details']) ? $_GET['details'] : null;
+            
+            if ($redirectError): 
+                $errorTitles = [
+                    'data_dir_create_failed' => 'Datenverzeichnis konnte nicht erstellt werden',
+                    'data_dir_not_directory' => 'Datenverzeichnis-Pfad ist kein Verzeichnis',
+                    'data_dir_not_writable' => 'Datenverzeichnis ist nicht beschreibbar'
+                ];
+                $errorTitle = isset($errorTitles[$redirectError]) ? $errorTitles[$redirectError] : 'Unbekannter Fehler';
+            ?>
+                <div class="alert alert-error" style="margin-top: 20px;">
+                    <span class="material-icons">report_problem</span>
+                    <div>
+                        <strong>🔴 Grund für die Weiterleitung hierher:</strong><br>
+                        <strong><?php echo htmlspecialchars($errorTitle); ?></strong>
+                        <?php if ($redirectDetails): ?>
+                            <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 4px; font-family: monospace; font-size: 12px;">
+                                <?php echo htmlspecialchars($redirectDetails); ?>
+                            </div>
+                        <?php endif; ?>
+                        <p style="margin-top: 10px; font-size: 14px;">
+                            Die Anwendung hat Sie automatisch zu dieser Diagnoseseite weitergeleitet, um das Problem zu identifizieren.
+                            Bitte überprüfen Sie die Testergebnisse unten für weitere Details und Lösungsvorschläge.
+                        </p>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
             <?php if (isset($results['apiConnectivityOk']) && !$results['apiConnectivityOk']): ?>
                 <div class="alert" style="background: #fff3e0; border-left-color: #ff9800; color: #e65100; margin-top: 20px;">
                     <span class="material-icons">warning</span>

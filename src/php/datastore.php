@@ -25,7 +25,7 @@ class DataStore {
                     
                     // Redirect to diagnose.php for better error diagnostics
                     if (php_sapi_name() !== 'cli' && !headers_sent()) {
-                        header('Location: diagnose.php');
+                        header('Location: diagnose.php?error=' . urlencode('data_dir_create_failed') . '&details=' . urlencode('Failed to create data directory: ' . self::$dataDir));
                         exit;
                     }
                     
@@ -39,7 +39,7 @@ class DataStore {
                 
                 // Redirect to diagnose.php for better error diagnostics
                 if (php_sapi_name() !== 'cli' && !headers_sent()) {
-                    header('Location: diagnose.php');
+                    header('Location: diagnose.php?error=' . urlencode('data_dir_not_directory') . '&details=' . urlencode('Data directory path exists but is not a directory: ' . self::$dataDir));
                     exit;
                 }
                 
@@ -68,7 +68,7 @@ class DataStore {
                 
                 // Redirect to diagnose.php for better error diagnostics
                 if (php_sapi_name() !== 'cli' && !headers_sent()) {
-                    header('Location: diagnose.php');
+                    header('Location: diagnose.php?error=' . urlencode('data_dir_not_writable') . '&details=' . urlencode('Data directory is not writable: ' . self::$dataDir . '. Error: ' . $errorMsg));
                     exit;
                 }
                 
