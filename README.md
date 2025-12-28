@@ -32,7 +32,11 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
 ## ✨ Features
 
 ### 🔐 Authentifizierung & Sicherheit
-- **Zwei Benutzerrollen**: Admin (voller Zugriff) und Operator (Formulare & Ansichten)
+- **Drei Benutzerrollen**: 
+  - **Global-Admin**: Vollzugriff auf alle Standorte und Systemeinstellungen
+  - **Standort-Admin**: Verwaltung eines spezifischen Standorts
+  - **Operator**: Formulare & Ansichten (keine Verwaltung)
+- **Multi-Standort-Unterstützung**: Mehrere Einsatzabteilungen/Standorte verwalten
 - **Verschlüsselte Datenspeicherung**: Alle Daten AES-256-CBC verschlüsselt
 - **Sichere Passwörter**: bcrypt-Hashing
 - **Session-Management**: Automatischer Timeout
@@ -207,28 +211,14 @@ Konfigurieren Sie E-Mail-Einstellungen für Formular-Übermittlungen:
 
 **Wichtig:** Der Verschlüsselungsschlüssel wird automatisch generiert - keine Kommandozeile erforderlich!
 
-#### 4. Diagnose-Tests (empfohlen)
-Nach erfolgreicher Installation sollten Sie die Diagnose-Tests durchführen, um sicherzustellen, dass alles korrekt funktioniert:
+#### 4. Installation abgeschlossen
+Nach erfolgreicher Installation können Sie die App nutzen.
 
-- **Im Wizard:** Klicken Sie auf "Diagnose-Tests durchführen"
-- **Direkter Link:** `http://ihre-domain.de/install.php?step=4&diagnose=run`
-- **Standalone Tool:** `http://ihre-domain.de/diagnose.php`
-
-Die Diagnose prüft:
-- ✅ Konfigurationsdatei und Verschlüsselung
-- ✅ Dateiberechtigungen (wichtig für Nginx)
-- ✅ Session-Funktionalität
-- ✅ PHP Extensions
-- ✅ Login-Funktionalität
-- ✅ Nginx/PHP-FPM Konfiguration (bei Nginx)
-
-#### 5. Logo hochladen (optional)
+#### 4. Logo hochladen (optional)
 Platzieren Sie Ihr Feuerwehr-Logo als `public/assets/logo.png`. Dieses wird in E-Mails und PDFs verwendet.
 
-#### 6. Anmeldung
+#### 5. Anmeldung
 Nach erfolgreicher Installation und Diagnose können Sie sich mit Ihrem erstellten Administrator-Benutzer anmelden.
-
-**Bei Login-Problemen:** Siehe [TROUBLESHOOTING.md](TROUBLESHOOTING.md) für detaillierte Hilfe.
 
 ---
 
@@ -486,15 +476,63 @@ Umfassende Auswertungen für:
 
 Verwaltung der App-Benutzer (nur für Admins):
 
-**Benutzerrollen**:
-- **Admin**: Vollzugriff auf alle Funktionen
-- **Operator**: Zugriff auf Formulare und Ansichten (keine Verwaltung)
+#### Benutzerrollen
 
-**Funktionen**:
+Die App unterstützt verschiedene Benutzerrollen mit unterschiedlichen Zugriffsrechten:
+
+##### 1. **Global-Admin** (Globaler Administrator)
+- 🌍 **Vollzugriff** auf das gesamte System
+- ✅ Kann alle Einsatzabteilungen/Standorte verwalten
+- ✅ Kann alle Benutzer (Global und Standort) erstellen, bearbeiten und löschen
+- ✅ Zugriff auf alle Fahrzeuge, Einsatzkräfte und Daten aller Standorte
+- ✅ Kann globale Einstellungen (E-Mail, Allgemein) konfigurieren
+- ✅ Kann neue Standorte anlegen und verwalten
+- 🔑 **Erkennung**: Kein Standort zugewiesen (wird als "Global" angezeigt)
+
+##### 2. **Standort-Admin** (Lokations-Administrator)
+- 📍 **Eingeschränkter Zugriff** auf einen bestimmten Standort
+- ✅ Kann nur Benutzer des eigenen Standorts verwalten
+- ✅ Kann nur Fahrzeuge des eigenen Standorts verwalten
+- ✅ Kann nur Einsatzkräfte des eigenen Standorts verwalten
+- ✅ Kann Formulare für den eigenen Standort ausfüllen
+- ✅ Kann Statistiken des eigenen Standorts einsehen
+- ❌ **Kein Zugriff** auf:
+  - Globale Einstellungen (E-Mail, Allgemein)
+  - Andere Standorte und deren Daten
+  - Anlegen neuer Standorte
+- 🔑 **Erkennung**: Hat einen Standort zugewiesen (z.B. "Willingshausen")
+
+##### 3. **Operator** (Sachbearbeiter)
+- 📋 **Lesezugriff** und Formularnutzung
+- ✅ Kann Formulare ausfüllen (Anwesenheitsliste, Einsatzbericht)
+- ✅ Kann Einsatztools nutzen (Karte, Gefahrenmatrix, Gefahrstoffkennzeichen)
+- ✅ Kann Statistiken einsehen
+- ✅ Kann Telefonnummern einsehen
+- ❌ **Keine Verwaltungsrechte**:
+  - Keine Bearbeitung von Einsatzkräften
+  - Keine Bearbeitung von Fahrzeugen
+  - Keine Benutzerverwaltung
+  - Keine Systemeinstellungen
+
+#### Anwendungsfälle
+
+**Szenario 1: Einzelne Feuerwehr**
+- Ein Global-Admin für die Verwaltung
+- Mehrere Operators für Formular-Eingabe
+
+**Szenario 2: Mehrere Standorte (z.B. Gemeinde mit mehreren Ortswehren)**
+- Ein Global-Admin für übergreifende Verwaltung
+- Je ein Standort-Admin pro Ortswehr (Willingshausen, Leimbach, etc.)
+- Operators an jedem Standort für tägliche Arbeit
+- Jeder Standort-Admin verwaltet nur seine eigene Ortswehr
+
+#### Funktionen der Benutzerverwaltung
 - ➕ Benutzer erstellen
 - ✏️ Benutzer bearbeiten
 - 🔒 Passwort ändern
 - 🗑️ Benutzer löschen
+- 📍 Standort zuweisen (für Standort-Admins und Operators)
+- 👁️ Übersicht aller Benutzer (Global-Admin) oder Standort-Benutzer (Standort-Admin)
 
 ---
 
@@ -625,46 +663,27 @@ session.gc_maxlifetime = 3600
 
 Wenn Sie nach dem Installations-Wizard die Fehlermeldung **"Ungültiger Benutzername oder Passwort"** erhalten, gibt es verschiedene mögliche Ursachen.
 
-#### Schnelle Diagnose
+#### Häufigste Ursachen:
+- ❌ Session-Verzeichnis nicht beschreibbar (Nginx/PHP-FPM)
+- ❌ Falsche Dateiberechtigungen für config/ oder data/
+- ❌ Config-Datei wurde nicht erstellt
+- ❌ Browser-Cookies blockiert
 
-1. **Führen Sie die Diagnose-Tests durch:**
-   ```
-   http://ihre-domain.de/diagnose.php
-   ```
-   oder
-   ```
-   http://ihre-domain.de/install.php?step=4&diagnose=run
-   ```
+#### Schnelle Lösung für Nginx + PHP 8.4:
+```bash
+# Session-Verzeichnis Berechtigungen
+sudo chown www-data:www-data /var/lib/php/sessions/
+sudo chmod 733 /var/lib/php/sessions/
 
-2. **Häufigste Ursachen:**
-   - ❌ Session-Verzeichnis nicht beschreibbar (Nginx/PHP-FPM)
-   - ❌ Falsche Dateiberechtigungen für config/ oder data/
-   - ❌ Config-Datei wurde nicht erstellt
-   - ❌ Browser-Cookies blockiert
+# App-Verzeichnis Berechtigungen
+sudo chown -R www-data:www-data /pfad/zur/app/config /pfad/zur/app/data
+sudo chmod 755 /pfad/zur/app/config /pfad/zur/app/data
 
-3. **Schnelle Lösung für Nginx + PHP 8.4:**
-   ```bash
-   # Session-Verzeichnis Berechtigungen
-   sudo chown www-data:www-data /var/lib/php/sessions/
-   sudo chmod 733 /var/lib/php/sessions/
-   
-   # App-Verzeichnis Berechtigungen
-   sudo chown -R www-data:www-data /pfad/zur/app/config /pfad/zur/app/data
-   sudo chmod 755 /pfad/zur/app/config /pfad/zur/app/data
-   
-   # PHP-FPM neu starten
-   sudo systemctl restart php8.4-fpm
-   
-   # Browser-Cookies löschen und erneut versuchen
-   ```
+# PHP-FPM neu starten
+sudo systemctl restart php8.4-fpm
 
-4. **Detaillierte Hilfe:**
-   Lesen Sie den [TROUBLESHOOTING.md](TROUBLESHOOTING.md) Guide für:
-   - Schritt-für-Schritt Problemlösung
-   - Nginx-spezifische Konfiguration
-   - PHP 8.4 spezifische Hinweise
-   - Debug-Befehle
-   - Häufige Fehlerszenarien
+# Browser-Cookies löschen und erneut versuchen
+```
 
 ---
 
