@@ -270,6 +270,8 @@ if (!empty($address)) {
 </style>
 
 <script>
+(function() {
+// Wrap in IIFE to avoid variable conflicts during SPA navigation
 // Map instances
 let mapExplore = null;
 let mapRoute = null;
@@ -642,4 +644,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Enter') searchAddress();
     });
 });
+
+})(); // End IIFE
 </script>

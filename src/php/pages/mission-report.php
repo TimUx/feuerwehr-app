@@ -295,6 +295,8 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
 </style>
 
 <script>
+(function() {
+// Wrap in IIFE to avoid variable conflicts during SPA navigation
 const personnel = <?php echo json_encode($personnel); ?>;
 const vehicles = <?php echo json_encode($vehicles); ?>;
 const functions = <?php echo json_encode($functions); ?>;
@@ -561,6 +563,9 @@ function removePersonEntry(id) {
     }
 }
 
+// Expose removePersonEntry to global scope for onclick handler
+window.removePersonEntry = removePersonEntry;
+
 // Form submission
 document.getElementById('mission-report-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -806,6 +811,8 @@ updateCrewSections();
     }
 })();
 <?php endif; ?>
+
+})(); // End IIFE
 </script>
 
 <script>
