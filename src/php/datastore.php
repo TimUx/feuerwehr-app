@@ -68,7 +68,7 @@ class DataStore {
                 
                 // Redirect to diagnose.php for better error diagnostics
                 if (php_sapi_name() !== 'cli' && !headers_sent()) {
-                    header('Location: diagnose.php?error=' . urlencode('data_dir_not_writable') . '&details=' . urlencode('Data directory is not writable. Error: ' . $errorMsg));
+                    header('Location: diagnose.php?error=' . urlencode('data_dir_not_writable') . '&details=' . urlencode('Data directory is not writable. Check server error logs for details.'));
                     exit;
                 }
                 
