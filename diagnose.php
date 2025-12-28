@@ -282,7 +282,7 @@ function runAllTests() {
         'message' => $dataDirWritable ? 'Beschreibbar' : 
                      ($dataDirExists ? 'Existiert aber nicht beschreibbar' : 'Existiert nicht'),
         'critical' => true,
-        'fix' => !$dataDirWritable ? 'chmod 755 ' . $dataDir . ' && chown www-data:www-data ' . $dataDir : null
+        'fix' => !$dataDirWritable ? 'Setzen Sie die Berechtigungen über FTP: Rechtsklick auf ' . basename($dataDir) . ' → Eigenschaften → Berechtigung auf 755 setzen' : null
     ];
     if (!$dataDirWritable) $criticalFailures++;
     
@@ -320,7 +320,7 @@ function runAllTests() {
                      ($parentDirExists ? "Nicht beschreibbar ($parentDir)" : "Existiert nicht ($parentDir)"),
         'critical' => false,
         'fix' => !$dataDirExists && !$parentDirWritable ? 
-            "Das data/ Verzeichnis kann nicht erstellt werden. Führen Sie aus: chmod 755 $parentDir && chown www-data:www-data $parentDir" : null
+            "Das data/ Verzeichnis kann nicht erstellt werden. Setzen Sie über FTP die Berechtigung des übergeordneten Verzeichnisses auf 755" : null
     ];
     
     // Test 5b: Actual write test
@@ -357,7 +357,7 @@ function runAllTests() {
                      "Schreibtest fehlgeschlagen: $writeTestError",
         'critical' => true,
         'fix' => !$writeTestSuccess && $dataDirExists ? 
-            "Prüfen Sie Berechtigungen: ls -la $dataDir && sudo chown -R www-data:www-data $dataDir && sudo chmod -R 755 $dataDir" : null
+            "Setzen Sie über FTP die Berechtigungen: Rechtsklick auf " . basename($dataDir) . " → Eigenschaften → Berechtigung auf 755 setzen (rekursiv)" : null
     ];
     if (!$writeTestSuccess) $criticalFailures++;
     
@@ -414,43 +414,7 @@ function runAllTests() {
         'status' => $umaskOk ? 'pass' : 'warn',
         'message' => "Aktuell: $umaskOctal" . (!$umaskOk ? ' (möglicherweise zu restriktiv)' : ''),
         'critical' => false,
-        'fix' => !$umaskOk ? 'Setzen Sie umask auf 0022 oder weniger restriktiv in der PHP-FPM/Apache-Konfiguration' : null
-    ];
-    
-    // Test 5e: Check if SELinux/AppArmor might be interfering
-    debugLog("Test 5e: Checking for SELinux/AppArmor", 'INFO');
-    $selinuxStatus = 'Nicht aktiv';
-    $macSystemEnabled = false; // Mandatory Access Control system enabled
-    
-    // Check for SELinux
-    if (file_exists('/usr/sbin/getenforce') && is_executable('/usr/sbin/getenforce')) {
-        $selinuxMode = trim(@shell_exec('/usr/sbin/getenforce 2>/dev/null'));
-        if (!empty($selinuxMode) && $selinuxMode !== 'Disabled') {
-            $selinuxStatus = "SELinux aktiv: $selinuxMode";
-            $macSystemEnabled = true;
-            debugLog("SELinux is enabled: $selinuxMode", 'INFO');
-        }
-    }
-    
-    // Check for AppArmor
-    $apparmorStatus = '';
-    if (file_exists('/sys/kernel/security/apparmor/profiles') && is_readable('/sys/kernel/security/apparmor/profiles')) {
-        $apparmorProfiles = @file_get_contents('/sys/kernel/security/apparmor/profiles');
-        if ($apparmorProfiles !== false && !empty(trim($apparmorProfiles))) {
-            $apparmorStatus = ' / AppArmor aktiv';
-            $macSystemEnabled = true;
-            debugLog("AppArmor is enabled", 'INFO');
-        }
-    }
-    
-    $tests[] = [
-        'category' => 'Dateisystem',
-        'name' => 'Mandatory Access Control',
-        'status' => 'info',
-        'message' => $selinuxStatus . $apparmorStatus,
-        'critical' => false,
-        'fix' => $macSystemEnabled && !$dataDirWritable ? 
-            "SELinux/AppArmor könnte Schreibzugriff blockieren. Führen Sie aus: sudo chcon -Rt httpd_sys_rw_content_t $dataDir (SELinux)" : null
+        'fix' => !$umaskOk ? 'Kontaktieren Sie Ihren Webhost-Support, um die Umask-Einstellung anzupassen' : null
     ];
     
     // Test 6: users.json
@@ -625,7 +589,7 @@ function runAllTests() {
         'status' => $sessionPathWritable ? 'pass' : 'warn',
         'message' => $sessionPathWritable ? $sessionPath : (empty($sessionPath) ? 'Standard (tmp)' : $sessionPath . ' (nicht beschreibbar)'),
         'critical' => false,
-        'fix' => !$sessionPathWritable && !empty($sessionPath) ? 'chown www-data:www-data ' . $sessionPath : null
+        'fix' => !$sessionPathWritable && !empty($sessionPath) ? 'Kontaktieren Sie Ihren Webhost-Support bezüglich Session-Speicherpfad-Berechtigungen' : null
     ];
     
     // Test 9a: Check session cookie settings
@@ -975,66 +939,7 @@ function runAllTests() {
         ];
     }
     
-    // Test 18: Docker Container Detection
-    debugLog("Test 18: Checking if running in Docker container", 'INFO');
-    $isDocker = false;
-    $dockerHints = [];
-    
-    // Check for .dockerenv file
-    if (file_exists('/.dockerenv')) {
-        $isDocker = true;
-        $dockerHints[] = '/.dockerenv exists';
-        debugLog("Found /.dockerenv file - running in Docker", 'INFO');
-    }
-    
-    // Check cgroup for docker - use is_readable first to avoid permission warnings
-    if (is_readable('/proc/1/cgroup')) {
-        debugLog("Checking /proc/1/cgroup for Docker indicators", 'INFO');
-        $cgroup = @file_get_contents('/proc/1/cgroup');
-        if ($cgroup !== false && (strpos($cgroup, 'docker') !== false || strpos($cgroup, 'containerd') !== false)) {
-            $isDocker = true;
-            $dockerHints[] = 'cgroup contains docker/containerd';
-            debugLog("Found docker/containerd in cgroup - running in Docker", 'INFO');
-        } else {
-            debugLog("/proc/1/cgroup readable but no Docker indicators found", 'INFO');
-        }
-    } else {
-        // File not readable - try alternative detection methods
-        debugLog("/proc/1/cgroup not readable (this is normal in some environments)", 'INFO');
-        
-        // Try checking /proc/self/cgroup as fallback
-        if (is_readable('/proc/self/cgroup')) {
-            debugLog("Checking /proc/self/cgroup as fallback", 'INFO');
-            $cgroup = @file_get_contents('/proc/self/cgroup');
-            if ($cgroup !== false && (strpos($cgroup, 'docker') !== false || strpos($cgroup, 'containerd') !== false)) {
-                $isDocker = true;
-                $dockerHints[] = '/proc/self/cgroup contains docker/containerd';
-                debugLog("Found docker/containerd in /proc/self/cgroup - running in Docker", 'INFO');
-            }
-        }
-    }
-    
-    // Check for container-specific environment variables
-    $containerEnvVars = ['CONTAINER', 'DOCKER_CONTAINER', 'KUBERNETES_SERVICE_HOST'];
-    foreach ($containerEnvVars as $envVar) {
-        if (getenv($envVar)) {
-            $isDocker = true;
-            $dockerHints[] = "Environment variable $envVar is set";
-            debugLog("Found environment variable $envVar - running in container", 'INFO');
-            break;
-        }
-    }
-    
-    $tests[] = [
-        'category' => 'Container',
-        'name' => 'Docker Container Erkennung',
-        'status' => 'info',
-        'message' => $isDocker ? 'Läuft in Docker Container: ' . implode(', ', $dockerHints) : 'Läuft nicht in Docker Container',
-        'critical' => false
-    ];
-    
-    // Test 19: DNS Resolution (wichtig für Docker)
-    debugLog("Test 19: Testing DNS resolution", 'INFO');
+    debugLog("Test 18: Testing DNS resolution", 'INFO');
     $dnsTestHosts = [
         'tile.openstreetmap.org',
         'nominatim.openstreetmap.org',
@@ -1061,16 +966,16 @@ function runAllTests() {
     }
     
     $tests[] = [
-        'category' => 'Container',
+        'category' => 'Netzwerk',
         'name' => 'DNS Auflösung',
         'status' => $allDnsOk ? 'pass' : 'fail',
         'message' => $dnsMessage,
         'critical' => false,
-        'fix' => !$allDnsOk ? ($isDocker ? 'Docker DNS-Konfiguration überprüfen (docker run --dns 8.8.8.8)' : 'Netzwerk-Konfiguration oder Firewall überprüfen') : null
+        'fix' => !$allDnsOk ? 'Kontaktieren Sie Ihren Webhost-Support, um die Netzwerk-Konfiguration oder Firewall-Einstellungen zu überprüfen' : null
     ];
     
-    // Test 20: External API Connectivity (Map Dependencies)
-    debugLog("Test 20: Testing external API connectivity for map features", 'INFO');
+    // Test 19: External API Connectivity (Map Dependencies)
+    debugLog("Test 19: Testing external API connectivity for map features", 'INFO');
     
     $apiTests = [
         [
@@ -1159,15 +1064,13 @@ function runAllTests() {
                 'status' => 'fail',
                 'message' => $errorMsg,
                 'critical' => false,
-                'fix' => $isDocker ? 
-                    'Docker Container hat keinen Internetzugang oder Firewall blockiert externe APIs. Überprüfen Sie Docker Netzwerk-Konfiguration.' :
-                    'Firewall oder Proxy blockiert möglicherweise externe Verbindungen. Überprüfen Sie Netzwerk-Konfiguration.'
+                'fix' => 'Firewall oder Proxy des Webhosts blockiert möglicherweise externe Verbindungen. Kontaktieren Sie Ihren Webhost-Support.'
             ];
         }
     }
     
-    // Test 21: JavaScript/MapLibre Loading Test
-    debugLog("Test 21: Adding JavaScript library loading information", 'INFO');
+    // Test 20: JavaScript/MapLibre Loading Test
+    debugLog("Test 20: Adding JavaScript library loading information", 'INFO');
     $tests[] = [
         'category' => 'Karten-Funktionalität',
         'name' => 'JavaScript Bibliotheken',
@@ -1176,8 +1079,8 @@ function runAllTests() {
         'critical' => false
     ];
     
-    // Test 22: CSP/CORS Headers Check
-    debugLog("Test 22: Checking for Content Security Policy", 'INFO');
+    // Test 21: CSP/CORS Headers Check
+    debugLog("Test 21: Checking for Content Security Policy", 'INFO');
     $cspHeader = null;
     if (function_exists('apache_response_headers')) {
         $headers = apache_response_headers();
@@ -1212,8 +1115,8 @@ function runAllTests() {
         ];
     }
     
-    // Test 23: SMTP Configuration and Connectivity Tests
-    debugLog("Test 23: Testing SMTP configuration and connectivity", 'INFO');
+    // Test 22: SMTP Configuration and Connectivity Tests
+    debugLog("Test 22: Testing SMTP configuration and connectivity", 'INFO');
     
     // Load email configuration
     $emailConfig = $config['email'] ?? [];
@@ -1240,7 +1143,7 @@ function runAllTests() {
             'critical' => false
         ];
         
-        // Test 23a: DNS resolution for SMTP host
+        // Test 22a: DNS resolution for SMTP host
         debugLog("Testing DNS resolution for SMTP host: $smtpHost", 'INFO');
         $smtpIp = @gethostbyname($smtpHost);
         $dnsSuccess = ($smtpIp !== $smtpHost && filter_var($smtpIp, FILTER_VALIDATE_IP));
@@ -1255,7 +1158,7 @@ function runAllTests() {
             'fix' => !$dnsSuccess ? 'DNS-Konfiguration prüfen oder /etc/hosts anpassen' : null
         ];
         
-        // Test 23b: Socket connection to SMTP server
+        // Test 22b: Socket connection to SMTP server
         if ($dnsSuccess) {
             debugLog("Testing socket connection to $smtpHost:$smtpPort", 'INFO');
             $socketSuccess = false;
@@ -1308,7 +1211,7 @@ function runAllTests() {
                 'fix' => !$socketSuccess ? 'Prüfen Sie Firewall, Server-Erreichbarkeit und Port' : null
             ];
             
-            // Test 23c: TLS/SSL capability test
+            // Test 22c: TLS/SSL capability test
             if ($socketSuccess && !empty($smtpSecure)) {
                 debugLog("Testing TLS/SSL capability", 'INFO');
                 $tlsSuccess = false;
@@ -1391,7 +1294,7 @@ function runAllTests() {
                 ];
             }
             
-            // Test 23d: SMTP Authentication test (if credentials provided)
+            // Test 22d: SMTP Authentication test (if credentials provided)
             if ($socketSuccess && $smtpAuth && !empty($smtpUsername)) {
                 debugLog("Testing SMTP authentication", 'INFO');
                 $authSuccess = false;
@@ -1429,7 +1332,7 @@ function runAllTests() {
             }
         }
         
-        // Test 23e: Email addresses validation
+        // Test 22e: Email addresses validation
         $fromAddress = $emailConfig['from_address'] ?? '';
         $toAddress = $emailConfig['to_address'] ?? '';
         
@@ -1448,7 +1351,7 @@ function runAllTests() {
             'fix' => (!$fromValid || !$toValid) ? 'Prüfen Sie die E-Mail-Adressen in den Einstellungen' : null
         ];
         
-        // Test 23f: Check if socket functions are available
+        // Test 22f: Check if socket functions are available
         $socketFunctionsAvailable = function_exists('stream_socket_client') && function_exists('fsockopen');
         
         $tests[] = [
@@ -1481,7 +1384,6 @@ function runAllTests() {
         'webserver' => $serverSoftware,
         'isNginx' => $isNginx,
         'isApache' => $isApache,
-        'isDocker' => $isDocker,
         'webserverErrorLog' => $webserverErrorLog ?? null,
         'phpProcessLog' => $phpProcessLog ?? null,
         'detectedWebUser' => $detectedWebUser ?? null,
@@ -1752,22 +1654,6 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                 </div>
             <?php endif; ?>
             
-            <?php if (isset($results['isDocker']) && $results['isDocker']): ?>
-                <div class="alert" style="background: #e3f2fd; border-left-color: #2196f3; color: #1565c0; margin-top: 20px;">
-                    <span class="material-icons">info</span>
-                    <div>
-                        <strong>🐳 Docker Container erkannt</strong><br>
-                        Die App läuft in einem Docker Container. Beachten Sie folgende Punkte:
-                        <ul style="margin: 10px 0 0 20px;">
-                            <li>Stellen Sie sicher, dass der Container Internetzugang hat</li>
-                            <li>DNS-Auflösung muss funktionieren (--dns 8.8.8.8 beim Start hinzufügen)</li>
-                            <li>Externe APIs (OpenStreetMap, OSRM) müssen erreichbar sein</li>
-                            <li>Prüfen Sie die Firewall-Regeln für ausgehende Verbindungen</li>
-                        </ul>
-                    </div>
-                </div>
-            <?php endif; ?>
-            
             <?php if (isset($results['apiConnectivityOk']) && !$results['apiConnectivityOk']): ?>
                 <div class="alert" style="background: #fff3e0; border-left-color: #ff9800; color: #e65100; margin-top: 20px;">
                     <span class="material-icons">warning</span>
@@ -1775,8 +1661,8 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                         <strong>⚠️ Karten-Funktionalität beeinträchtigt</strong><br>
                         Einige externe APIs für die Karten-Funktion sind nicht erreichbar. Die Karte wird möglicherweise nicht korrekt angezeigt.
                         <ul style="margin: 10px 0 0 20px;">
-                            <li><strong>Ursachen:</strong> Firewall, fehlender Internetzugang, DNS-Probleme, Docker Netzwerk-Konfiguration</li>
-                            <li><strong>Lösung:</strong> Prüfen Sie die Netzwerk-Konfiguration und stellen Sie sicher, dass externe APIs erreichbar sind</li>
+                            <li><strong>Ursachen:</strong> Firewall des Webhosts, fehlender Internetzugang, DNS-Probleme</li>
+                            <li><strong>Lösung:</strong> Kontaktieren Sie Ihren Webhost-Support bezüglich externer API-Zugriffe</li>
                             <li><strong>Browser-Test:</strong> Öffnen Sie die Browser-Konsole (F12) auf der Karten-Seite für detaillierte Fehler</li>
                         </ul>
                     </div>
@@ -1849,6 +1735,114 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            
+            <?php
+            // Handle PHP-based fixes
+            $fixAttempted = false;
+            $fixSuccess = false;
+            $fixMessage = '';
+            
+            if (isset($_POST['fix_action'])) {
+                $fixAttempted = true;
+                $action = $_POST['fix_action'];
+                
+                if ($action === 'create_data_dir') {
+                    $dataDir = __DIR__ . '/data';
+                    if (!file_exists($dataDir)) {
+                        if (@mkdir($dataDir, 0755, true)) {
+                            $fixSuccess = true;
+                            $fixMessage = 'data/ Verzeichnis erfolgreich erstellt!';
+                        } else {
+                            $fixMessage = 'Fehler beim Erstellen des data/ Verzeichnisses. Bitte setzen Sie die Berechtigungen manuell über FTP.';
+                        }
+                    } else {
+                        $fixMessage = 'data/ Verzeichnis existiert bereits.';
+                    }
+                } elseif ($action === 'fix_permissions') {
+                    $dataDir = __DIR__ . '/data';
+                    if (file_exists($dataDir)) {
+                        if (@chmod($dataDir, 0755)) {
+                            $fixSuccess = true;
+                            $fixMessage = 'Berechtigungen für data/ Verzeichnis erfolgreich gesetzt!';
+                        } else {
+                            $fixMessage = 'Fehler beim Setzen der Berechtigungen. Bitte verwenden Sie FTP.';
+                        }
+                    } else {
+                        $fixMessage = 'data/ Verzeichnis existiert nicht.';
+                    }
+                }
+                
+                // Redirect to avoid form resubmission
+                if ($fixSuccess) {
+                    header('Location: ?fix_success=' . urlencode($fixMessage));
+                    exit;
+                }
+            }
+            
+            // Show success message from redirect
+            if (isset($_GET['fix_success'])) {
+                $fixAttempted = true;
+                $fixSuccess = true;
+                $fixMessage = $_GET['fix_success'];
+            }
+            ?>
+            
+            <?php if ($fixAttempted): ?>
+                <div class="alert <?php echo $fixSuccess ? 'alert-success' : 'alert-error'; ?>" style="margin: 20px 0;">
+                    <span class="material-icons"><?php echo $fixSuccess ? 'check_circle' : 'error'; ?></span>
+                    <div>
+                        <strong><?php echo $fixSuccess ? 'Erfolg!' : 'Fehler'; ?></strong><br>
+                        <?php echo htmlspecialchars($fixMessage); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+            <?php if ($results['criticalFailures'] > 0): ?>
+                <div style="margin: 30px 0; padding: 20px; background: #fff3e0; border-radius: 8px; border-left: 4px solid #ff9800;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #e65100;">
+                        <span class="material-icons" style="vertical-align: middle; font-size: 22px;">build_circle</span>
+                        Automatische Fehlerbehebung
+                    </h3>
+                    
+                    <p style="margin: 0 0 15px 0; color: #e65100;">
+                        Versuchen Sie, häufige Probleme automatisch über PHP zu beheben:
+                    </p>
+                    
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <?php if (!file_exists(__DIR__ . '/data')): ?>
+                            <form method="POST" style="margin: 0;">
+                                <input type="hidden" name="fix_action" value="create_data_dir">
+                                <button type="submit" class="btn btn-primary" style="cursor: pointer;">
+                                    <span class="material-icons">create_new_folder</span>
+                                    data/ Verzeichnis erstellen
+                                </button>
+                            </form>
+                        <?php elseif (!is_writable(__DIR__ . '/data')): ?>
+                            <form method="POST" style="margin: 0;">
+                                <input type="hidden" name="fix_action" value="fix_permissions">
+                                <button type="submit" class="btn btn-primary" style="cursor: pointer;">
+                                    <span class="material-icons">lock_open</span>
+                                    Berechtigungen anpassen (via PHP)
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 6px;">
+                        <strong style="color: #1976d2;">📁 Alternative: Manuelle Anpassung via FTP</strong><br>
+                        <span style="color: #555;">
+                            Verbinden Sie sich mit Ihrem FTP-Client (z.B. FileZilla) und setzen Sie die Berechtigungen:
+                        </span>
+                        <ol style="margin: 10px 0 0 20px; color: #555;">
+                            <li>Rechtsklick auf <code>data/</code> Verzeichnis</li>
+                            <li>Wählen Sie "Dateiberechtigungen" oder "Eigenschaften"</li>
+                            <li>Setzen Sie den numerischen Wert auf <strong>755</strong></li>
+                            <li>Aktivieren Sie "Rekursiv" (falls verfügbar)</li>
+                            <li>Klicken Sie auf OK</li>
+                        </ol>
+                    </div>
+                </div>
+            <?php endif; ?>
             
             <div class="button-group">
                 <a href="?" class="btn btn-secondary">
