@@ -108,13 +108,18 @@ class Auth {
                 $_SESSION['login_time'] = time();
                 $_SESSION['last_activity'] = time();
                 
-                // Regenerate session ID (keep old session temporarily for safety)
-                session_regenerate_id(false);
+                // Regenerate session ID and delete old session
+                session_regenerate_id(true);
                 
-                // Handle "Remember Me" functionality
+                // Handle "Remember Me" functionality (before closing session)
                 if ($rememberMe) {
                     self::setRememberMeCookie($user['id']);
                 }
+                
+                // CRITICAL: Write session data to ensure it's saved before redirect
+                // This must be the last operation before returning
+                // Without this, the redirect with exit() may terminate before session data is written
+                session_write_close();
                 
                 return true;
             }
@@ -609,8 +614,8 @@ class Auth {
                         $_SESSION['last_activity'] = time();
                         $_SESSION['auto_login'] = true; // Mark as auto-login
                         
-                        // Regenerate session ID
-                        session_regenerate_id(false);
+                        // Regenerate session ID and delete old session
+                        session_regenerate_id(true);
                         
                         return true;
                     }
