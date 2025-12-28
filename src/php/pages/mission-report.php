@@ -330,7 +330,7 @@ function getFilteredPersonnel() {
     if (!selectedLocationId) {
         return personnel;
     }
-    return personnel.filter(p => p.location_id === selectedLocationId);
+    return personnel.filter(p => p.location_id == selectedLocationId);
 }
 
 // Add event listener for location filter

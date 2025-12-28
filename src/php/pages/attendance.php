@@ -328,10 +328,14 @@ function updateTotalCount() {
     document.getElementById('total-count').textContent = total;
 }
 
-// Select all attendees
+// Select all attendees (only visible ones)
 function selectAllAttendees() {
     document.querySelectorAll('.attendee-checkbox').forEach(cb => {
-        cb.checked = true;
+        // Only check visible checkboxes
+        const formCheck = cb.closest('.form-check');
+        if (formCheck && formCheck.style.display !== 'none') {
+            cb.checked = true;
+        }
     });
     updateTotalCount();
 }
