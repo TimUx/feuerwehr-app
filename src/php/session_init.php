@@ -15,7 +15,8 @@ function initSecureSession() {
     clearstatcache(true, $sessionPath);
     
     if (!file_exists($sessionPath)) {
-        if (!@mkdir($sessionPath, 0700, true)) {
+        // Use 0755 permissions for better compatibility with shared hosting environments
+        if (!@mkdir($sessionPath, 0755, true)) {
             error_log("Failed to create session directory: " . $sessionPath . ". Please ensure the web server has write permissions to /tmp.");
             die("Configuration Error: Unable to create session directory. Please contact your system administrator or check file permissions.");
         }
@@ -40,17 +41,14 @@ function initSecureSession() {
     session_name('FWAPP_SESSION');
     
     // Configure session parameters BEFORE starting the session
-    // NOTE: For production environments, consider:
-    // - Setting 'secure' => true when using HTTPS
-    // - Using 'samesite' => 'Lax' or 'Strict' with HTTPS
-    // - Implementing CSRF tokens in forms
+    // Use secure cookies when on HTTPS to ensure browser sends the cookie
     session_set_cookie_params([
         'lifetime' => 0,  // Session cookie (expires when browser closes)
         'path' => '/',
         'domain' => '',
-        'secure' => false,  // Allow both HTTP and HTTPS (set to true in production with HTTPS)
+        'secure' => $isSecure,  // Set secure flag on HTTPS to ensure cookies work properly
         'httponly' => true,
-        'samesite' => ''  // No SameSite restriction for maximum compatibility (consider 'Lax' in production)
+        'samesite' => $isSecure ? 'Lax' : ''  // Use Lax on HTTPS for better security while maintaining functionality
     ]);
     
     // Set additional session settings before session_start()
