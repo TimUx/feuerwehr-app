@@ -108,8 +108,12 @@ class Auth {
                 $_SESSION['login_time'] = time();
                 $_SESSION['last_activity'] = time();
                 
-                // Regenerate session ID (keep old session temporarily for safety)
-                session_regenerate_id(false);
+                // Regenerate session ID and delete old session
+                session_regenerate_id(true);
+                
+                // CRITICAL: Write session data to ensure it's saved before redirect
+                // Without this, the redirect with exit() may terminate before session data is written
+                session_write_close();
                 
                 // Handle "Remember Me" functionality
                 if ($rememberMe) {
@@ -609,8 +613,8 @@ class Auth {
                         $_SESSION['last_activity'] = time();
                         $_SESSION['auto_login'] = true; // Mark as auto-login
                         
-                        // Regenerate session ID
-                        session_regenerate_id(false);
+                        // Regenerate session ID and delete old session
+                        session_regenerate_id(true);
                         
                         return true;
                     }
