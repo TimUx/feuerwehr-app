@@ -1814,6 +1814,7 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                                 }
                             }
                         } else {
+                            $fixSuccess = true;
                             $fixMessage = 'data/ Verzeichnis existiert bereits.';
                         }
                     } elseif ($action === 'fix_permissions') {
