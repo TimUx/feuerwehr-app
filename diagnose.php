@@ -1783,11 +1783,15 @@ debugLog("Critical failures: " . $results['criticalFailures'], 'INFO');
                 }
                 
                 // Use session to pass message (more secure than GET parameter)
-                if ($fixSuccess || $fixAttempted) {
+                if ($fixAttempted) {
                     $_SESSION['fix_attempted'] = true;
                     $_SESSION['fix_success'] = $fixSuccess;
                     $_SESSION['fix_message'] = $fixMessage;
-                    header('Location: ?');
+                    // Build proper absolute URL
+                    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                    $host = $_SERVER['HTTP_HOST'];
+                    $uri = strtok($_SERVER['REQUEST_URI'], '?');
+                    header("Location: {$protocol}://{$host}{$uri}");
                     exit;
                 }
             }
