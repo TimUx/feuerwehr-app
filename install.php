@@ -383,6 +383,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Write config file FIRST so Encryption class can load it
             // We wrap everything in a try-catch to ensure cleanup on any failure
             try {
+                // Ensure the config content has no BOM or leading whitespace
+                // This prevents "headers already sent" errors
+                $configContent = ltrim($configContent);
+                
+                // Verify content starts with <?php
+                if (substr($configContent, 0, 5) !== '<?php') {
+                    throw new Exception('Generated config does not start with <?php tag');
+                }
+                
                 if (file_put_contents($configFile, $configContent) === false) {
                     throw new Exception('Fehler beim Schreiben der Konfigurationsdatei.');
                 }

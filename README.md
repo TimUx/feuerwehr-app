@@ -1221,6 +1221,36 @@ session.gc_maxlifetime = 3600
 
 ## 🔧 Troubleshooting
 
+### "Headers already sent" Fehler
+
+**Symptom:** Fehlermeldungen wie `Warning: Cannot modify header information - headers already sent by (output started at config/config.php:1)`
+
+**Ursache:** Die `config/config.php` Datei enthält unsichtbare Zeichen (BOM oder Whitespace) vor dem `<?php` Tag, typischerweise nach manueller Bearbeitung mit bestimmten Text-Editoren.
+
+**Lösung:**
+
+**Option 1 - Automatische Bereinigung (empfohlen):**
+1. Laden Sie `fix_config_bom.php` auf Ihren Server hoch
+2. Rufen Sie die Datei im Browser auf: `https://ihre-domain.de/fix_config_bom.php`
+3. Folgen Sie den Anweisungen zur automatischen Bereinigung
+4. Löschen Sie `fix_config_bom.php` nach Gebrauch aus Sicherheitsgründen
+
+**Option 2 - Manuelle Bereinigung:**
+1. Laden Sie `config/config.php` via FTP herunter
+2. Öffnen Sie die Datei mit einem Editor, der UTF-8 ohne BOM unterstützt:
+   - **Notepad++**: Format → UTF-8 ohne BOM
+   - **VS Code**: Unten rechts auf "UTF-8 with BOM" klicken → "UTF-8" wählen
+   - **Sublime Text**: File → Save with Encoding → UTF-8
+3. Stellen Sie sicher, dass:
+   - Die Datei mit `<?php` beginnt (kein Whitespace davor)
+   - Kein `?>` Tag am Ende vorhanden ist
+4. Speichern und via FTP hochladen
+
+**Vorbeugung:**
+- Verwenden Sie immer einen Editor mit UTF-8 ohne BOM Unterstützung
+- Vermeiden Sie das Kopieren/Einfügen von Config-Inhalten aus Word/Email
+- Nutzen Sie den Installations-Wizard statt manueller Config-Erstellung
+
 ### Login-Probleme nach der Installation?
 
 Wenn Sie nach dem Installations-Wizard die Fehlermeldung **"Ungültiger Benutzername oder Passwort"** erhalten, gibt es verschiedene mögliche Ursachen.
