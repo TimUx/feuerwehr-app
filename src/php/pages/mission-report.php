@@ -563,6 +563,9 @@ function removePersonEntry(id) {
     }
 }
 
+// Expose removePersonEntry to global scope for onclick handler
+window.removePersonEntry = removePersonEntry;
+
 // Form submission
 document.getElementById('mission-report-form').addEventListener('submit', async (e) => {
     e.preventDefault();
