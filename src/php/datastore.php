@@ -46,9 +46,21 @@ class DataStore {
                 die("Configuration Error: Data directory path is not a directory. Please contact your system administrator.<br><br><a href='diagnose.php'>Run System Diagnostics</a>");
             }
             
-            // Verify it's writable
-            if (!is_writable(self::$dataDir)) {
-                error_log("Data directory exists but is not writable: " . self::$dataDir . ". Please check file permissions.");
+            // Verify it's writable with an actual write test
+            // Note: is_writable() can return false negatives in some PHP-FPM configurations
+            // so we perform an actual write test instead
+            $testFile = self::$dataDir . '/.write_test_' . uniqid('', true);
+            $writeResult = @file_put_contents($testFile, 'test');
+            $writeTestSuccess = $writeResult !== false;
+            
+            if ($writeTestSuccess) {
+                // Clean up test file
+                @unlink($testFile);
+            } else {
+                // Write test failed - directory is not writable
+                $lastError = error_get_last();
+                $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
+                error_log("Data directory exists but is not writable: " . self::$dataDir . ". Write test error: " . $errorMsg);
                 
                 // Redirect to diagnose.php for better error diagnostics
                 if (php_sapi_name() !== 'cli' && !headers_sent()) {
