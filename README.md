@@ -331,7 +331,7 @@ Verwendet für Formular-Submissions (außer bei Offline), Admin-Funktionen und B
 | Background Sync | ✅ | ⚠️* | ⚠️* | ⚠️** |
 | Cache API | ✅ | ✅ | ✅ | ✅ |
 
-*Fallback auf manuelle Synchronisation verfügbar  
+*Fallback auf manuelle Synchronisation verfügbar
 **Teilweise unterstützt auf Android Chrome
 
 **Datenspeicherung:**

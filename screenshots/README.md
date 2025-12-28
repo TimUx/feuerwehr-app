@@ -13,7 +13,7 @@ This directory contains screenshots for the README documentation.
 
 ## Current Status
 
-Screenshots need to be updated to the new Full HD resolution (1080x1920px). The old screenshots at 390x844px had rendering issues with text, symbols, and some pages showing "page could not be loaded" errors.
+Screenshots need to be updated to the new Full HD resolution (1080x1920px). The old screenshots at 390x844px had rendering issues with text, symbols, and some pages showed "page could not be loaded" errors.
 
 ### Screenshots to Update
 
