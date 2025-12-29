@@ -8,12 +8,9 @@ require_once __DIR__ . '/../datastore.php';
 
 Auth::requireAuth();
 
-// Filter vehicles by location for location-restricted users
-$user = Auth::getUser();
-$hasGlobalAccess = Auth::hasGlobalAccess();
-$userLocationId = Auth::getUserLocationId();
-
-$vehicles = DataStore::getVehiclesByLocation($hasGlobalAccess ? null : $userLocationId);
+// Always show all vehicles for the read-only vehicle list
+// This is an exception compared to other pages where location filtering applies
+$vehicles = DataStore::getVehicles();
 $locations = DataStore::getLocations();
 ?>
 
