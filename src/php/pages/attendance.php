@@ -183,7 +183,7 @@ if (isset($_GET['edit'])) {
                 <?php else: ?>
                     <div id="attendees-list">
                         <?php foreach ($personnel as $person): 
-                            $isInstructor = !empty($person['is_instructor']) && $person['is_instructor'];
+                            $isInstructor = !empty($person['is_instructor']);
                         ?>
                         <div class="form-check" data-location-id="<?php echo htmlspecialchars($person['location_id'] ?? ''); ?>">
                             <input type="checkbox" id="attendee-<?php echo $person['id']; ?>" name="teilnehmer[]" value="<?php echo $person['id']; ?>" class="form-check-input attendee-checkbox">
