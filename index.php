@@ -15,26 +15,10 @@ if (!file_exists(__DIR__ . '/config/config.php')) {
 // Initialize session
 Auth::init();
 
-// Helper function to build safe redirect URL
-function getSafeRedirectUrl($path) {
-    // Validate and sanitize HTTP_HOST to prevent Host header injection
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    // Remove any potentially malicious characters (allow alphanumeric, dots, hyphens, colons for port)
-    // Hyphen at the end of character class to avoid being interpreted as range
-    $host = preg_replace('/[^a-zA-Z0-9.:-]/', '', $host);
-    // Ensure the host is reasonable (basic validation)
-    if (empty($host) || strlen($host) > 255) {
-        $host = $_SERVER['SERVER_NAME'] ?? 'localhost';
-    }
-    
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-    return "{$protocol}://{$host}{$path}";
-}
-
 // Handle logout
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     Auth::logout();
-    header('Location: /index.php');
+    header('Location: /login.php');
     exit;
 }
 
@@ -44,36 +28,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'reset-password') {
     $page = 'reset-password';
 }
 
-// Handle login form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $rememberMe = isset($_POST['remember_me']) && $_POST['remember_me'] === '1';
-    
-    if (Auth::login($username, $password, $rememberMe)) {
-        // Login successful - session was already written and closed in Auth::login()
-        // Redirect to home using relative URL to ensure cookies are sent
-        header('Location: /index.php');
-        exit;
-    } else {
-        $loginError = 'Ungültiger Benutzername oder Passwort';
-    }
-}
-
-// Try auto-login with remember me token before checking authentication
-if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
-    Auth::tryAutoLogin();
-}
-
 // Check authentication status
 $isAuthenticated = Auth::isAuthenticated();
 
-// Determine which page to show
+// If not authenticated, redirect to login page (unless it's password reset)
 $page = isset($page) ? $page : ($_GET['page'] ?? 'home');
-
-// If not authenticated, show login page (unless it's password reset)
 if (!$isAuthenticated && $page !== 'reset-password') {
-    $page = 'login';
+    header('Location: /login.php');
+    exit;
 }
 
 $user = Auth::getUser();
@@ -111,115 +73,7 @@ $user = Auth::getUser();
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <?php if ($page === 'login'): ?>
-        <!-- Login Page -->
-        <div class="login-container">
-            <div class="login-card">
-                <div class="login-header">
-                    <h1 class="login-title">🚒 Feuerwehr Management</h1>
-                    <p class="login-subtitle">Bitte melden Sie sich an</p>
-                </div>
-                
-                <?php if (isset($loginError)): ?>
-                    <div class="alert alert-error"><?php echo htmlspecialchars($loginError); ?></div>
-                <?php endif; ?>
-                
-                <form method="POST" action="index.php">
-                    <div class="form-group">
-                        <label class="form-label" for="username">Benutzername</label>
-                        <input type="text" id="username" name="username" class="form-input" required autofocus>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="password">Passwort</label>
-                        <input type="password" id="password" name="password" class="form-input" required>
-                    </div>
-                    
-                    <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
-                        <input type="checkbox" id="remember_me" name="remember_me" value="1" style="width: auto; height: 18px; margin: 0;">
-                        <label for="remember_me" style="margin: 0; font-weight: normal; cursor: pointer;">Angemeldet bleiben</label>
-                    </div>
-                    
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <a href="#" onclick="showForgotPassword(); return false;" style="color: var(--primary-color); text-decoration: none; font-size: 14px;">
-                            Passwort vergessen?
-                        </a>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary" style="width: 100%;">
-                        <span class="material-icons">login</span>
-                        Anmelden
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Forgot Password Modal -->
-        <div id="forgot-password-modal" class="modal">
-            <div class="modal-content" style="max-width: 500px;">
-                <div class="modal-header">
-                    <h2 class="modal-title">Passwort vergessen</h2>
-                    <button class="modal-close" onclick="closeForgotPassword()">&times;</button>
-                </div>
-                <form id="forgot-password-form">
-                    <p style="margin-bottom: 20px; color: var(--text-secondary);">
-                        Geben Sie Ihren Benutzernamen ein. Falls eine E-Mail-Adresse hinterlegt ist, erhalten Sie einen Link zur Passwort-Wiederherstellung.
-                    </p>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="reset-username">Benutzername</label>
-                        <input type="text" id="reset-username" name="username" class="form-input" required autofocus>
-                    </div>
-                    
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="closeForgotPassword()">Abbrechen</button>
-                        <button type="submit" class="btn btn-primary">
-                            <span class="material-icons">send</span>
-                            Link senden
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <script>
-        function showForgotPassword() {
-            document.getElementById('forgot-password-modal').classList.add('show');
-        }
-
-        function closeForgotPassword() {
-            document.getElementById('forgot-password-modal').classList.remove('show');
-            document.getElementById('forgot-password-form').reset();
-        }
-
-        // Handle forgot password form submission
-        document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const username = formData.get('username');
-            
-            try {
-                const response = await fetch('/src/php/api/password-reset.php?action=request', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: username })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('✅ ' + result.message);
-                    closeForgotPassword();
-                } else {
-                    alert('❌ ' + result.message);
-                }
-            } catch (error) {
-                alert('❌ Fehler beim Senden der Anfrage: ' + error.message);
-            }
-        });
-        </script>
-    <?php elseif ($page === 'reset-password'): ?>
+    <?php if ($page === 'reset-password'): ?>
         <!-- Password Reset Page -->
         <div class="login-container">
             <div class="login-card">
@@ -256,7 +110,7 @@ $user = Auth::getUser();
                     </button>
                     
                     <div style="text-align: center; margin-top: 20px;">
-                        <a href="/index.php" style="color: var(--primary-color); text-decoration: none; font-size: 14px;">
+                        <a href="/login.php" style="color: var(--primary-color); text-decoration: none; font-size: 14px;">
                             Zurück zum Login
                         </a>
                     </div>
@@ -324,7 +178,7 @@ $user = Auth::getUser();
                     showResetMessage('success', result.message + ' Sie werden zum Login weitergeleitet...');
                     document.getElementById('reset-password-form').style.display = 'none';
                     setTimeout(() => {
-                        window.location.href = '/index.php';
+                        window.location.href = '/login.php';
                     }, 2000);
                 } else {
                     showResetMessage('error', result.message);

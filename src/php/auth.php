@@ -227,7 +227,7 @@ class Auth {
     public static function requireAuth() {
         if (!self::isAuthenticated()) {
             http_response_code(401);
-            header('Location: /index.php?page=login');
+            header('Location: /login.php');
             exit;
         }
     }
@@ -622,6 +622,9 @@ class Auth {
                         
                         // Regenerate session ID and delete old session
                         session_regenerate_id(true);
+                        
+                        // Write session data to disk to ensure it's available on next request
+                        session_write_close();
                         
                         return true;
                     }
