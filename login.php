@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
         $loginError = 'Ungültiger Benutzername oder Passwort';
     }
 } else {
-    // Try auto-login with remember me token only if not a failed POST request
+    // Try auto-login with remember me token if not a POST request
     Auth::tryAutoLogin();
     
     // Check again after auto-login

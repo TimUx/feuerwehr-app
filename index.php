@@ -28,11 +28,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'reset-password') {
     $page = 'reset-password';
 }
 
-// Try auto-login with remember me token before checking authentication
-if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
-    Auth::tryAutoLogin();
-}
-
 // Check authentication status
 $isAuthenticated = Auth::isAuthenticated();
 
