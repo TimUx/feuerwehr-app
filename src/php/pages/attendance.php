@@ -111,28 +111,40 @@ if (isset($_GET['edit'])) {
             <h3>Übungsleiter</h3>
             
             <div class="form-group">
-                <label class="form-label" for="uebungsleiter-select">Übungsleiter aus Liste auswählen *</label>
-                <select id="uebungsleiter-select" name="uebungsleiter_select[]" class="form-select leader-select" multiple size="5">
-                    <?php 
-                    // Filter personnel with "Ausbilder" checkbox set
-                    foreach ($personnel as $person): 
-                        $isInstructor = !empty($person['is_instructor']);
-                        if ($isInstructor):
-                    ?>
-                        <option value="<?php echo htmlspecialchars($person['name']); ?>" data-location-id="<?php echo htmlspecialchars($person['location_id'] ?? ''); ?>">
-                            <?php echo htmlspecialchars($person['name']); ?>
-                            <?php if (!empty($person['qualifications'])): ?>
-                                (<?php echo implode(', ', array_map('htmlspecialchars', $person['qualifications'])); ?>)
-                            <?php endif; ?>
-                        </option>
-                    <?php 
-                        endif;
-                    endforeach; 
-                    ?>
-                </select>
-                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
-                    Halten Sie Strg (Windows) oder Cmd (Mac) gedrückt, um mehrere auszuwählen
-                </small>
+                <label class="form-label">Übungsleiter aus Liste auswählen *</label>
+                
+                <?php 
+                // Filter personnel with "Ausbilder" checkbox set
+                $instructors = array_filter($personnel, function($person) {
+                    return !empty($person['is_instructor']);
+                });
+                ?>
+                
+                <?php if (empty($instructors)): ?>
+                    <p style="color: var(--text-secondary);">Keine Übungsleiter vorhanden. Bitte verwenden Sie das Freitext-Feld unten.</p>
+                <?php else: ?>
+                    <div id="instructors-list">
+                        <?php foreach ($personnel as $person): 
+                            $isInstructor = !empty($person['is_instructor']);
+                            if ($isInstructor):
+                        ?>
+                        <div class="form-check" data-location-id="<?php echo htmlspecialchars($person['location_id'] ?? ''); ?>">
+                            <input type="checkbox" id="instructor-<?php echo $person['id']; ?>" name="uebungsleiter_select[]" value="<?php echo htmlspecialchars($person['name']); ?>" class="form-check-input instructor-checkbox">
+                            <label for="instructor-<?php echo $person['id']; ?>" class="form-check-label">
+                                <?php echo htmlspecialchars($person['name']); ?>
+                                <?php if (!empty($person['qualifications'])): ?>
+                                    <?php foreach ($person['qualifications'] as $qual): ?>
+                                        <span class="badge badge-info" style="font-size: 0.7rem;"><?php echo htmlspecialchars($qual); ?></span>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </label>
+                        </div>
+                        <?php 
+                            endif;
+                        endforeach; 
+                        ?>
+                    </div>
+                <?php endif; ?>
             </div>
             
             <div class="form-group">
@@ -233,17 +245,19 @@ document.getElementById('datum').valueAsDate = new Date();
 function filterByLocation() {
     const selectedLocationId = document.getElementById('standort-filter').value;
     
-    // Filter instructors in dropdown
-    const instructorOptions = document.querySelectorAll('#uebungsleiter-select option');
+    // Filter instructors in checkboxes
+    const instructorItems = document.querySelectorAll('#instructors-list .form-check');
     let visibleInstructors = 0;
-    instructorOptions.forEach(option => {
-        const optionLocationId = option.getAttribute('data-location-id') || '';
-        if (!selectedLocationId || optionLocationId === selectedLocationId) {
-            option.style.display = '';
+    instructorItems.forEach(item => {
+        const itemLocationId = item.getAttribute('data-location-id') || '';
+        if (!selectedLocationId || itemLocationId === selectedLocationId) {
+            item.style.display = '';
             visibleInstructors++;
         } else {
-            option.style.display = 'none';
-            option.selected = false; // Deselect hidden options
+            item.style.display = 'none';
+            // Uncheck hidden instructors
+            const checkbox = item.querySelector('.instructor-checkbox');
+            if (checkbox) checkbox.checked = false;
         }
     });
     
@@ -318,9 +332,8 @@ document.getElementById('bis').addEventListener('change', calculateDuration);
 
 // Update total participant count (leaders + attendees)
 function updateTotalCount() {
-    // Count selected leaders from dropdown
-    const leaderSelect = document.getElementById('uebungsleiter-select');
-    const selectedLeaders = Array.from(leaderSelect.selectedOptions).length;
+    // Count selected leaders from checkboxes
+    const selectedLeaders = document.querySelectorAll('.instructor-checkbox:checked').length;
     
     // Count leaders from text field (split by comma)
     const leaderText = document.getElementById('uebungsleiter-andere').value.trim();
@@ -356,7 +369,9 @@ function deselectAllAttendees() {
 }
 
 // Listen for changes
-document.getElementById('uebungsleiter-select').addEventListener('change', updateTotalCount);
+document.querySelectorAll('.instructor-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateTotalCount);
+});
 document.getElementById('uebungsleiter-andere').addEventListener('input', updateTotalCount);
 document.querySelectorAll('.attendee-checkbox').forEach(cb => {
     cb.addEventListener('change', updateTotalCount);
@@ -446,22 +461,29 @@ document.getElementById('attendance-form').addEventListener('submit', async (e) 
     
     // Pre-fill leaders
     if (record.uebungsleiter && Array.isArray(record.uebungsleiter)) {
-        const leaderSelect = document.getElementById('uebungsleiter-select');
-        const leaderOptions = leaderSelect.options;
+        // First, uncheck all instructors (since they start unchecked)
+        document.querySelectorAll('.instructor-checkbox').forEach(cb => {
+            cb.checked = false;
+        });
         
-        for (let i = 0; i < leaderOptions.length; i++) {
-            const option = leaderOptions[i];
-            if (record.uebungsleiter.includes(option.value)) {
-                option.selected = true;
+        // Check the instructors that were selected
+        const instructorCheckboxes = document.querySelectorAll('.instructor-checkbox');
+        const leadersInCheckboxes = [];
+        
+        instructorCheckboxes.forEach(checkbox => {
+            if (record.uebungsleiter.includes(checkbox.value)) {
+                checkbox.checked = true;
+                leadersInCheckboxes.push(checkbox.value);
             }
+        });
+        
+        // If there are leaders not in the checkboxes, put them in the text field
+        const leadersNotInCheckboxes = record.uebungsleiter.filter(leader => !leadersInCheckboxes.includes(leader));
+        if (leadersNotInCheckboxes.length > 0) {
+            document.getElementById('uebungsleiter-andere').value = leadersNotInCheckboxes.join(', ');
         }
         
-        // If there are leaders not in the dropdown, put them in the text field
-        const leadersInDropdown = Array.from(leaderOptions).map(opt => opt.value);
-        const leadersNotInDropdown = record.uebungsleiter.filter(leader => !leadersInDropdown.includes(leader));
-        if (leadersNotInDropdown.length > 0) {
-            document.getElementById('uebungsleiter-andere').value = leadersNotInDropdown.join(', ');
-        }
+        updateTotalCount();
     }
     
     // Pre-fill attendees
