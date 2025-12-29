@@ -116,7 +116,7 @@ if (isset($_GET['edit'])) {
                     <?php 
                     // Filter personnel with "Ausbilder" checkbox set
                     foreach ($personnel as $person): 
-                        $isInstructor = !empty($person['is_instructor']) && $person['is_instructor'];
+                        $isInstructor = !empty($person['is_instructor']);
                         if ($isInstructor):
                     ?>
                         <option value="<?php echo htmlspecialchars($person['name']); ?>" data-location-id="<?php echo htmlspecialchars($person['location_id'] ?? ''); ?>">
