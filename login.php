@@ -50,8 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
 // Handle password reset page redirect
 if (isset($_GET['action']) && $_GET['action'] === 'reset-password') {
     $resetToken = $_GET['token'] ?? '';
-    header('Location: /index.php?action=reset-password&token=' . urlencode($resetToken));
-    exit;
+    // Validate token format (should be 64 hex characters from bin2hex(random_bytes(32)))
+    if (preg_match('/^[a-f0-9]{64}$/i', $resetToken)) {
+        header('Location: /index.php?action=reset-password&token=' . urlencode($resetToken));
+        exit;
+    }
+    // Invalid token format - show login page with error
+    $loginError = 'Ungültiger Passwort-Reset-Link';
 }
 ?>
 <!DOCTYPE html>
