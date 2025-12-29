@@ -288,7 +288,7 @@ class Auth {
      * Returns true if the user is not assigned to a specific location
      */
     public static function hasGlobalAccess() {
-        return self::isAuthenticated() && empty($_SESSION['location_id']);
+        return self::isAuthenticated() && ($_SESSION['location_id'] ?? null) === null;
     }
 
     /**
@@ -303,7 +303,7 @@ class Auth {
      * Admins with a location_id set should only manage items for that location
      */
     public static function hasLocationRestriction() {
-        return self::isAdmin() && !empty($_SESSION['location_id']);
+        return self::isAdmin() && ($_SESSION['location_id'] ?? null) !== null;
     }
 
     /**
@@ -318,7 +318,7 @@ class Auth {
         $userLocationId = self::getUserLocationId();
         
         // Admins without location have global access
-        if (empty($userLocationId)) {
+        if ($userLocationId === null) {
             return true;
         }
         
