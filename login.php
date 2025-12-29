@@ -36,15 +36,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
     } else {
         $loginError = 'Ungültiger Benutzername oder Passwort';
     }
-}
-
-// Try auto-login with remember me token
-Auth::tryAutoLogin();
-
-// Check again after auto-login
-if (Auth::isAuthenticated()) {
-    header('Location: /index.php');
-    exit;
+} else {
+    // Try auto-login with remember me token only if not a failed POST request
+    Auth::tryAutoLogin();
+    
+    // Check again after auto-login
+    if (Auth::isAuthenticated()) {
+        header('Location: /index.php');
+        exit;
+    }
 }
 
 // Handle password reset page redirect
