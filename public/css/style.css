@@ -669,8 +669,8 @@ body {
     gap: 0.75rem;
     padding: 2rem 1rem;
     background: var(--bg-card);
-    color: var(--primary-color);
-    border: 3px solid var(--primary-color);
+    color: var(--text-primary);
+    border: 1px solid #e0e0e0;
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -700,7 +700,7 @@ body {
     .menu-button {
         padding: 1rem 0.5rem;
         min-height: 100px;
-        border-width: 2px;
+        border-width: 1px;
     }
     
     .menu-button .material-icons {
@@ -713,10 +713,10 @@ body {
 }
 
 .menu-button:hover:not(:disabled) {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(220, 38, 38, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     background: var(--bg-card);
-    border-color: var(--primary-dark);
+    border-color: #bdbdbd;
 }
 
 .menu-button:active:not(:disabled) {
@@ -731,7 +731,7 @@ body {
 .menu-button-text {
     font-size: 1rem;
     font-weight: 500;
-    color: var(--primary-color);
+    color: var(--text-primary);
     text-align: center;
     line-height: 1.3;
     word-wrap: break-word;
@@ -741,7 +741,7 @@ body {
 
 .menu-button-admin {
     background: var(--bg-card);
-    border-color: var(--info-color);
+    border-color: #e0e0e0;
 }
 
 .menu-button-admin .material-icons {
@@ -749,13 +749,13 @@ body {
 }
 
 .menu-button-admin .menu-button-text {
-    color: var(--info-color);
+    color: var(--text-primary);
 }
 
 .menu-button-admin:hover:not(:disabled) {
     background: var(--bg-card);
-    border-color: #1976d2;
-    box-shadow: 0 6px 12px rgba(33, 150, 211, 0.3);
+    border-color: #bdbdbd;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .menu-button-disabled {
