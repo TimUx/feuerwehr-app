@@ -182,11 +182,16 @@ if (isset($_GET['edit'])) {
                     <p style="color: var(--text-secondary);">Keine Einsatzkräfte vorhanden. Bitte zuerst Einsatzkräfte anlegen.</p>
                 <?php else: ?>
                     <div id="attendees-list">
-                        <?php foreach ($personnel as $person): ?>
+                        <?php foreach ($personnel as $person): 
+                            $isInstructor = !empty($person['is_instructor']) && $person['is_instructor'];
+                        ?>
                         <div class="form-check" data-location-id="<?php echo htmlspecialchars($person['location_id'] ?? ''); ?>">
                             <input type="checkbox" id="attendee-<?php echo $person['id']; ?>" name="teilnehmer[]" value="<?php echo $person['id']; ?>" class="form-check-input attendee-checkbox">
                             <label for="attendee-<?php echo $person['id']; ?>" class="form-check-label">
                                 <?php echo htmlspecialchars($person['name']); ?>
+                                <?php if ($isInstructor): ?>
+                                    <span class="material-icons" style="color: var(--primary); font-size: 1rem; vertical-align: middle;" title="Ausbilder">school</span>
+                                <?php endif; ?>
                                 <?php if (!empty($person['qualifications'])): ?>
                                     <?php foreach ($person['qualifications'] as $qual): ?>
                                         <span class="badge badge-info" style="font-size: 0.7rem;"><?php echo htmlspecialchars($qual); ?></span>
