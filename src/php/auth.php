@@ -288,7 +288,7 @@ class Auth {
      * Returns true if the user is not assigned to a specific location
      */
     public static function hasGlobalAccess() {
-        return self::isAuthenticated() && ($_SESSION['location_id'] === null || !isset($_SESSION['location_id']));
+        return self::isAuthenticated() && (!isset($_SESSION['location_id']) || $_SESSION['location_id'] === null);
     }
 
     /**
