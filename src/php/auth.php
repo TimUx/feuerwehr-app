@@ -118,12 +118,14 @@ class Auth {
                     self::setRememberMeCookie($user['id']);
                 }
                 
-                // NOTE: We do NOT call session_write_close() here!
-                // PHP will automatically write the session data when the script ends.
-                // Calling session_write_close() before the redirect can cause race conditions
-                // where the session cookie is sent but the session file is not fully accessible yet.
-                // The session data will be written by PHP's shutdown handler, which ensures
-                // proper synchronization before the HTTP response is sent.
+                // CRITICAL: Write session data to disk NOW, before the redirect.
+                // This ensures the session file is fully written and flushed to disk
+                // BEFORE the HTTP response (including the redirect) is sent to the browser.
+                // When the browser follows the redirect and sends the session cookie back,
+                // the session file will be guaranteed to exist and contain the authentication data.
+                // This prevents the race condition where the redirect happens faster than
+                // the session file write completes.
+                session_write_close();
                 
                 return true;
             }
