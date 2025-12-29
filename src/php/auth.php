@@ -227,7 +227,7 @@ class Auth {
     public static function requireAuth() {
         if (!self::isAuthenticated()) {
             http_response_code(401);
-            header('Location: /index.php?page=login');
+            header('Location: /login.php');
             exit;
         }
     }
