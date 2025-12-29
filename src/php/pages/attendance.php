@@ -124,10 +124,7 @@ if (isset($_GET['edit'])) {
                     <p style="color: var(--text-secondary);">Keine Übungsleiter vorhanden. Bitte verwenden Sie das Freitext-Feld unten.</p>
                 <?php else: ?>
                     <div id="instructors-list">
-                        <?php foreach ($personnel as $person): 
-                            $isInstructor = !empty($person['is_instructor']);
-                            if ($isInstructor):
-                        ?>
+                        <?php foreach ($instructors as $person): ?>
                         <div class="form-check" data-location-id="<?php echo htmlspecialchars($person['location_id'] ?? ''); ?>">
                             <input type="checkbox" id="instructor-<?php echo $person['id']; ?>" name="uebungsleiter_select[]" value="<?php echo htmlspecialchars($person['name']); ?>" class="form-check-input instructor-checkbox">
                             <label for="instructor-<?php echo $person['id']; ?>" class="form-check-label">
@@ -139,10 +136,7 @@ if (isset($_GET['edit'])) {
                                 <?php endif; ?>
                             </label>
                         </div>
-                        <?php 
-                            endif;
-                        endforeach; 
-                        ?>
+                        <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
             </div>
