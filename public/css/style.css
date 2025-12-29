@@ -669,12 +669,12 @@ body {
     gap: 0.75rem;
     padding: 2rem 1rem;
     background: var(--bg-card);
-    color: var(--primary-color);
-    border: 3px solid var(--primary-color);
+    color: var(--text-primary);
+    border: 2px solid #9e9e9e;
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
     min-height: 140px;
 }
 
@@ -713,10 +713,10 @@ body {
 }
 
 .menu-button:hover:not(:disabled) {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(220, 38, 38, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.22), 0 5px 10px rgba(0, 0, 0, 0.3);
     background: var(--bg-card);
-    border-color: var(--primary-dark);
+    border-color: #757575;
 }
 
 .menu-button:active:not(:disabled) {
@@ -731,7 +731,7 @@ body {
 .menu-button-text {
     font-size: 1rem;
     font-weight: 500;
-    color: var(--primary-color);
+    color: var(--text-primary);
     text-align: center;
     line-height: 1.3;
     word-wrap: break-word;
@@ -741,7 +741,7 @@ body {
 
 .menu-button-admin {
     background: var(--bg-card);
-    border-color: var(--info-color);
+    border-color: #9e9e9e;
 }
 
 .menu-button-admin .material-icons {
@@ -749,13 +749,13 @@ body {
 }
 
 .menu-button-admin .menu-button-text {
-    color: var(--info-color);
+    color: var(--text-primary);
 }
 
 .menu-button-admin:hover:not(:disabled) {
     background: var(--bg-card);
-    border-color: #1976d2;
-    box-shadow: 0 6px 12px rgba(33, 150, 211, 0.3);
+    border-color: #757575;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.22), 0 5px 10px rgba(0, 0, 0, 0.3);
 }
 
 .menu-button-disabled {
