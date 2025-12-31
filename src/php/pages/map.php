@@ -2,6 +2,7 @@
 /**
  * Map Page - Interactive OpenStreetMap with Leaflet
  * Uses Leaflet.js library to display OSM tiles directly without iframe limitations
+ * Focuses on full-width map with sidebar controls
  */
 
 require_once __DIR__ . '/../auth.php';
@@ -11,16 +12,16 @@ Auth::requireOperator();
 
 $user = Auth::getUser();
 
-// Get settings to retrieve address
+// Get settings to retrieve address for fallback
 $settings = DataStore::getSettings();
 $address = $settings['address'] ?? '';
 
-// Default location (Germany center)
+// Default location (Germany center) - used as last resort fallback
 $defaultLat = 50.9787;
 $defaultLon = 9.7632;
 $defaultZoom = 7;
 
-// If address is configured, try to geocode it
+// If address is configured, try to geocode it for fallback
 if (!empty($address)) {
     // Use Nominatim API to geocode the address
     $geocodeUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' . urlencode($address) . '&limit=1';
@@ -68,53 +69,76 @@ if (!empty($address)) {
 <!-- Leaflet Routing Machine -->
 <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
-<div class="page-header">
-    <h2>Online Karte</h2>
-    <p class="page-subtitle">OpenStreetMap - Interaktive Karte und Routenplanung</p>
-</div>
-
-<div class="card">
-    <div class="card-content">
-        <!-- Map Selector Tabs -->
-        <div class="map-tabs" style="margin-bottom: 20px; display: flex; gap: 10px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">
-            <button class="map-tab-btn active" onclick="switchMapMode('explore')" id="tab-explore">
-                <span class="material-icons">explore</span>
-                Karte erkunden
-            </button>
-            <button class="map-tab-btn" onclick="switchMapMode('route')" id="tab-route">
-                <span class="material-icons">directions</span>
-                Routenplanung
-            </button>
-            <button class="map-tab-btn" onclick="switchMapMode('search')" id="tab-search">
-                <span class="material-icons">search</span>
-                Adresse suchen
-            </button>
+<!-- Map Container with Sidebar Layout -->
+<div class="map-page-container">
+    <!-- Sidebar for Controls -->
+    <div class="map-sidebar">
+        <div class="map-sidebar-header">
+            <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span class="material-icons">map</span>
+                Online Karte
+            </h3>
         </div>
 
-        <!-- Map Mode: Explore -->
-        <div id="mode-explore" class="map-mode">
-            <div class="alert" style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin-bottom: 20px;">
-                <span class="material-icons" style="vertical-align: middle; color: #1976d2;">info</span>
-                <span style="color: #1565c0;">
+        <!-- Layer Selector -->
+        <div class="map-control-section">
+            <h4 class="map-control-title">
+                <span class="material-icons">layers</span>
+                Kartentyp
+            </h4>
+            <div class="layer-buttons">
+                <button class="layer-btn active" data-layer="osm" onclick="switchLayer('osm')">
+                    <span class="material-icons">map</span>
+                    Straßenkarte
+                </button>
+                <button class="layer-btn" data-layer="topo" onclick="switchLayer('topo')">
+                    <span class="material-icons">terrain</span>
+                    Gelände
+                </button>
+                <button class="layer-btn" data-layer="satellite" onclick="switchLayer('satellite')">
+                    <span class="material-icons">satellite_alt</span>
+                    Satellit
+                </button>
+            </div>
+        </div>
+
+        <!-- Function Selector -->
+        <div class="map-control-section">
+            <h4 class="map-control-title">
+                <span class="material-icons">tune</span>
+                Funktionen
+            </h4>
+            <div class="function-tabs">
+                <button class="function-tab-btn" onclick="switchFunction('explore')" id="tab-explore">
+                    <span class="material-icons">explore</span>
+                    Erkunden
+                </button>
+                <button class="function-tab-btn active" onclick="switchFunction('route')" id="tab-route">
+                    <span class="material-icons">directions</span>
+                    Route
+                </button>
+                <button class="function-tab-btn" onclick="switchFunction('search')" id="tab-search">
+                    <span class="material-icons">search</span>
+                    Suchen
+                </button>
+            </div>
+        </div>
+
+        <!-- Function: Explore (Hidden by default) -->
+        <div id="function-explore" class="map-function" style="display: none;">
+            <div class="info-box">
+                <span class="material-icons" style="font-size: 20px; color: #2196f3;">info</span>
+                <div>
                     <strong>Tipp:</strong> Ziehen Sie die Karte zum Navigieren. Nutzen Sie Mausrad oder Touch-Gesten zum Zoomen.
-                </span>
+                </div>
             </div>
-            
-            <div id="map-explore" style="height: 600px; border: 1px solid #ccc; border-radius: 8px;"></div>
         </div>
 
-        <!-- Map Mode: Route Planning -->
-        <div id="mode-route" class="map-mode" style="display: none;">
-            <div class="alert" style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin-bottom: 20px;">
-                <span class="material-icons" style="vertical-align: middle; color: #f57c00;">info</span>
-                <span style="color: #e65100;">
-                    <strong>Hinweis:</strong> Geben Sie Start- und Zieladresse ein, um eine Route zu berechnen.
-                </span>
-            </div>
-            
+        <!-- Function: Route Planning -->
+        <div id="function-route" class="map-function">
             <div class="form-group">
                 <label class="form-label" for="routeStart">
-                    <span class="material-icons" style="vertical-align: middle; color: #4caf50;">place</span>
+                    <span class="material-icons" style="vertical-align: middle; color: #4caf50; font-size: 18px;">place</span>
                     Startpunkt
                 </label>
                 <input type="text" 
@@ -126,7 +150,7 @@ if (!empty($address)) {
             
             <div class="form-group">
                 <label class="form-label" for="routeEnd">
-                    <span class="material-icons" style="vertical-align: middle; color: #f44336;">flag</span>
+                    <span class="material-icons" style="vertical-align: middle; color: #f44336; font-size: 18px;">flag</span>
                     Zielpunkt
                 </label>
                 <input type="text" 
@@ -136,44 +160,33 @@ if (!empty($address)) {
                        value="">
             </div>
             
-            <div class="form-actions" style="margin-bottom: 20px;">
-                <button type="button" class="btn btn-primary" onclick="calculateRoute()">
-                    <span class="material-icons">directions</span>
-                    Route berechnen
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="clearRoute()">
-                    <span class="material-icons">clear</span>
-                    Route löschen
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="openInGoogleMaps()">
-                    <span class="material-icons">open_in_new</span>
-                    In Google Maps öffnen
-                </button>
-            </div>
+            <button type="button" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="calculateRoute()">
+                <span class="material-icons">directions</span>
+                Route berechnen
+            </button>
+            <button type="button" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;" onclick="clearRoute()">
+                <span class="material-icons">clear</span>
+                Route löschen
+            </button>
+            <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="openInGoogleMaps()">
+                <span class="material-icons">open_in_new</span>
+                In Google Maps öffnen
+            </button>
             
-            <div id="routeInfo" style="display: none; background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
-                <div style="color: #1b5e20;">
+            <div id="routeInfo" style="display: none; background: #e8f5e9; padding: 12px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #4caf50;">
+                <div style="color: #1b5e20; font-size: 0.9rem;">
                     <strong>Routeninformation:</strong>
                     <div id="routeDistance" style="margin-top: 5px;"></div>
                     <div id="routeDuration" style="margin-top: 5px;"></div>
                 </div>
             </div>
-            
-            <div id="map-route" style="height: 600px; border: 1px solid #ccc; border-radius: 8px;"></div>
         </div>
 
-        <!-- Map Mode: Search -->
-        <div id="mode-search" class="map-mode" style="display: none;">
-            <div class="alert" style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin-bottom: 20px;">
-                <span class="material-icons" style="vertical-align: middle; color: #2e7d32;">info</span>
-                <span style="color: #1b5e20;">
-                    <strong>Tipp:</strong> Suchen Sie nach Adressen, Orten oder Sehenswürdigkeiten.
-                </span>
-            </div>
-            
+        <!-- Function: Search -->
+        <div id="function-search" class="map-function" style="display: none;">
             <div class="form-group">
                 <label class="form-label" for="searchAddress">
-                    <span class="material-icons" style="vertical-align: middle;">search</span>
+                    <span class="material-icons" style="vertical-align: middle; font-size: 18px;">search</span>
                     Adresse oder Ort suchen
                 </label>
                 <input type="text" 
@@ -183,67 +196,208 @@ if (!empty($address)) {
                        value="">
             </div>
             
-            <div class="form-actions" style="margin-bottom: 20px;">
-                <button type="button" class="btn btn-primary" onclick="searchAddress()">
-                    <span class="material-icons">search</span>
-                    Suchen
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="clearSearch()">
-                    <span class="material-icons">clear</span>
-                    Suche löschen
-                </button>
-            </div>
+            <button type="button" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="searchAddress()">
+                <span class="material-icons">search</span>
+                Suchen
+            </button>
+            <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="clearSearch()">
+                <span class="material-icons">clear</span>
+                Suche löschen
+            </button>
             
-            <div id="searchResults" style="display: none; background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2196f3;">
-                <div style="color: #1565c0;">
+            <div id="searchResults" style="display: none; background: #e3f2fd; padding: 12px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #2196f3;">
+                <div style="color: #1565c0; font-size: 0.9rem;">
                     <strong>Suchergebnis:</strong>
                     <div id="searchResultText" style="margin-top: 5px;"></div>
                 </div>
             </div>
-            
-            <div id="map-search" style="height: 600px; border: 1px solid #ccc; border-radius: 8px;"></div>
         </div>
+    </div>
+
+    <!-- Main Map Area -->
+    <div class="map-main">
+        <div id="map" style="height: 100%; width: 100%;"></div>
     </div>
 </div>
 
 <style>
-.map-tabs {
+/* Map Page Container - Full Width Layout */
+.map-page-container {
     display: flex;
-    flex-wrap: wrap;
+    height: calc(100vh - 64px); /* Full height minus header */
+    width: 100%;
+    margin: 0;
+    position: relative;
 }
 
-.map-tab-btn {
-    background: #f5f5f5;
-    border: none;
-    padding: 12px 20px;
-    cursor: pointer;
+/* Map Sidebar */
+.map-sidebar {
+    width: 320px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+}
+
+.map-sidebar-header {
+    padding: 20px;
+    border-bottom: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.map-control-section {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.map-control-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 12px 0;
     display: flex;
     align-items: center;
     gap: 8px;
-    border-radius: 8px 8px 0 0;
+}
+
+.map-control-title .material-icons {
+    font-size: 18px;
+}
+
+/* Layer Buttons */
+.layer-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.layer-btn {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    padding: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 8px;
     font-size: 14px;
     font-weight: 500;
-    color: #666;
-    transition: all 0.3s ease;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
     font-family: inherit;
+    width: 100%;
 }
 
-.map-tab-btn:hover {
-    background: #e0e0e0;
-    color: #333;
+.layer-btn:hover {
+    background: var(--bg-primary);
+    border-color: var(--primary-color);
 }
 
-.map-tab-btn.active {
-    background: #2196f3;
+.layer-btn.active {
+    background: var(--primary-color);
     color: white;
+    border-color: var(--primary-color);
 }
 
-.map-tab-btn .material-icons {
+.layer-btn .material-icons {
     font-size: 20px;
 }
 
-.map-mode {
-    animation: fadeIn 0.3s ease-in;
+/* Function Tabs */
+.function-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.function-tab-btn {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    font-family: inherit;
+    flex: 1;
+}
+
+.function-tab-btn:hover {
+    background: var(--bg-primary);
+    border-color: var(--primary-color);
+}
+
+.function-tab-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.function-tab-btn .material-icons {
+    font-size: 24px;
+}
+
+/* Function Content */
+.map-function {
+    padding: 20px;
+    animation: fadeIn 0.2s ease-in;
+}
+
+.info-box {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: #1565c0;
+}
+
+/* Main Map Area */
+.map-main {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .map-page-container {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .map-sidebar {
+        width: 100%;
+        max-height: 50vh;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .map-main {
+        height: 50vh;
+        min-height: 400px;
+    }
+    
+    .layer-buttons {
+        flex-direction: row;
+    }
+    
+    .layer-btn {
+        flex: 1;
+        font-size: 12px;
+        padding: 10px 8px;
+        flex-direction: column;
+        gap: 4px;
+    }
 }
 
 @keyframes fadeIn {
@@ -251,200 +405,234 @@ if (!empty($address)) {
     to { opacity: 1; }
 }
 
-@media (max-width: 768px) {
-    .map-tabs {
-        flex-direction: column;
-    }
-    
-    .map-tab-btn {
-        border-radius: 8px;
-        margin-bottom: 5px;
-    }
-    
-    #map-explore,
-    #map-route,
-    #map-search {
-        height: 400px;
-    }
+/* Override Leaflet controls positioning for better visibility */
+.leaflet-top.leaflet-right {
+    top: 10px;
+    right: 10px;
+}
+
+.leaflet-control-zoom {
+    border: 2px solid rgba(0,0,0,0.2);
+    border-radius: 8px;
 }
 </style>
 
 <script>
 (function() {
 // Wrap in IIFE to avoid variable conflicts during SPA navigation
-// Map instances
-let mapExplore = null;
-let mapRoute = null;
-let mapSearch = null;
+// Single map instance
+let map = null;
+let currentLayer = null;
 let routingControl = null;
 let searchMarker = null;
+let locationMarker = null;
 
-// Default center from PHP
+// Layer definitions
+const layers = {
+    osm: {
+        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    },
+    topo: {
+        url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+        attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+        maxZoom: 17
+    },
+    satellite: {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxZoom: 19
+    }
+};
+
+// Default center from PHP (fallback)
 const defaultLat = <?php echo $defaultLat; ?>;
 const defaultLon = <?php echo $defaultLon; ?>;
 const defaultZoom = <?php echo $defaultZoom; ?>;
+const configuredAddress = <?php echo json_encode($address, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 
-// Initialize maps when page loads and Leaflet is ready
-function initMaps(retryCount = 0) {
+// State for location
+let userLocation = null;
+let locationDenied = false;
+
+// Initialize map when page loads and Leaflet is ready
+function initMap(retryCount = 0) {
     // Check if Leaflet is loaded
     if (typeof L === 'undefined') {
         if (retryCount < 50) { // Max 5 seconds (50 * 100ms)
             console.log('Waiting for Leaflet to load...');
-            setTimeout(() => initMaps(retryCount + 1), 100);
+            setTimeout(() => initMap(retryCount + 1), 100);
         } else {
             console.error('Leaflet failed to load after 5 seconds');
         }
         return;
     }
     
-    // Initialize explore map (default view)
-    initExploreMap();
-}
-
-// Start initialization immediately (works for both direct page load and AJAX load)
-// Check if DOM is already ready (for AJAX-loaded content)
-if (document.readyState === 'loading') {
-    // DOM is still loading, wait for it
-    document.addEventListener('DOMContentLoaded', initMaps);
-} else {
-    // DOM is already ready (AJAX case), initialize immediately
-    initMaps();
-}
-
-// Initialize explore map
-function initExploreMap() {
-    if (mapExplore) {
+    if (map) {
         // Map already initialized, just invalidate size
-        mapExplore.invalidateSize();
+        map.invalidateSize();
         return;
     }
     
-    // Check if Leaflet is loaded
-    if (typeof L === 'undefined') {
-        console.error('Leaflet not loaded yet');
-        return;
-    }
-    
-    const mapContainer = document.getElementById('map-explore');
+    const mapContainer = document.getElementById('map');
     if (!mapContainer) {
         console.error('Map container not found');
         return;
     }
     
     try {
-        mapExplore = L.map('map-explore').setView([defaultLat, defaultLon], defaultZoom);
+        // Create map with default view (will be updated by geolocation)
+        map = L.map('map').setView([defaultLat, defaultLon], defaultZoom);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }).addTo(mapExplore);
+        // Add default layer (OSM)
+        currentLayer = L.tileLayer(layers.osm.url, {
+            attribution: layers.osm.attribution,
+            maxZoom: layers.osm.maxZoom
+        }).addTo(map);
+        
+        console.log('Map initialized successfully');
+        
+        // Try to get user location
+        getUserLocation();
+        
+    } catch (error) {
+        console.error('Error initializing map:', error);
+    }
+}
+
+// Get user's current location
+function getUserLocation() {
+    if (!navigator.geolocation) {
+        console.log('Geolocation not supported, using fallback location');
+        useFallbackLocation();
+        return;
+    }
+    
+    console.log('Requesting user location...');
+    
+    navigator.geolocation.getCurrentPosition(
+        // Success callback
+        function(position) {
+            userLocation = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude
+            };
+            
+            console.log('User location obtained:', userLocation);
+            
+            // Center map on user location
+            map.setView([userLocation.lat, userLocation.lon], 15);
+            
+            // Add marker for user location
+            if (locationMarker) {
+                map.removeLayer(locationMarker);
+            }
+            
+            locationMarker = L.marker([userLocation.lat, userLocation.lon], {
+                icon: L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                })
+            }).addTo(map)
+                .bindPopup('Ihr Standort')
+                .openPopup();
+        },
+        // Error callback
+        function(error) {
+            console.log('Geolocation error:', error.message);
+            locationDenied = true;
+            useFallbackLocation();
+        },
+        // Options
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+// Use fallback location from settings
+function useFallbackLocation() {
+    console.log('Using fallback location from settings');
+    
+    // If we have a configured address with coordinates, use it
+    if (defaultZoom > 10) {
+        map.setView([defaultLat, defaultLon], defaultZoom);
         
         // Add marker if address is configured
-        <?php if ($defaultZoom > 10): ?>
-        L.marker([defaultLat, defaultLon]).addTo(mapExplore)
-            .bindPopup(<?php echo json_encode($address, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)
-            .openPopup();
-        <?php endif; ?>
-        
-        console.log('Explore map initialized successfully');
-    } catch (error) {
-        console.error('Error initializing explore map:', error);
-    }
-}
-
-// Initialize route map
-function initRouteMap(retryCount = 0) {
-    if (mapRoute) {
-        // Map already initialized, just invalidate size
-        mapRoute.invalidateSize();
-        return;
-    }
-    
-    // Check if Leaflet is loaded
-    if (typeof L === 'undefined') {
-        if (retryCount < 50) { // Max 5 seconds (50 * 100ms)
-            console.log('Waiting for Leaflet to load for route map...');
-            setTimeout(() => initRouteMap(retryCount + 1), 100);
-        } else {
-            console.error('Leaflet failed to load for route map after 5 seconds');
+        if (configuredAddress) {
+            if (locationMarker) {
+                map.removeLayer(locationMarker);
+            }
+            
+            locationMarker = L.marker([defaultLat, defaultLon]).addTo(map)
+                .bindPopup(configuredAddress)
+                .openPopup();
         }
-        return;
-    }
-    
-    try {
-        mapRoute = L.map('map-route').setView([defaultLat, defaultLon], defaultZoom);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }).addTo(mapRoute);
-        
-        console.log('Route map initialized successfully');
-    } catch (error) {
-        console.error('Error initializing route map:', error);
+    } else {
+        // Use default Germany center
+        map.setView([defaultLat, defaultLon], defaultZoom);
     }
 }
 
-// Initialize search map
-function initSearchMap(retryCount = 0) {
-    if (mapSearch) {
-        // Map already initialized, just invalidate size
-        mapSearch.invalidateSize();
-        return;
+// Switch map layer
+window.switchLayer = function(layerName) {
+    if (!map || !layers[layerName]) return;
+    
+    // Remove current layer
+    if (currentLayer) {
+        map.removeLayer(currentLayer);
     }
     
-    // Check if Leaflet is loaded
-    if (typeof L === 'undefined') {
-        if (retryCount < 50) { // Max 5 seconds (50 * 100ms)
-            console.log('Waiting for Leaflet to load for search map...');
-            setTimeout(() => initSearchMap(retryCount + 1), 100);
-        } else {
-            console.error('Leaflet failed to load for search map after 5 seconds');
+    // Add new layer
+    currentLayer = L.tileLayer(layers[layerName].url, {
+        attribution: layers[layerName].attribution,
+        maxZoom: layers[layerName].maxZoom
+    }).addTo(map);
+    
+    // Update button states
+    document.querySelectorAll('.layer-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-layer') === layerName) {
+            btn.classList.add('active');
         }
-        return;
-    }
+    });
     
-    try {
-        mapSearch = L.map('map-search').setView([defaultLat, defaultLon], defaultZoom);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }).addTo(mapSearch);
-        
-        console.log('Search map initialized successfully');
-    } catch (error) {
-        console.error('Error initializing search map:', error);
-    }
-}
+    console.log('Switched to layer:', layerName);
+};
 
-// Switch between map modes
-function switchMapMode(mode) {
-    // Hide all modes
-    document.querySelectorAll('.map-mode').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.map-tab-btn').forEach(btn => btn.classList.remove('active'));
+// Switch function (explore, route, search)
+window.switchFunction = function(functionName) {
+    // Hide all functions
+    document.querySelectorAll('.map-function').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.function-tab-btn').forEach(btn => btn.classList.remove('active'));
     
-    // Show selected mode
-    document.getElementById('mode-' + mode).style.display = 'block';
-    document.getElementById('tab-' + mode).classList.add('active');
+    // Show selected function
+    document.getElementById('function-' + functionName).style.display = 'block';
+    document.getElementById('tab-' + functionName).classList.add('active');
     
-    // Initialize map if needed
-    if (mode === 'route' && !mapRoute) {
-        setTimeout(initRouteMap, 100);
-    } else if (mode === 'search' && !mapSearch) {
-        setTimeout(initSearchMap, 100);
+    // Clear previous state when switching
+    if (functionName === 'explore') {
+        // Clear route and search
+        clearRoute();
+        clearSearch();
+    } else if (functionName === 'route') {
+        // Clear search
+        clearSearch();
+    } else if (functionName === 'search') {
+        // Clear route
+        clearRoute();
     }
-    
-    // Invalidate size to fix display issues
-    setTimeout(() => {
-        if (mode === 'explore' && mapExplore) mapExplore.invalidateSize();
-        if (mode === 'route' && mapRoute) mapRoute.invalidateSize();
-        if (mode === 'search' && mapSearch) mapSearch.invalidateSize();
-    }, 200);
-}
+};
 
 // Calculate and display route
-async function calculateRoute() {
+window.calculateRoute = async function() {
     const start = document.getElementById('routeStart').value.trim();
     const end = document.getElementById('routeEnd').value.trim();
     
@@ -491,7 +679,7 @@ async function calculateRoute() {
         
         // Remove existing routing control if any
         if (routingControl) {
-            mapRoute.removeControl(routingControl);
+            map.removeControl(routingControl);
         }
         
         // Create routing control
@@ -522,7 +710,7 @@ async function calculateRoute() {
                 marker.bindPopup(i === 0 ? start : end);
                 return marker;
             }
-        }).addTo(mapRoute);
+        }).addTo(map);
         
         // Listen for route found event
         routingControl.on('routesfound', function(e) {
@@ -546,21 +734,21 @@ async function calculateRoute() {
         alert('Fehler bei der Routenberechnung: ' + error.message);
         console.error('Route calculation error:', error);
     }
-}
+};
 
 // Clear route
-function clearRoute() {
+window.clearRoute = function() {
     if (routingControl) {
-        mapRoute.removeControl(routingControl);
+        map.removeControl(routingControl);
         routingControl = null;
     }
     document.getElementById('routeInfo').style.display = 'none';
     document.getElementById('routeStart').value = '';
     document.getElementById('routeEnd').value = '';
-}
+};
 
 // Open route in Google Maps
-function openInGoogleMaps() {
+window.openInGoogleMaps = function() {
     const start = document.getElementById('routeStart').value.trim();
     const end = document.getElementById('routeEnd').value.trim();
     
@@ -571,10 +759,10 @@ function openInGoogleMaps() {
     
     const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(start)}&destination=${encodeURIComponent(end)}&travelmode=driving`;
     window.open(googleMapsUrl, '_blank');
-}
+};
 
 // Search for address
-async function searchAddress() {
+window.searchAddress = async function() {
     const address = document.getElementById('searchAddress').value.trim();
     
     if (!address) {
@@ -599,16 +787,16 @@ async function searchAddress() {
         
         // Remove existing marker
         if (searchMarker) {
-            mapSearch.removeLayer(searchMarker);
+            map.removeLayer(searchMarker);
         }
         
         // Add marker
-        searchMarker = L.marker([lat, lon]).addTo(mapSearch)
+        searchMarker = L.marker([lat, lon]).addTo(map)
             .bindPopup(displayName)
             .openPopup();
         
         // Center map on location
-        mapSearch.setView([lat, lon], 16);
+        map.setView([lat, lon], 16);
         
         // Display result info
         document.getElementById('searchResultText').textContent = displayName;
@@ -617,33 +805,56 @@ async function searchAddress() {
     } catch (error) {
         alert('Fehler bei der Adresssuche: ' + error.message);
     }
-}
+};
 
 // Clear search
-function clearSearch() {
+window.clearSearch = function() {
     if (searchMarker) {
-        mapSearch.removeLayer(searchMarker);
+        map.removeLayer(searchMarker);
         searchMarker = null;
     }
     document.getElementById('searchResults').style.display = 'none';
     document.getElementById('searchAddress').value = '';
-    mapSearch.setView([defaultLat, defaultLon], defaultZoom);
-}
+    
+    // Return to user location or fallback
+    if (userLocation) {
+        map.setView([userLocation.lat, userLocation.lon], 15);
+    } else {
+        map.setView([defaultLat, defaultLon], defaultZoom);
+    }
+};
 
 // Handle Enter key in input fields
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('routeStart').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') calculateRoute();
-    });
+    const routeStartInput = document.getElementById('routeStart');
+    const routeEndInput = document.getElementById('routeEnd');
+    const searchAddressInput = document.getElementById('searchAddress');
     
-    document.getElementById('routeEnd').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') calculateRoute();
-    });
+    if (routeStartInput) {
+        routeStartInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') calculateRoute();
+        });
+    }
     
-    document.getElementById('searchAddress').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') searchAddress();
-    });
+    if (routeEndInput) {
+        routeEndInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') calculateRoute();
+        });
+    }
+    
+    if (searchAddressInput) {
+        searchAddressInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchAddress();
+        });
+    }
 });
+
+// Start initialization
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMap);
+} else {
+    initMap();
+}
 
 })(); // End IIFE
 </script>
