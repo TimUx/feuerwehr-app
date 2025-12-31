@@ -104,12 +104,6 @@ if (!empty($address)) {
 
         <!-- Function: Explore (Default view) -->
         <div id="function-explore" class="map-function">
-            <div class="info-box">
-                <span class="material-icons" style="font-size: 20px; color: #2196f3;">info</span>
-                <div>
-                    <strong>Tipp:</strong> Ziehen Sie die Karte zum Navigieren. Nutzen Sie Mausrad oder Touch-Gesten zum Zoomen.
-                </div>
-            </div>
         </div>
 
         <!-- Function: Route Planning -->
@@ -287,17 +281,6 @@ if (!empty($address)) {
 .map-function {
     padding: 20px;
     animation: fadeIn 0.2s ease-in;
-}
-
-.info-box {
-    background: #e3f2fd;
-    border-left: 4px solid #2196f3;
-    padding: 12px;
-    border-radius: 8px;
-    display: flex;
-    gap: 10px;
-    font-size: 0.9rem;
-    color: #1565c0;
 }
 
 /* Main Map Area */
