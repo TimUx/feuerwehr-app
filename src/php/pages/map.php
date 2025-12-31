@@ -80,28 +80,6 @@ if (!empty($address)) {
             </h3>
         </div>
 
-        <!-- Layer Selector -->
-        <div class="map-control-section">
-            <h4 class="map-control-title">
-                <span class="material-icons">layers</span>
-                Kartentyp
-            </h4>
-            <div class="layer-buttons">
-                <button class="layer-btn active" data-layer="osm" onclick="switchLayer('osm')">
-                    <span class="material-icons">map</span>
-                    Straßenkarte
-                </button>
-                <button class="layer-btn" data-layer="topo" onclick="switchLayer('topo')">
-                    <span class="material-icons">terrain</span>
-                    Gelände
-                </button>
-                <button class="layer-btn" data-layer="satellite" onclick="switchLayer('satellite')">
-                    <span class="material-icons">satellite_alt</span>
-                    Satellit
-                </button>
-            </div>
-        </div>
-
         <!-- Function Selector -->
         <div class="map-control-section">
             <h4 class="map-control-title">
@@ -266,45 +244,6 @@ if (!empty($address)) {
     font-size: 18px;
 }
 
-/* Layer Buttons */
-.layer-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.layer-btn {
-    background: var(--bg-secondary);
-    border: 2px solid var(--border-color);
-    padding: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-primary);
-    transition: all 0.2s ease;
-    font-family: inherit;
-    width: 100%;
-}
-
-.layer-btn:hover {
-    background: var(--bg-primary);
-    border-color: var(--primary-color);
-}
-
-.layer-btn.active {
-    background: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
-}
-
-.layer-btn .material-icons {
-    font-size: 20px;
-}
-
 /* Function Tabs */
 .function-tabs {
     display: flex;
@@ -386,18 +325,6 @@ if (!empty($address)) {
         height: 50vh;
         min-height: 400px;
     }
-    
-    .layer-buttons {
-        flex-direction: row;
-    }
-    
-    .layer-btn {
-        flex: 1;
-        font-size: 12px;
-        padding: 10px 8px;
-        flex-direction: column;
-        gap: 4px;
-    }
 }
 
 @keyframes fadeIn {
@@ -422,7 +349,6 @@ if (!empty($address)) {
 // Wrap in IIFE to avoid variable conflicts during SPA navigation
 // Single map instance
 let map = null;
-let currentLayer = null;
 let routingControl = null;
 let searchMarker = null;
 let locationMarker = null;
@@ -485,11 +411,33 @@ function initMap(retryCount = 0) {
         // Create map with default view (will be updated by geolocation)
         map = L.map('map').setView([defaultLat, defaultLon], defaultZoom);
         
-        // Add default layer (OSM)
-        currentLayer = L.tileLayer(layers.osm.url, {
+        // Create layer objects for Leaflet layer control
+        const osmLayer = L.tileLayer(layers.osm.url, {
             attribution: layers.osm.attribution,
             maxZoom: layers.osm.maxZoom
-        }).addTo(map);
+        });
+        
+        const topoLayer = L.tileLayer(layers.topo.url, {
+            attribution: layers.topo.attribution,
+            maxZoom: layers.topo.maxZoom
+        });
+        
+        const satelliteLayer = L.tileLayer(layers.satellite.url, {
+            attribution: layers.satellite.attribution,
+            maxZoom: layers.satellite.maxZoom
+        });
+        
+        // Add default layer (OSM)
+        osmLayer.addTo(map);
+        
+        // Add Leaflet's built-in layer control
+        const baseMaps = {
+            "Straßenkarte": osmLayer,
+            "Gelände": topoLayer,
+            "Satellit": satelliteLayer
+        };
+        
+        L.control.layers(baseMaps).addTo(map);
         
         console.log('Map initialized successfully');
         
@@ -580,32 +528,6 @@ function useFallbackLocation() {
         map.setView([defaultLat, defaultLon], defaultZoom);
     }
 }
-
-// Switch map layer
-window.switchLayer = function(layerName) {
-    if (!map || !layers[layerName]) return;
-    
-    // Remove current layer
-    if (currentLayer) {
-        map.removeLayer(currentLayer);
-    }
-    
-    // Add new layer
-    currentLayer = L.tileLayer(layers[layerName].url, {
-        attribution: layers[layerName].attribution,
-        maxZoom: layers[layerName].maxZoom
-    }).addTo(map);
-    
-    // Update button states
-    document.querySelectorAll('.layer-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.getAttribute('data-layer') === layerName) {
-            btn.classList.add('active');
-        }
-    });
-    
-    console.log('Switched to layer:', layerName);
-};
 
 // Switch function (explore, route, search)
 window.switchFunction = function(functionName) {
