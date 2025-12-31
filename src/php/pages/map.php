@@ -109,11 +109,11 @@ if (!empty($address)) {
                 Funktionen
             </h4>
             <div class="function-tabs">
-                <button class="function-tab-btn" onclick="switchFunction('explore')" id="tab-explore">
+                <button class="function-tab-btn active" onclick="switchFunction('explore')" id="tab-explore">
                     <span class="material-icons">explore</span>
                     Erkunden
                 </button>
-                <button class="function-tab-btn active" onclick="switchFunction('route')" id="tab-route">
+                <button class="function-tab-btn" onclick="switchFunction('route')" id="tab-route">
                     <span class="material-icons">directions</span>
                     Route
                 </button>
@@ -124,8 +124,8 @@ if (!empty($address)) {
             </div>
         </div>
 
-        <!-- Function: Explore (Hidden by default) -->
-        <div id="function-explore" class="map-function" style="display: none;">
+        <!-- Function: Explore (Default view) -->
+        <div id="function-explore" class="map-function">
             <div class="info-box">
                 <span class="material-icons" style="font-size: 20px; color: #2196f3;">info</span>
                 <div>
@@ -135,7 +135,7 @@ if (!empty($address)) {
         </div>
 
         <!-- Function: Route Planning -->
-        <div id="function-route" class="map-function">
+        <div id="function-route" class="map-function" style="display: none;">
             <div class="form-group">
                 <label class="form-label" for="routeStart">
                     <span class="material-icons" style="vertical-align: middle; color: #4caf50; font-size: 18px;">place</span>
