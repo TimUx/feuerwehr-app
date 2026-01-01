@@ -8,6 +8,11 @@
  * Initialize a secure PHP session
  */
 function initSecureSession() {
+    // Skip session initialization in CLI context (command line scripts)
+    if (php_sapi_name() === 'cli') {
+        return;
+    }
+    
     // Only start session once
     if (session_status() === PHP_SESSION_ACTIVE) {
         return;
