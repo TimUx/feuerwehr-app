@@ -17,6 +17,119 @@ $user = Auth::getUser();
 </div>
 
 <div class="hazard-matrix-container">
+    <!-- Gefahrenmatrix Table - Moved to top -->
+    <div class="hazard-matrix-table-container" id="hazardMatrixTableContainer" style="display: none; margin-bottom: 2rem;">
+        <h3>Gefahrenmatrix Tabelle</h3>
+        <div class="table-container">
+            <table class="hazard-matrix-table" id="hazardMatrixTable">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Menschen</th>
+                        <th>Tiere</th>
+                        <th>Umwelt</th>
+                        <th>Sachwerte</th>
+                        <th class="separator-col"></th>
+                        <th>Mannschaft</th>
+                        <th>Gerät</th>
+                    </tr>
+                </thead>
+                <tbody id="hazardMatrixTableBody">
+                    <tr data-hazard="atemgift">
+                        <th>Atemgift</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt"></td>
+                        <td data-entity="sachwerte" class="not-applicable">–</td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet" class="not-applicable">–</td>
+                    </tr>
+                    <tr data-hazard="angstreaktion">
+                        <th>Angst-<br>reaktion</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt" class="not-applicable">–</td>
+                        <td data-entity="sachwerte" class="not-applicable">–</td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet" class="not-applicable">–</td>
+                    </tr>
+                    <tr data-hazard="ausbreitung">
+                        <th>Aus-<br>breitung</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt"></td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
+                    </tr>
+                    <tr data-hazard="atomare">
+                        <th>Atomare<br>Strahlung</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt"></td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
+                    </tr>
+                    <tr data-hazard="chemische">
+                        <th>Chemische/<br>Biologische<br>Stoffe</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt"></td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
+                    </tr>
+                    <tr data-hazard="erkrankung">
+                        <th>Erkrankung/<br>Verletzung</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt" class="not-applicable">–</td>
+                        <td data-entity="sachwerte" class="not-applicable">–</td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet" class="not-applicable">–</td>
+                    </tr>
+                    <tr data-hazard="explosion">
+                        <th>Explosion</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt"></td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
+                    </tr>
+                    <tr data-hazard="elektrizitat">
+                        <th>Elektrizität</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt" class="not-applicable">–</td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
+                    </tr>
+                    <tr data-hazard="einsturz">
+                        <th>Einsturz/<br>Absturz</th>
+                        <td data-entity="menschen"></td>
+                        <td data-entity="tiere"></td>
+                        <td data-entity="umwelt" class="not-applicable">–</td>
+                        <td data-entity="sachwerte"></td>
+                        <td class="separator-col"></td>
+                        <td data-entity="mannschaft"></td>
+                        <td data-entity="geraet"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="hazard-info">
         <p><strong>Anleitung:</strong> Tippen Sie auf die Felder, um Gefahren zu markieren/demarkieren.</p>
         <button onclick="clearHazardMatrix()" class="btn btn-secondary btn-sm">
@@ -137,119 +250,6 @@ $user = Auth::getUser();
         <h3>Markierte Gefahren</h3>
         <div id="hazardSummary" class="hazard-summary-list">
             <p class="text-secondary">Keine Gefahren markiert</p>
-        </div>
-    </div>
-    
-    <!-- Gefahrenmatrix Table -->
-    <div class="hazard-matrix-table-container" id="hazardMatrixTableContainer" style="display: none; margin-top: 2rem;">
-        <h3>Gefahrenmatrix Tabelle</h3>
-        <div class="table-container">
-            <table class="hazard-matrix-table" id="hazardMatrixTable">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>Menschen</th>
-                        <th>Tiere</th>
-                        <th>Umwelt</th>
-                        <th>Sachwerte</th>
-                        <th class="separator-col"></th>
-                        <th>Mannschaft</th>
-                        <th>Gerät</th>
-                    </tr>
-                </thead>
-                <tbody id="hazardMatrixTableBody">
-                    <tr data-hazard="atemgifte">
-                        <th>Atemgifte</th>
-                        <td data-entity="menschen"></td>
-                        <td data-entity="tiere"></td>
-                        <td data-entity="umwelt"></td>
-                        <td data-entity="sachwerte" class="not-applicable">–</td>
-                        <td class="separator-col"></td>
-                        <td data-entity="mannschaft"></td>
-                        <td data-entity="geraet" class="not-applicable">–</td>
-                    </tr>
-                    <tr data-hazard="angstreaktion">
-                        <th>Angstreaktion</th>
-                        <td data-entity="menschen"></td>
-                        <td data-entity="tiere"></td>
-                        <td data-entity="umwelt" class="not-applicable">–</td>
-                        <td data-entity="sachwerte" class="not-applicable">–</td>
-                        <td class="separator-col"></td>
-                        <td data-entity="mannschaft"></td>
-                        <td data-entity="geraet" class="not-applicable">–</td>
-                    </tr>
-                    <tr data-hazard="ausbreitung">
-                        <th>Ausbreitung</th>
-                        <td data-entity="menschen"></td>
-                        <td data-entity="tiere"></td>
-                        <td data-entity="umwelt"></td>
-                        <td data-entity="sachwerte"></td>
-                        <td class="separator-col"></td>
-                        <td data-entity="mannschaft"></td>
-                        <td data-entity="geraet"></td>
-                    </tr>
-                    <tr data-hazard="atomare">
-                        <th>Atomare Strahlung</th>
-                        <td data-entity="menschen"></td>
-                        <td data-entity="tiere"></td>
-                        <td data-entity="umwelt"></td>
-                        <td data-entity="sachwerte"></td>
-                        <td class="separator-col"></td>
-                        <td data-entity="mannschaft"></td>
-                        <td data-entity="geraet"></td>
-                    </tr>
-                    <tr data-hazard="chemische">
-                        <th>Chemische/Biologische Stoffe</th>
-                        <td data-entity="menschen"></td>
-                        <td data-entity="tiere"></td>
-                        <td data-entity="umwelt"></td>
-                        <td data-entity="sachwerte"></td>
-                        <td class="separator-col"></td>
-                        <td data-entity="mannschaft"></td>
-                        <td data-entity="geraet"></td>
-                    </tr>
-                    <tr data-hazard="erkrankung">
-                        <th>Erkrankung/Verletzung</th>
-                        <td data-entity="menschen"></td>
-                        <td data-entity="tiere"></td>
-                        <td data-entity="umwelt" class="not-applicable">–</td>
-                        <td data-entity="sachwerte" class="not-applicable">–</td>
-                        <td class="separator-col"></td>
-                        <td data-entity="mannschaft"></td>
-                        <td data-entity="geraet" class="not-applicable">–</td>
-                    </tr>
-                    <tr data-hazard="explosion">
-                        <th>Explosion</th>
-                        <td data-entity="menschen"></td>
-                        <td data-entity="tiere"></td>
-                        <td data-entity="umwelt"></td>
-                        <td data-entity="sachwerte"></td>
-                        <td class="separator-col"></td>
-                        <td data-entity="mannschaft"></td>
-                        <td data-entity="geraet"></td>
-                    </tr>
-                    <tr data-hazard="elektrizitat">
-                        <th>Elektrizität</th>
-                        <td data-entity="menschen"></td>
-                        <td data-entity="tiere"></td>
-                        <td data-entity="umwelt" class="not-applicable">–</td>
-                        <td data-entity="sachwerte"></td>
-                        <td class="separator-col"></td>
-                        <td data-entity="mannschaft"></td>
-                        <td data-entity="geraet"></td>
-                    </tr>
-                    <tr data-hazard="einsturz">
-                        <th>Einsturz/Absturz</th>
-                        <td data-entity="menschen"></td>
-                        <td data-entity="tiere"></td>
-                        <td data-entity="umwelt" class="not-applicable">–</td>
-                        <td data-entity="sachwerte"></td>
-                        <td class="separator-col"></td>
-                        <td data-entity="mannschaft"></td>
-                        <td data-entity="geraet"></td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
     </div>
 </div>

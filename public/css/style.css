@@ -980,6 +980,11 @@ body {
     color: var(--text-primary);
 }
 
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .hazard-matrix-table {
     width: 100%;
     border-collapse: collapse;
@@ -1006,7 +1011,8 @@ body {
     background: var(--bg-secondary);
     font-weight: 600;
     text-align: left;
-    white-space: nowrap;
+    white-space: normal;
+    min-width: 80px;
 }
 
 .hazard-matrix-table td.hazard-present {
@@ -1028,6 +1034,48 @@ body {
     padding: 0;
     border: none;
     background: transparent;
+}
+
+/* Mobile optimizations for hazard matrix table */
+@media (max-width: 768px) {
+    .hazard-matrix-table-container {
+        padding: 0.75rem;
+    }
+    
+    .hazard-matrix-table {
+        font-size: 0.75rem;
+    }
+    
+    .hazard-matrix-table thead th {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        padding: 0.5rem 0.25rem;
+        min-width: 35px;
+        height: 100px;
+        vertical-align: bottom;
+    }
+    
+    .hazard-matrix-table tbody th {
+        font-size: 0.7rem;
+        padding: 0.3rem;
+        min-width: 60px;
+        line-height: 1.2;
+    }
+    
+    .hazard-matrix-table td {
+        padding: 0.3rem;
+        min-width: 35px;
+        font-size: 0.7rem;
+    }
+    
+    .hazard-matrix-table td.hazard-present {
+        font-size: 1rem;
+    }
+    
+    .hazard-matrix-table .separator-col {
+        min-width: 0.5rem;
+        width: 0.5rem;
+    }
 }
 
 /* ============================================================
