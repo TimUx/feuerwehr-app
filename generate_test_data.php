@@ -70,11 +70,11 @@ echo "✓ Created " . count($vehicles) . " vehicles\n";
 // 5. Create phone numbers
 echo "Creating phone numbers...\n";
 $phoneNumbers = [
-    ['name' => 'Leitstelle Schwalm-Eder', 'company' => 'Kreisfeuerwehrverband', 'function' => 'Notruf', 'phone' => '112'],
-    ['name' => 'Wehrführer', 'company' => 'Feuerwehr Willingshausen', 'function' => 'Leitung', 'phone' => '+49 6691 1234567'],
-    ['name' => 'Kreisbrandinspektor', 'company' => 'Kreisfeuerwehrverband', 'function' => 'KBI', 'phone' => '+49 6691 7654321'],
-    ['name' => 'THW Ortsverband', 'company' => 'THW', 'function' => 'Technische Hilfeleistung', 'phone' => '+49 6691 9876543'],
-    ['name' => 'Polizei', 'company' => 'Polizeistation Schwalmstadt', 'function' => 'Notruf', 'phone' => '110']
+    ['id' => uniqid('phone_', true), 'name' => 'Leitstelle Schwalm-Eder', 'organization' => 'Kreisfeuerwehrverband', 'role' => 'Notruf', 'phone' => '112', 'created' => date('Y-m-d H:i:s')],
+    ['id' => uniqid('phone_', true), 'name' => 'Wehrführer', 'organization' => 'Feuerwehr Willingshausen', 'role' => 'Leitung', 'phone' => '+49 6691 1234567', 'created' => date('Y-m-d H:i:s')],
+    ['id' => uniqid('phone_', true), 'name' => 'Kreisbrandinspektor', 'organization' => 'Kreisfeuerwehrverband', 'role' => 'KBI', 'phone' => '+49 6691 7654321', 'created' => date('Y-m-d H:i:s')],
+    ['id' => uniqid('phone_', true), 'name' => 'THW Ortsverband', 'organization' => 'THW', 'role' => 'Technische Hilfeleistung', 'phone' => '+49 6691 9876543', 'created' => date('Y-m-d H:i:s')],
+    ['id' => uniqid('phone_', true), 'name' => 'Polizei', 'organization' => 'Polizeistation Schwalmstadt', 'role' => 'Notruf', 'phone' => '110', 'created' => date('Y-m-d H:i:s')]
 ];
 foreach ($phoneNumbers as $phoneNumber) {
     DataStore::addPhoneNumber($phoneNumber);
