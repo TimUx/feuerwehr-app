@@ -52,7 +52,7 @@ if (isset($_GET['edit'])) {
         </div>
         <?php endif; ?>
         
-        <form id="attendance-form" method="POST" action="/src/php/forms/submit_attendance.php" enctype="multipart/form-data">
+        <form id="attendance-form" method="POST" action="/src/php/forms/submit_attendance.php" enctype="multipart/form-data" novalidate>
             <?php if ($editMode): ?>
             <input type="hidden" name="record_id" value="<?php echo htmlspecialchars($editRecord['id']); ?>">
             <?php endif; ?>
@@ -374,9 +374,57 @@ document.querySelectorAll('.attendee-checkbox').forEach(cb => {
 // Initialize count
 updateTotalCount();
 
+// Helper function to validate required fields and scroll to first error
+function validateRequiredFields() {
+    const form = document.getElementById('attendance-form');
+    const requiredFields = form.querySelectorAll('[required]');
+    
+    for (const field of requiredFields) {
+        // Skip hidden fields
+        if (field.offsetParent === null) continue;
+        
+        // Check if field is empty
+        if (!field.value || (field.type === 'checkbox' && !field.checked)) {
+            // Special handling for checkbox groups
+            if (field.type === 'checkbox') {
+                continue; // Skip individual checkbox validation
+            }
+            
+            // Scroll to the field
+            field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Highlight the field
+            field.style.border = '2px solid var(--error-color)';
+            setTimeout(() => {
+                field.style.border = '';
+            }, 3000);
+            
+            // Get field label
+            const label = form.querySelector(`label[for="${field.id}"]`);
+            const fieldName = label ? label.textContent : field.name;
+            
+            // Show modal error
+            window.feuerwehrApp.showConfirmationModal(
+                'error',
+                'Pflichtfeld nicht ausgefüllt',
+                `Bitte füllen Sie das Feld "${fieldName}" aus.`
+            );
+            
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 // Form submission
 document.getElementById('attendance-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    // Validate required fields first
+    if (!validateRequiredFields()) {
+        return;
+    }
     
     const formData = new FormData(e.target);
     
@@ -386,14 +434,40 @@ document.getElementById('attendance-form').addEventListener('submit', async (e) 
     const attendees = formData.getAll('teilnehmer[]');
     
     if (leadersSelect.length === 0 && (!leadersOther || leadersOther.trim() === '')) {
-        window.feuerwehrApp.showAlert('error', 'Bitte wählen Sie mindestens einen Übungsleiter aus oder geben Sie einen Namen ein');
+        // Scroll to instructor section
+        const instructorSection = document.querySelector('h3:nth-of-type(2)'); // "Übungsleiter" heading
+        if (instructorSection) {
+            instructorSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        window.feuerwehrApp.showConfirmationModal(
+            'error',
+            'Übungsleiter fehlt',
+            'Bitte wählen Sie mindestens einen Übungsleiter aus oder geben Sie einen Namen ein.'
+        );
         return;
     }
     
     if (attendees.length === 0) {
-        window.feuerwehrApp.showAlert('error', 'Bitte wählen Sie mindestens einen Teilnehmer aus');
+        // Scroll to attendees section
+        const attendeesSection = document.querySelector('h3:nth-of-type(4)'); // "Teilnehmer" heading
+        if (attendeesSection) {
+            attendeesSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        window.feuerwehrApp.showConfirmationModal(
+            'error',
+            'Teilnehmer fehlen',
+            'Bitte wählen Sie mindestens einen Teilnehmer aus.'
+        );
         return;
     }
+    
+    // Disable submit button during submission
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="material-icons">hourglass_empty</span> Wird gesendet...';
     
     try {
         const response = await fetch('/src/php/forms/submit_attendance.php', {
@@ -404,16 +478,37 @@ document.getElementById('attendance-form').addEventListener('submit', async (e) 
         const result = await response.json();
         
         if (result.success) {
-            window.feuerwehrApp.showAlert('success', result.message);
-            e.target.reset();
-            document.getElementById('datum').valueAsDate = new Date();
-            updateTotalCount();
+            // Show success modal
+            window.feuerwehrApp.showConfirmationModal(
+                'success',
+                'Erfolgreich gesendet!',
+                result.message,
+                () => {
+                    // Reset form after modal is closed
+                    e.target.reset();
+                    document.getElementById('datum').valueAsDate = new Date();
+                    updateTotalCount();
+                }
+            );
         } else {
-            window.feuerwehrApp.showAlert('error', result.message);
+            // Show error modal
+            window.feuerwehrApp.showConfirmationModal(
+                'error',
+                'Fehler beim Senden',
+                result.message
+            );
         }
     } catch (error) {
         console.error('Error:', error);
-        window.feuerwehrApp.showAlert('error', 'Fehler beim Absenden der Liste');
+        window.feuerwehrApp.showConfirmationModal(
+            'error',
+            'Fehler beim Senden',
+            'Es ist ein Fehler beim Absenden der Liste aufgetreten. Bitte versuchen Sie es erneut.'
+        );
+    } finally {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
     }
 });
 
