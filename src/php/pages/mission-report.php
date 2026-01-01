@@ -63,7 +63,7 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
         </div>
         <?php endif; ?>
         
-        <form id="mission-report-form" method="POST" action="/src/php/forms/submit_mission_report.php">
+        <form id="mission-report-form" method="POST" action="/src/php/forms/submit_mission_report.php" novalidate>
             <?php if ($editMode): ?>
             <input type="hidden" name="record_id" value="<?php echo htmlspecialchars($editRecord['id']); ?>">
             <?php endif; ?>

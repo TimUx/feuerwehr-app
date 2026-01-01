@@ -52,7 +52,7 @@ if (isset($_GET['edit'])) {
         </div>
         <?php endif; ?>
         
-        <form id="attendance-form" method="POST" action="/src/php/forms/submit_attendance.php" enctype="multipart/form-data">
+        <form id="attendance-form" method="POST" action="/src/php/forms/submit_attendance.php" enctype="multipart/form-data" novalidate>
             <?php if ($editMode): ?>
             <input type="hidden" name="record_id" value="<?php echo htmlspecialchars($editRecord['id']); ?>">
             <?php endif; ?>
