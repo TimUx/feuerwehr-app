@@ -43,13 +43,7 @@ class Auth {
                         // Directory truly doesn't exist and couldn't be created
                         error_log("Failed to create data directory: " . self::$dataDir . ". Please ensure the web server has write permissions to the parent directory.");
                         
-                        // Redirect to diagnose.php for better error diagnostics
-                        if (php_sapi_name() !== 'cli' && !headers_sent()) {
-                            header('Location: diagnose.php?error=' . urlencode('data_dir_create_failed') . '&details=' . urlencode('Failed to create data directory. Check server error logs for details.'));
-                            exit;
-                        }
-                        
-                        die("Configuration Error: Unable to create data directory. Please contact your system administrator or check file permissions.<br><br><a href='diagnose.php'>Run System Diagnostics</a>");
+                        die("Configuration Error: Unable to create data directory. Please contact your system administrator or check file permissions.");
                     }
                     // else: Directory exists now, continue normally
                 }
@@ -75,13 +69,7 @@ class Auth {
                 $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
                 error_log("Data directory exists but is not writable: " . self::$dataDir . ". Write test error: " . $errorMsg);
                 
-                // Redirect to diagnose.php for better error diagnostics
-                if (php_sapi_name() !== 'cli' && !headers_sent()) {
-                    header('Location: diagnose.php?error=' . urlencode('data_dir_not_writable') . '&details=' . urlencode('Data directory is not writable. Check server error logs for details.'));
-                    exit;
-                }
-                
-                die("Configuration Error: Data directory is not writable. Please contact your system administrator or check file permissions.<br><br><a href='diagnose.php'>Run System Diagnostics</a>");
+                die("Configuration Error: Data directory is not writable. Please contact your system administrator or check file permissions.");
             }
         }
         
