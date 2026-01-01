@@ -566,20 +566,79 @@ function removePersonEntry(id) {
 // Expose removePersonEntry to global scope for onclick handler
 window.removePersonEntry = removePersonEntry;
 
+// Helper function to validate required fields and scroll to first error
+function validateRequiredFields() {
+    const form = document.getElementById('mission-report-form');
+    const requiredFields = form.querySelectorAll('[required]');
+    
+    for (const field of requiredFields) {
+        // Skip hidden fields
+        if (field.offsetParent === null) continue;
+        
+        // Check if field is empty
+        if (!field.value || (field.type === 'checkbox' && !field.checked)) {
+            // Special handling for checkbox groups
+            if (field.type === 'checkbox') {
+                continue; // Skip individual checkbox validation
+            }
+            
+            // Scroll to the field
+            field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Highlight the field
+            field.style.border = '2px solid var(--error-color)';
+            setTimeout(() => {
+                field.style.border = '';
+            }, 3000);
+            
+            // Get field label
+            const label = form.querySelector(`label[for="${field.id}"]`);
+            const fieldName = label ? label.textContent : field.name;
+            
+            // Show modal error
+            window.feuerwehrApp.showConfirmationModal(
+                'error',
+                'Pflichtfeld nicht ausgefüllt',
+                `Bitte füllen Sie das Feld "${fieldName}" aus.`
+            );
+            
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 // Form submission
 document.getElementById('mission-report-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // Validate required fields first
+    if (!validateRequiredFields()) {
+        return;
+    }
+    
     // Validate at least one vehicle is selected
     const vehiclesChecked = document.querySelectorAll('.vehicle-checkbox:checked').length;
     if (vehiclesChecked === 0) {
-        window.feuerwehrApp.showAlert('error', 'Bitte wählen Sie mindestens ein Fahrzeug aus.');
+        // Scroll to vehicles section
+        const vehiclesSection = document.querySelector('h3:nth-of-type(2)'); // "Eingesetzte Fahrzeuge" heading
+        if (vehiclesSection) {
+            vehiclesSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        window.feuerwehrApp.showConfirmationModal(
+            'error',
+            'Fahrzeug fehlt',
+            'Bitte wählen Sie mindestens ein Fahrzeug aus.'
+        );
         return;
     }
     
     // Validate at least one crew member per vehicle
     const vehicleSections = document.querySelectorAll('.vehicle-crew-section');
     let hasAllCrewMembers = true;
+    let missingCrewVehicle = null;
     
     vehicleSections.forEach(section => {
         const entries = section.querySelectorAll('.crew-entry');
@@ -594,15 +653,33 @@ document.getElementById('mission-report-form').addEventListener('submit', async 
         
         if (!hasAtLeastOne) {
             hasAllCrewMembers = false;
+            if (!missingCrewVehicle) {
+                missingCrewVehicle = section;
+            }
         }
     });
     
     if (!hasAllCrewMembers) {
-        window.feuerwehrApp.showAlert('error', 'Bitte füllen Sie mindestens eine Einsatzkraft pro Fahrzeug aus.');
+        // Scroll to the vehicle section missing crew
+        if (missingCrewVehicle) {
+            missingCrewVehicle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        window.feuerwehrApp.showConfirmationModal(
+            'error',
+            'Fahrzeugbesatzung unvollständig',
+            'Bitte füllen Sie mindestens eine Einsatzkraft pro Fahrzeug aus.'
+        );
         return;
     }
     
     const formData = new FormData(e.target);
+    
+    // Disable submit button during submission
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="material-icons">hourglass_empty</span> Wird gesendet...';
     
     try {
         const response = await fetch('/src/php/forms/submit_mission_report.php', {
@@ -613,18 +690,39 @@ document.getElementById('mission-report-form').addEventListener('submit', async 
         const result = await response.json();
         
         if (result.success) {
-            window.feuerwehrApp.showAlert('success', result.message);
-            e.target.reset();
-            document.getElementById('einsatzdatum').valueAsDate = new Date();
-            document.getElementById('crew-container').innerHTML = '<p style="color: var(--text-secondary);">Bitte wählen Sie zuerst Fahrzeuge aus.</p>';
-            document.getElementById('persons-container').innerHTML = '';
-            personCounter = 0;
+            // Show success modal
+            window.feuerwehrApp.showConfirmationModal(
+                'success',
+                'Erfolgreich gesendet!',
+                result.message,
+                () => {
+                    // Reset form after modal is closed
+                    e.target.reset();
+                    document.getElementById('einsatzdatum').valueAsDate = new Date();
+                    document.getElementById('crew-container').innerHTML = '<p style="color: var(--text-secondary);">Bitte wählen Sie zuerst Fahrzeuge aus.</p>';
+                    document.getElementById('persons-container').innerHTML = '';
+                    personCounter = 0;
+                }
+            );
         } else {
-            window.feuerwehrApp.showAlert('error', result.message);
+            // Show error modal
+            window.feuerwehrApp.showConfirmationModal(
+                'error',
+                'Fehler beim Senden',
+                result.message
+            );
         }
     } catch (error) {
         console.error('Error:', error);
-        window.feuerwehrApp.showAlert('error', 'Fehler beim Absenden des Berichts');
+        window.feuerwehrApp.showConfirmationModal(
+            'error',
+            'Fehler beim Senden',
+            'Es ist ein Fehler beim Absenden des Berichts aufgetreten. Bitte versuchen Sie es erneut.'
+        );
+    } finally {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
     }
 });
 

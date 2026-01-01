@@ -525,11 +525,97 @@ class FeuerwehrApp {
     if (mainContent) {
       mainContent.insertBefore(alertDiv, mainContent.firstChild);
 
+      // Scroll to top to make alert visible
+      mainContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
       // Auto-remove after 5 seconds
       setTimeout(() => {
         alertDiv.remove();
       }, 5000);
     }
+  }
+
+  // Modal-based confirmation dialog for form submissions
+  showConfirmationModal(type, title, message, onClose = null) {
+    // Remove any existing confirmation modal
+    const existingModal = document.getElementById('confirmation-modal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // Determine icon and color based on type
+    let icon, iconColor, buttonColor;
+    switch (type) {
+      case 'success':
+        icon = 'check_circle';
+        iconColor = 'var(--success-color)';
+        buttonColor = 'var(--success-color)';
+        break;
+      case 'error':
+        icon = 'error';
+        iconColor = 'var(--error-color)';
+        buttonColor = 'var(--error-color)';
+        break;
+      case 'warning':
+        icon = 'warning';
+        iconColor = 'var(--warning-color)';
+        buttonColor = 'var(--warning-color)';
+        break;
+      default:
+        icon = 'info';
+        iconColor = 'var(--info-color)';
+        buttonColor = 'var(--info-color)';
+    }
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.id = 'confirmation-modal';
+    modal.className = 'modal show';
+    modal.style.zIndex = '10000';
+    
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 500px; text-align: center;">
+        <div style="margin-bottom: 1.5rem;">
+          <span class="material-icons" style="font-size: 64px; color: ${iconColor};">${icon}</span>
+        </div>
+        <h2 style="margin-bottom: 1rem; color: var(--text-primary);">${title}</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 2rem; white-space: pre-line;">${message}</p>
+        <button class="btn btn-primary" id="confirmation-modal-close" style="background-color: ${buttonColor}; border-color: ${buttonColor};">
+          <span class="material-icons">done</span>
+          OK
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Close handler
+    const closeModal = () => {
+      modal.classList.remove('show');
+      setTimeout(() => {
+        modal.remove();
+        if (onClose) onClose();
+      }, 300);
+    };
+
+    // Add event listeners
+    document.getElementById('confirmation-modal-close').addEventListener('click', closeModal);
+    
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+
+    // Close on Escape key
+    const escapeHandler = (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+        document.removeEventListener('keydown', escapeHandler);
+      }
+    };
+    document.addEventListener('keydown', escapeHandler);
   }
 
   // Utility: API calls

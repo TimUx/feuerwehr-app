@@ -409,10 +409,23 @@ body {
   background-color: rgba(0, 0, 0, 0.5);
   align-items: center;
   justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .modal.show {
   display: flex;
+  opacity: 1;
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -424,6 +437,22 @@ body {
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: var(--shadow-large);
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.modal.show .modal-content {
+  transform: scale(1);
+  animation: modalScaleIn 0.3s ease;
+}
+
+@keyframes modalScaleIn {
+  from {
+    transform: scale(0.9);
+  }
+  to {
+    transform: scale(1);
+  }
 }
 
 .modal-header {
