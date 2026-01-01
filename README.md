@@ -1354,7 +1354,6 @@ SOFTWARE.
 ### Weiterentwicklung
 
 Geplante Features:
-- [ ] Formular-Verwaltung (Archiv mit Bearbeiten/Löschen/Erneut senden)
 - [ ] Export-Funktionen (CSV, Excel)
 - [ ] Kalender-Integration
 - [ ] Push-Benachrichtigungen
