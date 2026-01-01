@@ -134,7 +134,7 @@ http://ihre-domain.de/install.php
 Der Wizard führt Sie durch folgende Schritte:
 
 ##### Schritt 1: System-Voraussetzungen prüfen
-<img src="https://github.com/user-attachments/assets/a8235fe8-fe93-47e2-89d8-54094c59cc45" width="600" alt="System-Voraussetzungen">
+<img src="screenshots/20-install-prerequisites.png" width="600" alt="System-Voraussetzungen">
 
 Der Installer prüft automatisch:
 - ✅ **PHP Version** (7.4.0 oder höher erforderlich)
@@ -147,12 +147,12 @@ Der Installer prüft automatisch:
 Sie können erst fortfahren, wenn alle **erforderlichen** Voraussetzungen erfüllt sind. Warnungen bei empfohlenen Features erlauben das Fortfahren.
 
 ##### Schritt 2: Willkommen
-<img src="https://github.com/user-attachments/assets/01a9529a-c781-419d-ac0d-8a8bac1f53bc" width="600" alt="Willkommen">
+<img src="screenshots/21-install-welcome.png" width="600" alt="Willkommen">
 
 Übersicht über die Einrichtung und was konfiguriert wird.
 
 ##### Schritt 3: Administrator-Benutzer erstellen
-<img src="https://github.com/user-attachments/assets/2626d66a-c1d9-4368-b1f1-fe023d0b07b4" width="600" alt="Admin-Benutzer">
+<img src="screenshots/22-install-admin.png" width="600" alt="Admin-Benutzer">
 
 Erstellen Sie den ersten Admin-Benutzer:
 - **Benutzername** (min. 3 Zeichen)
@@ -161,7 +161,7 @@ Erstellen Sie den ersten Admin-Benutzer:
 Das Passwort wird automatisch mit bcrypt gehashed und verschlüsselt gespeichert.
 
 ##### Schritt 4: E-Mail-Einstellungen
-<img src="https://github.com/user-attachments/assets/3caa9c1a-c498-4fe8-aabe-96c688861c3a" width="600" alt="E-Mail-Einstellungen">
+<img src="screenshots/23-install-email.png" width="600" alt="E-Mail-Einstellungen">
 
 Konfigurieren Sie E-Mail-Einstellungen für Formular-Übermittlungen:
 - **Absender E-Mail-Adresse und Name**
@@ -171,7 +171,7 @@ Konfigurieren Sie E-Mail-Einstellungen für Formular-Übermittlungen:
   - Optional: SMTP-Authentifizierung mit Benutzername/Passwort
 
 ##### Schritt 5: Installation abgeschlossen
-<img src="https://github.com/user-attachments/assets/bd483670-9d30-4b7a-a787-fff44919689e" width="600" alt="Installation abgeschlossen">
+<img src="screenshots/24-install-complete.png" width="600" alt="Installation abgeschlossen">
 
 ✅ Verschlüsselungsschlüssel automatisch generiert (64 Zeichen, AES-256-CBC)  
 ✅ Administrator-Benutzer erstellt  
