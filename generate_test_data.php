@@ -118,6 +118,7 @@ echo "✓ Created " . count($attendance) . " attendance records\n";
 echo "Creating mission reports...\n";
 $missions = [
     [
+        'mission_type' => 'Brand in Wohngebäude',
         'reason' => 'Brand in Wohngebäude',
         'date' => '2025-01-20',
         'start_time' => '14:30',
