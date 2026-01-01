@@ -180,14 +180,11 @@ Konfigurieren Sie E-Mail-Einstellungen für Formular-Übermittlungen:
 
 **Wichtig:** Der Verschlüsselungsschlüssel wird automatisch generiert - keine Kommandozeile erforderlich!
 
-#### 4. Installation abgeschlossen
-Nach erfolgreicher Installation können Sie die App nutzen.
-
 #### 4. Logo hochladen (optional)
 Platzieren Sie Ihr Feuerwehr-Logo als `public/assets/logo.png`. Dieses wird in E-Mails und PDFs verwendet.
 
 #### 5. Anmeldung
-Nach erfolgreicher Installation und Diagnose können Sie sich mit Ihrem erstellten Administrator-Benutzer anmelden.
+Nach erfolgreicher Installation können Sie sich mit Ihrem erstellten Administrator-Benutzer anmelden und die App nutzen.
 
 ---
 
@@ -1357,7 +1354,6 @@ SOFTWARE.
 ### Weiterentwicklung
 
 Geplante Features:
-- [ ] Formular-Verwaltung (Archiv mit Bearbeiten/Löschen/Erneut senden)
 - [ ] Export-Funktionen (CSV, Excel)
 - [ ] Kalender-Integration
 - [ ] Push-Benachrichtigungen

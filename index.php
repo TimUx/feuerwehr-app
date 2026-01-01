@@ -68,9 +68,9 @@ $user = Auth::getUser();
     <!-- Styles -->
     <link rel="stylesheet" href="/public/css/style.css">
     
-    <!-- Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Material Icons & Fonts (local) -->
+    <link rel="stylesheet" href="/public/fonts/material-icons.css">
+    <link rel="stylesheet" href="/public/fonts/roboto.css">
 </head>
 <body>
     <?php if ($page === 'reset-password'): ?>
