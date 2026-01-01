@@ -33,7 +33,7 @@ try {
     
     // Get configuration for email recipient
     $config = require __DIR__ . '/../../../config/config.php';
-    $recipient = $config['email']['from_address'];
+    $generalEmail = $config['email']['from_address'] ?? null;
     
     if ($type === 'attendance') {
         // Get attendance record
@@ -58,6 +58,23 @@ try {
         
         // Generate PDF
         $pdf = EmailPDF::generatePDF($html);
+        
+        // Determine email recipient - location email or general email (never both)
+        $recipient = null;
+        $standortId = $record['standort'] ?? $record['location_id'] ?? null;
+        
+        if (!empty($standortId)) {
+            $location = DataStore::getLocationById($standortId);
+            if ($location && !empty($location['email'])) {
+                // Location has email - send only to location
+                $recipient = $location['email'];
+            }
+        }
+        
+        // If no location email, fall back to the general email
+        if (empty($recipient)) {
+            $recipient = $generalEmail;
+        }
         
         // Prepare file attachment if exists
         $fileAttachment = null;
@@ -120,6 +137,23 @@ try {
         
         // Generate PDF
         $pdf = EmailPDF::generatePDF($html);
+        
+        // Determine email recipient - location email or general email (never both)
+        $recipient = null;
+        $standortId = $report['standort'] ?? $report['location_id'] ?? null;
+        
+        if (!empty($standortId)) {
+            $location = DataStore::getLocationById($standortId);
+            if ($location && !empty($location['email'])) {
+                // Location has email - send only to location
+                $recipient = $location['email'];
+            }
+        }
+        
+        // If no location email, fall back to the general email
+        if (empty($recipient)) {
+            $recipient = $generalEmail;
+        }
         
         // Send email with PDF
         $einsatzgrund = !empty($report['einsatzgrund']) ? $report['einsatzgrund'] : 'Einsatzbericht';
