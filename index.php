@@ -254,7 +254,7 @@ $user = Auth::getUser();
                 
                 <a href="#" class="nav-item" data-page="map">
                     <span class="material-icons">map</span>
-                    <span>Online Karte</span>
+                    <span>Karte</span>
                 </a>
                 
                 <a href="#" class="nav-item" data-page="hazard-matrix">

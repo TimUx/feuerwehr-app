@@ -38,10 +38,10 @@ $isGlobalAdmin = Auth::isGlobalAdmin();
             <span class="menu-button-text">Telefonnummern</span>
         </button>
         
-        <!-- Online Karte -->
+        <!-- Karte -->
         <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('map')">
             <span class="material-icons">map</span>
-            <span class="menu-button-text">Online Karte</span>
+            <span class="menu-button-text">Karte</span>
         </button>
         
         <!-- Gefahrenmatrix -->
