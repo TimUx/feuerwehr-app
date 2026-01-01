@@ -76,7 +76,7 @@ if (!empty($address)) {
         <div class="map-sidebar-header">
             <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
                 <span class="material-icons">map</span>
-                Online Karte
+                Karte
             </h3>
         </div>
 
@@ -206,11 +206,12 @@ if (!empty($address)) {
 .map-sidebar {
     width: 320px;
     background: var(--bg-card);
-    border-right: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-color);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     z-index: 100;
+    order: 2; /* Position sidebar after map */
 }
 
 .map-sidebar-header {
@@ -288,6 +289,7 @@ if (!empty($address)) {
     flex: 1;
     position: relative;
     overflow: hidden;
+    order: 1; /* Position map before sidebar */
 }
 
 /* Responsive Design */
@@ -300,13 +302,15 @@ if (!empty($address)) {
     .map-sidebar {
         width: 100%;
         max-height: 50vh;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        order: 2; /* Sidebar below map on mobile */
     }
     
     .map-main {
         height: 50vh;
         min-height: 400px;
+        order: 1; /* Map above sidebar on mobile */
     }
 }
 
