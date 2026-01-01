@@ -699,9 +699,9 @@ class DataStore {
      */
     public static function getPhoneNumbers() {
         $numbers = self::load('phone-numbers.json');
-        // Sort by company and name
+        // Sort by organization and name
         usort($numbers, function($a, $b) {
-            $orgCmp = strcasecmp($a['company'] ?? '', $b['company'] ?? '');
+            $orgCmp = strcasecmp($a['organization'] ?? '', $b['organization'] ?? '');
             if ($orgCmp !== 0) return $orgCmp;
             return strcasecmp($a['name'] ?? '', $b['name'] ?? '');
         });
