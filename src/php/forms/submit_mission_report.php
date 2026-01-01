@@ -116,21 +116,23 @@ try {
     
     // Get configuration and location for email recipients
     $config = require __DIR__ . '/../../../config/config.php';
-    $ccAddress = $config['email']['from_address'] ?? null; // CC to general settings email
+    $generalEmail = $config['email']['from_address'] ?? null;
     
     // Get location email address as primary recipient
     $recipient = null;
+    $ccAddress = null;
+    
     if (!empty($standortId)) {
         $location = DataStore::getLocationById($standortId);
         if ($location && !empty($location['email'])) {
+            // Location has email - send only to location (no CC)
             $recipient = $location['email'];
         }
     }
     
     // If no location email, fall back to the general email
     if (empty($recipient)) {
-        $recipient = $ccAddress;
-        $ccAddress = null; // No CC needed if using fallback
+        $recipient = $generalEmail;
     }
     
     // Ensure we have a recipient - if not configured, log error but continue
