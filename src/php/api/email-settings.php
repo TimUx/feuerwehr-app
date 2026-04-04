@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         }
 
         // Prepare test email - send to to_address, fall back to from_address
-        $to = !empty($emailConfig['to_address']) ? $emailConfig['to_address'] : $emailConfig['from_address'];
+        $to = DataStore::getDefaultRecipient();
         $subject = 'Test-E-Mail - Feuerwehr Management System';
         $htmlBody = '<html><body style="font-family: Arial, sans-serif;">';
         $htmlBody .= '<h2>Test-E-Mail</h2>';

@@ -36,8 +36,7 @@ try {
     $id = $input['id'];
     
     // Get email configuration for fallback recipient
-    $emailConfig = DataStore::getEmailSettings();
-    $generalEmail = !empty($emailConfig['to_address']) ? $emailConfig['to_address'] : ($emailConfig['from_address'] ?? null);
+    $generalEmail = DataStore::getDefaultRecipient();
     
     if ($type === 'attendance') {
         // Get attendance record

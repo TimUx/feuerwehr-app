@@ -802,6 +802,18 @@ class DataStore {
     }
 
     /**
+     * Get the default email recipient for form submissions.
+     * Uses to_address if configured, falls back to from_address.
+     */
+    public static function getDefaultRecipient(): ?string {
+        $settings = self::getEmailSettings();
+        if (!empty($settings['to_address'])) {
+            return $settings['to_address'];
+        }
+        return !empty($settings['from_address']) ? $settings['from_address'] : null;
+    }
+
+    /**
      * Remove logo from settings
      */
     public static function removeLogo() {

@@ -137,8 +137,7 @@ try {
     $pdf = EmailPDF::generatePDF($html);
     
     // Get email configuration and location for email recipients
-    $emailConfig = DataStore::getEmailSettings();
-    $generalEmail = !empty($emailConfig['to_address']) ? $emailConfig['to_address'] : ($emailConfig['from_address'] ?? null);
+    $generalEmail = DataStore::getDefaultRecipient();
     
     // Get location email address as primary recipient
     $recipient = null;

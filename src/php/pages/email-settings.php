@@ -132,7 +132,7 @@ $emailConfig = DataStore::getEmailSettings();
                            value="<?php echo htmlspecialchars($emailConfig['to_address'] ?? ''); ?>" 
                            placeholder="empfaenger@feuerwehr.de" 
                            required>
-                    <small class="form-help">Wohin Formulare und Test-E-Mails gesendet werden (wenn keine Standort-Adresse hinterlegt)</small>
+                    <small class="form-help">An diese Adresse werden Formulare und Test-E-Mails gesendet (wenn keine Standort-Adresse hinterlegt ist)</small>
                 </div>
                 
                 <div class="form-group">
