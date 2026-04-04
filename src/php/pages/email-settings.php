@@ -4,16 +4,15 @@
  */
 
 require_once __DIR__ . '/../auth.php';
+require_once __DIR__ . '/../datastore.php';
 
 Auth::requireAuth();
 Auth::requireGlobalAdmin();
 
 $user = Auth::getUser();
 
-// Load current config
-$configFile = __DIR__ . '/../../../config/config.php';
-$config = file_exists($configFile) ? require $configFile : [];
-$emailConfig = $config['email'] ?? [];
+// Load current email settings from encrypted storage
+$emailConfig = DataStore::getEmailSettings();
 ?>
 
 <div class="page-container">
@@ -184,7 +183,8 @@ document.getElementById('emailSettingsForm').addEventListener('submit', async fu
         const response = await fetch('/src/php/api/email-settings.php', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
             },
             body: JSON.stringify(data)
         });
@@ -209,7 +209,10 @@ async function testEmailSettings() {
     
     try {
         const response = await fetch('/src/php/api/email-settings.php?action=test', {
-            method: 'POST'
+            method: 'POST',
+            headers: {
+                'X-CSRF-Token': getCsrfToken()
+            }
         });
         
         const result = await response.json();

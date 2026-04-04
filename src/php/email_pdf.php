@@ -6,6 +6,7 @@
 
 // Load native SMTP client
 require_once __DIR__ . '/smtp_client.php';
+require_once __DIR__ . '/datastore.php';
 
 // Try to load PHPMailer if available (fallback)
 if (file_exists(__DIR__ . '/../../vendor/autoload.php')) {
@@ -18,7 +19,10 @@ class EmailPDF {
     
     private static function init() {
         if (!self::$config) {
+            // Load base config for non-email settings (data_dir, etc.)
             self::$config = require __DIR__ . '/../../config/config.php';
+            // Override email section with encrypted DataStore values
+            self::$config['email'] = DataStore::getEmailSettings();
         }
     }
     

@@ -748,6 +748,57 @@ class DataStore {
         return $settings;
     }
 
+    // ==================== Email Settings ====================
+
+    /**
+     * Get email/SMTP settings from encrypted storage.
+     * Falls back to config.php values so existing installs keep working
+     * until settings are saved through the admin UI.
+     */
+    public static function getEmailSettings(): array {
+        $stored = self::load('email_settings.json');
+
+        if (!empty($stored)) {
+            return $stored;
+        }
+
+        // Migration fallback: read from config.php if no encrypted file exists yet
+        self::init();
+        $config = self::$config;
+        $legacy = $config['email'] ?? [];
+
+        return [
+            'smtp_host'     => $legacy['smtp_host']     ?? '',
+            'smtp_port'     => (int) ($legacy['smtp_port'] ?? 587),
+            'smtp_auth'     => (bool) ($legacy['smtp_auth'] ?? false),
+            'smtp_username' => $legacy['smtp_username'] ?? '',
+            'smtp_password' => $legacy['smtp_password'] ?? '',
+            'smtp_secure'   => $legacy['smtp_secure']   ?? 'tls',
+            'from_address'  => $legacy['from_address']  ?? '',
+            'from_name'     => $legacy['from_name']     ?? 'Feuerwehr Management System',
+        ];
+    }
+
+    /**
+     * Persist email/SMTP settings to the encrypted JSON store.
+     */
+    public static function updateEmailSettings(array $data): array {
+        $settings = [
+            'smtp_host'     => $data['smtp_host']     ?? '',
+            'smtp_port'     => (int) ($data['smtp_port'] ?? 587),
+            'smtp_auth'     => (bool) ($data['smtp_auth'] ?? false),
+            'smtp_username' => $data['smtp_username'] ?? '',
+            'smtp_password' => $data['smtp_password'] ?? '',
+            'smtp_secure'   => $data['smtp_secure']   ?? 'tls',
+            'from_address'  => $data['from_address']  ?? '',
+            'from_name'     => $data['from_name']     ?? 'Feuerwehr Management System',
+            'updated_at'    => date('Y-m-d H:i:s'),
+        ];
+
+        self::save('email_settings.json', $settings);
+        return $settings;
+    }
+
     /**
      * Remove logo from settings
      */
