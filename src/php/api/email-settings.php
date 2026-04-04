@@ -4,6 +4,7 @@
  */
 
 require_once __DIR__ . '/../auth.php';
+require_once __DIR__ . '/../datastore.php';
 
 header('Content-Type: application/json');
 
@@ -18,23 +19,20 @@ if (!Auth::isAuthenticated() || !Auth::isGlobalAdmin()) {
     exit;
 }
 
-$configFile = __DIR__ . '/../../../config/config.php';
-
 // Handle test email
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'test') {
     Auth::requireCsrfToken();
     try {
         // Load email helper
         require_once __DIR__ . '/../email_pdf.php';
-        
-        // Load current config
-        $config = file_exists($configFile) ? require $configFile : [];
-        $emailConfig = $config['email'] ?? [];
-        
+
+        $emailConfig = DataStore::getEmailSettings();
+
         if (empty($emailConfig['from_address'])) {
-            throw new Exception('Keine Absender-Adresse konfiguriert');
+            echo json_encode(['success' => false, 'error' => 'Keine Absender-Adresse konfiguriert']);
+            exit;
         }
-        
+
         // Prepare test email - send to the from_address as a test
         $to = $emailConfig['from_address'];
         $subject = 'Test-E-Mail - Feuerwehr Management System';
@@ -46,26 +44,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         $htmlBody .= '<p><small>Gesendet am: ' . date('d.m.Y H:i:s') . '<br>';
         $htmlBody .= 'Von: ' . htmlspecialchars($_SERVER['SERVER_NAME'] ?? 'Feuerwehr Management System') . '</small></p>';
         $htmlBody .= '</body></html>';
-        
+
         // Send test email using EmailPDF helper
         $result = EmailPDF::sendEmail($to, $subject, $htmlBody);
-        
+
         if ($result) {
             echo json_encode(['success' => true, 'message' => 'Test-E-Mail erfolgreich versendet']);
         } else {
-            $errorDetails = EmailPDF::getLastError();
-            $errorMessage = 'E-Mail konnte nicht versendet werden. ';
-            if (!empty($errorDetails)) {
-                $errorMessage .= $errorDetails;
+            $smtpError = EmailPDF::getLastError();
+            $clientMessage = 'E-Mail konnte nicht versendet werden. ';
+            if (!empty($smtpError)) {
+                $clientMessage .= $smtpError;
             } else {
-                $errorMessage .= 'Bitte überprüfen Sie die SMTP-Einstellungen und stellen Sie sicher, dass der SMTP-Server erreichbar ist.';
+                $clientMessage .= 'Bitte überprüfen Sie die SMTP-Einstellungen und stellen Sie sicher, dass der SMTP-Server erreichbar ist.';
             }
-            throw new Exception($errorMessage);
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $clientMessage]);
         }
     } catch (Exception $e) {
         http_response_code(500);
-        error_log($e->getMessage());
-    echo json_encode(['success' => false, 'error' => 'Ein interner Fehler ist aufgetreten.']);
+        error_log('Email test failed: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'error' => 'Ein interner Fehler ist aufgetreten. Bitte prüfen Sie die Server-Logs.']);
     }
     exit;
 }
@@ -75,45 +74,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrfToken();
     try {
         $input = json_decode(file_get_contents('php://input'), true);
-        
+
         if (!$input) {
             throw new Exception('Invalid JSON input');
         }
-        
-        // Load current config
-        $config = file_exists($configFile) ? require $configFile : [];
-        
-        // Update email settings
-        $config['email'] = [
-            'smtp_host' => $input['smtp_host'] ?? 'localhost',
-            'smtp_port' => (int)($input['smtp_port'] ?? 587),
-            'smtp_auth' => !empty($input['smtp_auth']),
+
+        DataStore::updateEmailSettings([
+            'smtp_host'     => $input['smtp_host']     ?? '',
+            'smtp_port'     => (int) ($input['smtp_port'] ?? 587),
+            'smtp_auth'     => !empty($input['smtp_auth']),
             'smtp_username' => $input['smtp_username'] ?? '',
             'smtp_password' => $input['smtp_password'] ?? '',
-            'smtp_secure' => $input['smtp_secure'] ?? '',
-            'from_address' => $input['from_address'] ?? 'noreply@feuerwehr.local',
-            'from_name' => $input['from_name'] ?? 'Feuerwehr Management System',
-        ];
-        
-        // Generate PHP config file content
-        $configContent = "<?php\n";
-        $configContent .= "/**\n";
-        $configContent .= " * Configuration file for Feuerwehr App\n";
-        $configContent .= " * Last updated: " . date('Y-m-d H:i:s') . "\n";
-        $configContent .= " */\n\n";
-        $configContent .= "return " . var_export($config, true) . ";\n";
-        
-        // Save config file
-        if (file_put_contents($configFile, $configContent) === false) {
-            throw new Exception('Failed to write config file');
-        }
-        
+            'smtp_secure'   => $input['smtp_secure']   ?? '',
+            'from_address'  => $input['from_address']  ?? 'noreply@feuerwehr.local',
+            'from_name'     => $input['from_name']     ?? 'Feuerwehr Management System',
+        ]);
+
         echo json_encode(['success' => true, 'message' => 'Settings saved successfully']);
     } catch (Exception $e) {
         http_response_code(500);
         error_log($e->getMessage());
-    echo json_encode(['success' => false, 'error' => 'Ein interner Fehler ist aufgetreten.']);
+        echo json_encode(['success' => false, 'error' => 'Ein interner Fehler ist aufgetreten.']);
     }
+    exit;
+}
+
+// Handle GET - return current settings
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $emailConfig = DataStore::getEmailSettings();
+    // Never expose the SMTP password in the response
+    $emailConfig['smtp_password'] = '';
+    echo json_encode(['success' => true, 'settings' => $emailConfig]);
     exit;
 }
 
