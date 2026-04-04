@@ -118,7 +118,7 @@ function getLocationName($locationId, $allLocations) {
                             <?php foreach ($attendanceRecords as $record): 
                                 $attendeeNames = getPersonnelNames($record['attendees'] ?? [], $personnel);
                                 $locationName = getLocationName($record['location_id'] ?? '', $locations);
-                                // Resolve instructor IDs to names (same logic as generateAttendanceHTML)
+                                // Resolve instructor IDs to names (same logic as EmailPDF::generateAttendanceHTML in email_pdf.php)
                                 $instructorNames = [];
                                 foreach ($record['uebungsleiter'] ?? [] as $leader) {
                                     if (strpos($leader, 'pers_') === 0) {
