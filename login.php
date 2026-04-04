@@ -13,8 +13,9 @@ if (!file_exists(__DIR__ . '/config/config.php')) {
     exit;
 }
 
-// Initialize session
+// Initialize session and send security headers
 Auth::init();
+sendSecurityHeaders();
 
 // If already authenticated, redirect to main app
 if (Auth::isAuthenticated()) {
@@ -24,22 +25,36 @@ if (Auth::isAuthenticated()) {
 
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $rememberMe = isset($_POST['remember_me']) && $_POST['remember_me'] === '1';
-    
-    if (Auth::login($username, $password, $rememberMe)) {
-        // Login successful - session was already written and closed in Auth::login()
-        // Redirect to main app
-        header('Location: /index.php');
-        exit;
+    // CSRF validation
+    if (!Auth::validateCsrfToken()) {
+        $loginError = 'Ungültige Anfrage. Bitte versuchen Sie es erneut.';
     } else {
-        $loginError = 'Ungültiger Benutzername oder Passwort';
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
+        // Rate-limit check
+        if (!Auth::checkRateLimit($ip)) {
+            $loginError = 'Zu viele fehlgeschlagene Versuche. Bitte warten Sie 15 Minuten.';
+            http_response_code(429);
+        } else {
+            $username = trim($_POST['username'] ?? '');
+            $password = $_POST['password'] ?? '';
+            $rememberMe = isset($_POST['remember_me']) && $_POST['remember_me'] === '1';
+
+            if (Auth::login($username, $password, $rememberMe)) {
+                Auth::clearRateLimit($ip);
+                // Login successful - session was already written and closed in Auth::login()
+                header('Location: /index.php');
+                exit;
+            } else {
+                Auth::recordFailedAttempt($ip);
+                $loginError = 'Ungültiger Benutzername oder Passwort';
+            }
+        }
     }
 } else {
     // Try auto-login with remember me token if not a POST request
     Auth::tryAutoLogin();
-    
+
     // Check again after auto-login
     if (Auth::isAuthenticated()) {
         header('Location: /index.php');
@@ -58,6 +73,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'reset-password') {
     // Invalid token format - show login page with error
     $loginError = 'Ungültiger Passwort-Reset-Link';
 }
+
+$csrfToken = Auth::getCsrfToken();
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -99,6 +116,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'reset-password') {
             <?php endif; ?>
             
             <form method="POST" action="/login.php">
+                <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                 <div class="form-group">
                     <label class="form-label" for="username">Benutzername</label>
                     <input type="text" id="username" name="username" class="form-input" required autofocus>
@@ -172,11 +190,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'reset-password') {
         
         const formData = new FormData(e.target);
         const username = formData.get('username');
+        const csrfToken = document.querySelector('input[name="_csrf_token"]')?.value || '';
         
         try {
             const response = await fetch('/src/php/api/password-reset.php?action=request', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
                 body: JSON.stringify({ username: username })
             });
             

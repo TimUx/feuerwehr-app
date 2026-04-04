@@ -48,8 +48,13 @@ class OfflineStorage {
 
   /**
    * Save form data for offline submission
+   * @param {string} formType      - Human-readable form type
+   * @param {string} url           - Target URL
+   * @param {*}      formData      - Form data to send (FormData or JSON string)
+   * @param {Object} additionalInfo - Extra fields merged into the stored entry
+   * @param {string} [contentType] - Content-Type header to send when syncing (default: omitted, browser sets for FormData)
    */
-  async saveForm(formType, url, formData, additionalInfo = {}) {
+  async saveForm(formType, url, formData, additionalInfo = {}, contentType = null) {
     if (!this.db) {
       await this.init();
     }
@@ -62,6 +67,7 @@ class OfflineStorage {
         type: formType,
         url: url,
         data: formData,
+        contentType: contentType, // stored so sw.js can re-apply it on sync
         timestamp: new Date().toISOString(),
         status: 'pending',
         ...additionalInfo

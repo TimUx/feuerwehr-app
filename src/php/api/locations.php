@@ -9,6 +9,7 @@ require_once __DIR__ . '/../datastore.php';
 
 // Initialize authentication
 Auth::init();
+sendSecurityHeaders();
 
 // Check authentication
 if (!Auth::isAuthenticated()) {
@@ -20,6 +21,11 @@ if (!Auth::isAuthenticated()) {
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
+    // Validate CSRF token for state-changing operations
+    if ($method !== 'GET' && $method !== 'HEAD') {
+        Auth::requireCsrfToken();
+    }
+
     switch ($method) {
         case 'GET':
             // Get all locations or single by ID
@@ -131,5 +137,6 @@ try {
     }
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Serverfehler: ' . $e->getMessage()]);
+    error_log($e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Ein interner Fehler ist aufgetreten.']);
 }

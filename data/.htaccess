@@ -1,0 +1,16 @@
+# Deny all direct HTTP access to the data directory.
+# This prevents sensitive encrypted JSON files from being downloaded directly.
+#
+# IMPORTANT: For maximum security, consider placing the data/ directory
+# *outside* the web server document root entirely (see README.md for details).
+
+# Apache 2.4+
+<IfVersion >= 2.4>
+    Require all denied
+</IfVersion>
+
+# Apache 2.2 fallback
+<IfVersion < 2.4>
+    Order deny,allow
+    Deny from all
+</IfVersion>

@@ -7,6 +7,7 @@
 require_once __DIR__ . '/../auth.php';
 
 Auth::requireOperator();
+sendSecurityHeaders();
 
 header('Content-Type: application/json');
 

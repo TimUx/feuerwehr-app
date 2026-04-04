@@ -14,6 +14,11 @@ $method = $_SERVER['REQUEST_METHOD'];
 $dataStore = new DataStore();
 
 try {
+    // Validate CSRF token for state-changing operations
+    if ($method !== 'GET' && $method !== 'HEAD') {
+        Auth::requireCsrfToken();
+    }
+
     switch ($method) {
         case 'GET':
             $phoneNumbers = $dataStore->getPhoneNumbers();
@@ -75,5 +80,6 @@ try {
     }
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log($e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Ein interner Fehler ist aufgetreten.']);
 }

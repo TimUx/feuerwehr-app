@@ -9,11 +9,13 @@ require_once __DIR__ . '/../email_pdf.php';
 
 // Initialize authentication (but don't require login for password reset)
 Auth::init();
+sendSecurityHeaders();
 
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
     if ($method === 'POST') {
+        Auth::requireCsrfToken();
         $action = $_GET['action'] ?? 'request';
         
         if ($action === 'request') {
@@ -146,5 +148,6 @@ try {
     }
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Serverfehler: ' . $e->getMessage()]);
+    error_log($e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Ein interner Fehler ist aufgetreten.']);
 }

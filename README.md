@@ -1204,6 +1204,28 @@ session.gc_maxlifetime = 3600
 - **Beschränkte Berechtigungen**: 
   - `data/` Verzeichnis: 700
   - `config/config.php`: 600
+- **Web-Zugriff verweigert**: `data/.htaccess` blockiert direkten HTTP-Zugriff auf alle Datendateien
+- **Fallback-Schutz**: `data/index.php` beendet Ausführung, wenn `.htaccess` nicht greift
+
+#### data/-Verzeichnis außerhalb des Document Root (empfohlen)
+
+Für maximale Sicherheit sollte das `data/`-Verzeichnis **außerhalb des Web-Document-Root** platziert werden, sodass der Webserver es gar nicht erst ausliefern kann.
+
+**Beispiel-Konfiguration:**
+
+1. Verzeichnis außerhalb des Document Root erstellen:
+   ```bash
+   sudo mkdir -p /var/feuerwehr/data
+   sudo chown www-data:www-data /var/feuerwehr/data
+   sudo chmod 700 /var/feuerwehr/data
+   ```
+
+2. `config/config.php` anpassen:
+   ```php
+   'data_dir' => '/var/feuerwehr/data',
+   ```
+
+3. Das `data/`-Verzeichnis im App-Root kann dann leer bleiben (oder entfernt werden, da es nicht mehr genutzt wird).
 
 ### Best Practices
 

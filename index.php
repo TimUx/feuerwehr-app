@@ -12,8 +12,9 @@ if (!file_exists(__DIR__ . '/config/config.php')) {
     exit;
 }
 
-// Initialize session
+// Initialize session and send security headers
 Auth::init();
+sendSecurityHeaders();
 
 // Handle logout
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
@@ -39,6 +40,7 @@ if (!$isAuthenticated && $page !== 'reset-password') {
 }
 
 $user = Auth::getUser();
+$csrfToken = Auth::getCsrfToken();
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -47,6 +49,7 @@ $user = Auth::getUser();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Feuerwehr Management App">
     <meta name="theme-color" content="#d32f2f">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken); ?>">
     
     <!-- iOS Safari PWA Support -->
     <meta name="mobile-web-app-capable" content="yes">
@@ -84,8 +87,8 @@ $user = Auth::getUser();
                 
                 <div id="reset-message"></div>
                 
-                <form id="reset-password-form">
-                    <input type="hidden" id="reset-token" value="<?php echo htmlspecialchars($resetToken ?? ''); ?>">
+                <form id="reset-password-form" data-token="<?php echo htmlspecialchars($resetToken ?? ''); ?>">
+                    <!-- Token read from data-token attribute by password-reset.js -->
                     
                     <div id="reset-username-display" style="display: none; margin-bottom: 20px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-radius: 4px; text-align: center;">
                         <strong>Benutzername:</strong> <span id="username-value"></span>
@@ -118,83 +121,7 @@ $user = Auth::getUser();
             </div>
         </div>
 
-        <script>
-        // Verify token on page load
-        (async function() {
-            const token = document.getElementById('reset-token').value;
-            
-            if (!token) {
-                showResetMessage('error', 'Kein Token gefunden. Bitte fordern Sie einen neuen Passwort-Reset-Link an.');
-                document.getElementById('reset-password-form').style.display = 'none';
-                return;
-            }
-            
-            try {
-                const response = await fetch('/src/php/api/password-reset.php?action=verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: token })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    document.getElementById('username-value').textContent = result.username;
-                    document.getElementById('reset-username-display').style.display = 'block';
-                } else {
-                    showResetMessage('error', result.message || 'Ungültiger oder abgelaufener Token.');
-                    document.getElementById('reset-password-form').style.display = 'none';
-                }
-            } catch (error) {
-                showResetMessage('error', 'Fehler beim Überprüfen des Tokens.');
-                document.getElementById('reset-password-form').style.display = 'none';
-            }
-        })();
-
-        // Handle password reset form submission
-        document.getElementById('reset-password-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const password = document.getElementById('new-password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
-            
-            if (password !== confirmPassword) {
-                showResetMessage('error', 'Die Passwörter stimmen nicht überein.');
-                return;
-            }
-            
-            const token = document.getElementById('reset-token').value;
-            
-            try {
-                const response = await fetch('/src/php/api/password-reset.php?action=reset', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: token, password: password })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showResetMessage('success', result.message + ' Sie werden zum Login weitergeleitet...');
-                    document.getElementById('reset-password-form').style.display = 'none';
-                    setTimeout(() => {
-                        window.location.href = '/login.php';
-                    }, 2000);
-                } else {
-                    showResetMessage('error', result.message);
-                }
-            } catch (error) {
-                showResetMessage('error', 'Fehler beim Zurücksetzen des Passworts: ' + error.message);
-            }
-        });
-
-        function showResetMessage(type, message) {
-            const messageDiv = document.getElementById('reset-message');
-            messageDiv.className = 'alert alert-' + type;
-            messageDiv.textContent = message;
-            messageDiv.style.display = 'block';
-        }
-        </script>
+        <script src="/public/js/password-reset.js"></script>
     <?php else: ?>
         <!-- Main App -->
         <div class="app-container">

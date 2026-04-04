@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/session_init.php';
+require_once __DIR__ . '/storage_init.php';
 
 /**
  * Simplified Authentication System
@@ -13,66 +14,24 @@ class Auth {
     private static $initialized = false;
 
     public static function init() {
-        // Initialize only once
+        // Initialize only once per request
         if (self::$initialized) {
             return;
         }
-        
+
         // Start secure session FIRST (before loading config)
         initSecureSession();
-        
-        // Load config if not already loaded
+
         if (self::$config === null) {
             self::$config = require __DIR__ . '/../../config/config.php';
             self::$dataDir = self::$config['data_dir'];
-            
-            // Clear stat cache to ensure we get current filesystem state
-            clearstatcache(true, self::$dataDir);
-            
-            // Ensure data directory exists and is a directory
-            // Using is_dir() as primary check since it's more reliable for directories
-            if (!is_dir(self::$dataDir)) {
-                // Directory doesn't exist or is not a directory, try to create it
-                // Use 0755 permissions for better compatibility with shared hosting environments
-                if (!@mkdir(self::$dataDir, 0755, true)) {
-                    // mkdir failed, but check again if directory now exists
-                    // (could have been created by concurrent request, or might already exist)
-                    clearstatcache(true, self::$dataDir);
-                    
-                    if (!is_dir(self::$dataDir)) {
-                        // Directory truly doesn't exist and couldn't be created
-                        error_log("Failed to create data directory: " . self::$dataDir . ". Please ensure the web server has write permissions to the parent directory.");
-                        
-                        die("Configuration Error: Unable to create data directory. Please contact your system administrator or check file permissions.");
-                    }
-                    // else: Directory exists now, continue normally
-                }
-            }
-            
-            // Verify it's writable with an actual write test
-            // Note: is_writable() can return false negatives in some PHP-FPM configurations
-            // so we perform an actual write test instead
-            $testFile = self::$dataDir . '/.write_test_' . bin2hex(random_bytes(8));
-            
-            // Clear any previous errors
-            error_clear_last();
-            
-            $writeResult = @file_put_contents($testFile, 'test');
-            $writeTestSuccess = $writeResult !== false;
-            
-            if ($writeTestSuccess) {
-                // Clean up test file
-                @unlink($testFile);
-            } else {
-                // Write test failed - directory is not writable
-                $lastError = error_get_last();
-                $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
-                error_log("Data directory exists but is not writable: " . self::$dataDir . ". Write test error: " . $errorMsg);
-                
-                die("Configuration Error: Data directory is not writable. Please contact your system administrator or check file permissions.");
-            }
         }
-        
+
+        // Delegate directory creation + write-test to shared helper.
+        // The helper uses a static flag so the write-test runs at most
+        // once per PHP process regardless of how many classes call it.
+        initDataDirectory(self::$dataDir);
+
         self::$initialized = true;
     }
 
@@ -194,11 +153,18 @@ class Auth {
     }
 
     /**
-     * Check if user has operator role or higher
+     * Check if user has operator role or higher (operators and admins)
+     */
+    public static function isOperatorOrAbove() {
+        return self::isAuthenticated() && isset($_SESSION['role']) &&
+               in_array($_SESSION['role'], ['operator', 'admin']);
+    }
+
+    /**
+     * @deprecated Use isOperatorOrAbove() – kept for backward compatibility
      */
     public static function isOperator() {
-        return self::isAuthenticated() && isset($_SESSION['role']) && 
-               in_array($_SESSION['role'], ['operator', 'admin']);
+        return self::isOperatorOrAbove();
     }
 
     /**
@@ -248,7 +214,7 @@ class Auth {
      */
     public static function requireOperator() {
         self::requireAuth();
-        if (!self::isOperator()) {
+        if (!self::isOperatorOrAbove()) {
             http_response_code(403);
             die('Access denied. Operator privileges required.');
         }
@@ -315,6 +281,203 @@ class Auth {
     }
 
     /**
+     * Assert that the current user (operator or admin) has access to the given location.
+     * Operators and global admins always pass. Location-restricted admins and regular users
+     * are checked against $resourceLocationId.
+     * Sends HTTP 403 and exits on failure.
+     */
+    public static function assertLocationAccess($resourceLocationId) {
+        // Operators and global admins have unrestricted access
+        if (self::isOperatorOrAbove() && !self::hasLocationRestriction()) {
+            return;
+        }
+
+        $userLocationId = self::getUserLocationId();
+
+        // Location-restricted admins: use canAccessLocation()
+        if (self::hasLocationRestriction()) {
+            if (!self::canAccessLocation($resourceLocationId)) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+                exit;
+            }
+            return;
+        }
+
+        // Regular users: must match their own location
+        if (!$userLocationId || (isset($resourceLocationId) && $resourceLocationId !== $userLocationId)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
+            exit;
+        }
+    }
+
+    // ==================== CSRF Protection ====================
+
+    /**
+     * Get (or generate) the CSRF token for the current session.
+     * The token is stored in $_SESSION['csrf_token'] and lives for the
+     * lifetime of the session.
+     */
+    public static function getCsrfToken() {
+        self::init();
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+
+    /**
+     * Validate the CSRF token supplied by the client.
+     * Accepts the token either via the X-CSRF-Token request header or
+     * in the request body as _csrf_token.
+     * Returns true when valid, false otherwise.
+     */
+    public static function validateCsrfToken() {
+        self::init();
+        $sessionToken = $_SESSION['csrf_token'] ?? null;
+        if (!$sessionToken) {
+            return false;
+        }
+
+        // Prefer the HTTP header (used by AJAX)
+        $clientToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+
+        // Fall back to POST body field (used by plain HTML forms)
+        if ($clientToken === null) {
+            $clientToken = $_POST['_csrf_token'] ?? null;
+        }
+
+        if ($clientToken === null) {
+            return false;
+        }
+
+        return hash_equals($sessionToken, $clientToken);
+    }
+
+    /**
+     * Validate CSRF token and send HTTP 403 + exit on failure.
+     * Call this at the top of every state-changing API endpoint.
+     */
+    public static function requireCsrfToken() {
+        if (!self::validateCsrfToken()) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Ungültiger oder fehlender CSRF-Token']);
+            exit;
+        }
+    }
+
+    // ==================== Rate Limiting ====================
+
+    /**
+     * Check whether the given identifier (usually an IP address) is rate-limited.
+     *
+     * Stores attempt records in data/rate_limits.json.
+     * Rules:
+     *   - 5 failed attempts within 15 minutes → block for 15 minutes
+     *
+     * Returns true when the request is allowed, false when it is blocked.
+     */
+    public static function checkRateLimit(string $identifier): bool {
+        self::init();
+        $rateLimitFile = self::$dataDir . '/rate_limits.json';
+
+        $limits = [];
+        if (file_exists($rateLimitFile)) {
+            $encrypted = file_get_contents($rateLimitFile);
+            $decrypted = Encryption::decrypt($encrypted);
+            $limits = json_decode($decrypted, true) ?: [];
+        }
+
+        $now     = time();
+        $window  = 15 * 60; // 15 minutes in seconds
+        $maxTries = 5;
+
+        $entry = $limits[$identifier] ?? ['attempts' => [], 'blocked_until' => 0];
+
+        // Check if currently blocked
+        if ($entry['blocked_until'] > $now) {
+            return false;
+        }
+
+        // Remove attempts outside the window
+        $entry['attempts'] = array_values(
+            array_filter($entry['attempts'], fn($ts) => ($now - $ts) < $window)
+        );
+
+        return true;
+    }
+
+    /**
+     * Record a failed login/reset attempt for the identifier.
+     * Blocks the identifier after 5 failures within 15 minutes.
+     */
+    public static function recordFailedAttempt(string $identifier): void {
+        self::init();
+        $rateLimitFile = self::$dataDir . '/rate_limits.json';
+
+        $limits = [];
+        if (file_exists($rateLimitFile)) {
+            $encrypted = file_get_contents($rateLimitFile);
+            $decrypted = Encryption::decrypt($encrypted);
+            $limits = json_decode($decrypted, true) ?: [];
+        }
+
+        $now    = time();
+        $window = 15 * 60;
+        $maxTries = 5;
+
+        $entry = $limits[$identifier] ?? ['attempts' => [], 'blocked_until' => 0];
+
+        // Remove stale attempts
+        $entry['attempts'] = array_values(
+            array_filter($entry['attempts'], fn($ts) => ($now - $ts) < $window)
+        );
+
+        $entry['attempts'][] = $now;
+
+        if (count($entry['attempts']) >= $maxTries) {
+            $entry['blocked_until'] = $now + $window;
+            $entry['attempts']      = []; // reset counter after blocking
+        }
+
+        $limits[$identifier] = $entry;
+
+        // Purge entries that are fully expired (blocked_until in the past and no recent attempts)
+        $limits = array_filter($limits, function($e) use ($now, $window) {
+            return $e['blocked_until'] > $now || !empty($e['attempts']);
+        });
+
+        $json      = json_encode($limits, JSON_PRETTY_PRINT);
+        $encrypted = Encryption::encrypt($json);
+        file_put_contents($rateLimitFile, $encrypted, LOCK_EX);
+        chmod($rateLimitFile, 0600);
+    }
+
+    /**
+     * Clear the rate-limit counter for a given identifier on successful auth.
+     */
+    public static function clearRateLimit(string $identifier): void {
+        self::init();
+        $rateLimitFile = self::$dataDir . '/rate_limits.json';
+
+        if (!file_exists($rateLimitFile)) {
+            return;
+        }
+
+        $encrypted = file_get_contents($rateLimitFile);
+        $decrypted = Encryption::decrypt($encrypted);
+        $limits    = json_decode($decrypted, true) ?: [];
+
+        unset($limits[$identifier]);
+
+        $json      = json_encode($limits, JSON_PRETTY_PRINT);
+        $encrypted = Encryption::encrypt($json);
+        file_put_contents($rateLimitFile, $encrypted, LOCK_EX);
+    }
+
+
+    /**
      * Load users from encrypted storage
      */
     private static function loadUsers() {
@@ -324,7 +487,7 @@ class Auth {
         // Initialize with default admin if no users exist
         if (!file_exists($usersFile)) {
             $defaultAdmin = [
-                'id' => uniqid('user_'),
+                'id' => 'user_' . bin2hex(random_bytes(8)),
                 'username' => self::$config['default_admin']['username'],
                 'password' => password_hash(self::$config['default_admin']['password'], PASSWORD_DEFAULT),
                 'role' => 'admin',
@@ -347,7 +510,7 @@ class Auth {
         $usersFile = self::$dataDir . '/users.json';
         $json = json_encode($users, JSON_PRETTY_PRINT);
         $encrypted = Encryption::encrypt($json);
-        file_put_contents($usersFile, $encrypted);
+        file_put_contents($usersFile, $encrypted, LOCK_EX);
         chmod($usersFile, 0600);
     }
 
@@ -365,7 +528,7 @@ class Auth {
         }
 
         $newUser = [
-            'id' => uniqid('user_'),
+            'id' => 'user_' . bin2hex(random_bytes(8)),
             'username' => $username,
             'password' => password_hash($password, PASSWORD_DEFAULT),
             'role' => $role,
@@ -474,7 +637,7 @@ class Auth {
         // Save tokens
         $json = json_encode($tokens, JSON_PRETTY_PRINT);
         $encrypted = Encryption::encrypt($json);
-        file_put_contents($rememberTokensFile, $encrypted);
+        file_put_contents($rememberTokensFile, $encrypted, LOCK_EX);
         chmod($rememberTokensFile, 0600);
         
         // Determine if HTTPS is enabled
@@ -521,7 +684,7 @@ class Auth {
                 // Save remaining tokens
                 $json = json_encode(array_values($tokens), JSON_PRETTY_PRINT);
                 $encrypted = Encryption::encrypt($json);
-                file_put_contents($rememberTokensFile, $encrypted);
+                file_put_contents($rememberTokensFile, $encrypted, LOCK_EX);
             }
         }
     }
@@ -680,7 +843,7 @@ class Auth {
         // Save tokens
         $json = json_encode($tokens, JSON_PRETTY_PRINT);
         $encrypted = Encryption::encrypt($json);
-        file_put_contents($resetTokensFile, $encrypted);
+        file_put_contents($resetTokensFile, $encrypted, LOCK_EX);
         chmod($resetTokensFile, 0600);
         
         return [
@@ -771,7 +934,7 @@ class Auth {
         // Save remaining tokens
         $json = json_encode(array_values($tokens), JSON_PRETTY_PRINT);
         $encrypted = Encryption::encrypt($json);
-        file_put_contents($resetTokensFile, $encrypted);
+        file_put_contents($resetTokensFile, $encrypted, LOCK_EX);
     }
 
     /**
