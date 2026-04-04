@@ -83,6 +83,7 @@ try {
             'participants' => array_merge($data['fahrzeugbesatzung'], $data['beteiligte_personen']),
             'vehicles' => $data['eingesetzte_fahrzeuge'],
             'duration_hours' => $durationHours,
+            'location_id' => $standortId,
             'updated_by' => $user['id'],
             'updated_at' => date('Y-m-d H:i:s')
         ]);
@@ -100,6 +101,7 @@ try {
             'participants' => array_merge($data['fahrzeugbesatzung'], $data['beteiligte_personen']),
             'vehicles' => $data['eingesetzte_fahrzeuge'],
             'duration_hours' => $durationHours,
+            'location_id' => $standortId,
             'created_by' => $user['id'],
             'created_at' => date('Y-m-d H:i:s')
         ]);

@@ -510,20 +510,23 @@ class DataStore {
      */
     public static function createMissionReport($data) {
         $reports = self::getMissionReports();
-        
-        $newReport = [
-            'id' => 'mis_' . bin2hex(random_bytes(8)),
-            'date' => $data['date'],
-            'mission_type' => $data['mission_type'],
-            'location' => $data['location'] ?? '',
-            'description' => $data['description'] ?? '',
+
+        // Preserve all data fields from the input (like createAttendanceRecord does).
+        // The second array overrides any overlapping keys from $data, ensuring
+        // canonical fields like 'id' and 'created_at' are always set correctly.
+        $newReport = array_merge($data, [
+            'id' => $data['id'] ?? 'mis_' . bin2hex(random_bytes(8)),
+            'date' => $data['date'] ?? $data['einsatzdatum'] ?? '',
+            'mission_type' => $data['mission_type'] ?? $data['einsatzgrund'] ?? '',
+            'location' => $data['location'] ?? $data['einsatzort'] ?? '',
+            'description' => $data['description'] ?? $data['einsatzlage'] ?? '',
             'participants' => $data['participants'] ?? [],
-            'vehicles' => $data['vehicles'] ?? [],
+            'vehicles' => $data['vehicles'] ?? $data['eingesetzte_fahrzeuge'] ?? [],
             'duration_hours' => $data['duration_hours'] ?? 0,
             'location_id' => $data['location_id'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
             'created_by' => $data['created_by'] ?? null
-        ];
+        ]);
 
         $reports[] = $newReport;
         self::save('missions.json', $reports);
