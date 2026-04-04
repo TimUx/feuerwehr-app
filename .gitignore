@@ -2,6 +2,7 @@
 data/*.json
 data/*.dat
 data/backups/
+data/settings/
 
 # Configuration files with sensitive data
 config/config.php
