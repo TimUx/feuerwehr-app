@@ -114,9 +114,8 @@ try {
     // Generate PDF
     $pdf = EmailPDF::generatePDF($html);
     
-    // Get configuration and location for email recipients
-    $config = require __DIR__ . '/../../../config/config.php';
-    $generalEmail = $config['email']['from_address'] ?? null;
+    // Get email configuration and location for email recipients
+    $generalEmail = DataStore::getDefaultRecipient();
     
     // Get location email address as primary recipient
     $recipient = null;

@@ -40,9 +40,7 @@ try {
             $data = [
                 'fire_department_name' => $_POST['fire_department_name'] ?? '',
                 'fire_department_city' => $_POST['fire_department_city'] ?? '',
-                'email_recipient' => $_POST['email_recipient'] ?? '',
                 'contact_phone' => $_POST['contact_phone'] ?? '',
-                'contact_email' => $_POST['contact_email'] ?? '',
                 'address' => $_POST['address'] ?? ''
             ];
             

@@ -64,17 +64,6 @@ $settings = DataStore::getSettings();
                 </small>
             </div>
             
-            <h3>E-Mail-Einstellungen</h3>
-            
-            <div class="form-group">
-                <label class="form-label" for="email_recipient">Standard-Empfänger für Berichte</label>
-                <input type="email" id="email_recipient" name="email_recipient" 
-                       class="form-input" 
-                       value="<?php echo htmlspecialchars($settings['email_recipient'] ?? ''); ?>" 
-                       placeholder="z.B. berichte@feuerwehr-beispiel.de">
-                <small style="color: var(--text-secondary);">E-Mail-Adresse, an die Einsatzberichte automatisch gesendet werden.</small>
-            </div>
-            
             <h3>Weitere Einstellungen</h3>
             
             <div class="form-group">
@@ -83,14 +72,6 @@ $settings = DataStore::getSettings();
                        class="form-input" 
                        value="<?php echo htmlspecialchars($settings['contact_phone'] ?? ''); ?>" 
                        placeholder="z.B. 06691 12345">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="contact_email">Zentrale E-Mail-Adresse</label>
-                <input type="email" id="contact_email" name="contact_email" 
-                       class="form-input" 
-                       value="<?php echo htmlspecialchars($settings['contact_email'] ?? ''); ?>" 
-                       placeholder="z.B. info@feuerwehr-beispiel.de">
             </div>
             
             <div class="form-group">

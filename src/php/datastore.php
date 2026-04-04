@@ -721,9 +721,7 @@ class DataStore {
                 'fire_department_name' => 'Freiwillige Feuerwehr',
                 'fire_department_city' => '',
                 'logo_filename' => '',
-                'email_recipient' => '',
                 'contact_phone' => '',
-                'contact_email' => '',
                 'address' => ''
             ];
         }
@@ -767,6 +765,9 @@ class DataStore {
         $config = self::$config;
         $legacy = $config['email'] ?? [];
 
+        // Also check general settings for migrated email fields
+        $generalSettings = self::load('settings.json') ?? [];
+
         return [
             'smtp_host'     => $legacy['smtp_host']     ?? '',
             'smtp_port'     => (int) ($legacy['smtp_port'] ?? 587),
@@ -776,6 +777,9 @@ class DataStore {
             'smtp_secure'   => $legacy['smtp_secure']   ?? 'tls',
             'from_address'  => $legacy['from_address']  ?? '',
             'from_name'     => $legacy['from_name']     ?? 'Feuerwehr Management System',
+            // Migrate email_recipient from general settings as to_address
+            'to_address'    => $legacy['to_address']    ?? $generalSettings['email_recipient'] ?? '',
+            'contact_email' => $generalSettings['contact_email'] ?? '',
         ];
     }
 
@@ -792,11 +796,25 @@ class DataStore {
             'smtp_secure'   => $data['smtp_secure']   ?? 'tls',
             'from_address'  => $data['from_address']  ?? '',
             'from_name'     => $data['from_name']     ?? 'Feuerwehr Management System',
+            'to_address'    => $data['to_address']    ?? '',
+            'contact_email' => $data['contact_email'] ?? '',
             'updated_at'    => date('Y-m-d H:i:s'),
         ];
 
         self::save('email_settings.json', $settings);
         return $settings;
+    }
+
+    /**
+     * Get the default email recipient for form submissions.
+     * Uses to_address if configured, falls back to from_address.
+     */
+    public static function getDefaultRecipient(): ?string {
+        $settings = self::getEmailSettings();
+        if (!empty($settings['to_address'])) {
+            return $settings['to_address'];
+        }
+        return !empty($settings['from_address']) ? $settings['from_address'] : null;
     }
 
     /**
