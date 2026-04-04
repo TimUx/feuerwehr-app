@@ -143,7 +143,7 @@ $emailConfig = DataStore::getEmailSettings();
                            class="form-input" 
                            value="<?php echo htmlspecialchars($emailConfig['contact_email'] ?? ''); ?>" 
                            placeholder="info@feuerwehr.de">
-                    <small class="form-help">Allgemeine Kontaktadresse der Feuerwehr (z.&thinsp;B. für Impressum oder Kontaktformular)</small>
+                    <small class="form-help">Allgemeine Kontaktadresse der Feuerwehr (z. B. für Impressum oder Kontaktformular)</small>
                 </div>
                 
                 <div class="form-group">
