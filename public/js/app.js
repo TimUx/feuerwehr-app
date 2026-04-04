@@ -16,6 +16,39 @@ function getCsrfToken() {
 }
 
 /**
+ * Global fetch interceptor – automatically attaches the CSRF token to every
+ * state-changing (non-GET / non-HEAD) same-origin request so that individual
+ * fetch() call sites do not have to remember to include the header.
+ *
+ * External requests (URLs that start with "http") are left untouched so we
+ * never accidentally leak the session token to third-party servers.
+ */
+(function installCsrfInterceptor() {
+  const _fetch = window.fetch;
+  window.fetch = function (url, options) {
+    options = options || {};
+    const method = (options.method || 'GET').toUpperCase();
+    const isExternal = typeof url === 'string' && /^https?:\/\//i.test(url);
+
+    if (!isExternal && method !== 'GET' && method !== 'HEAD') {
+      // Normalise headers so we can safely set a key
+      if (options.headers instanceof Headers) {
+        if (!options.headers.has('X-CSRF-Token')) {
+          options.headers.set('X-CSRF-Token', getCsrfToken());
+        }
+      } else {
+        options.headers = Object.assign({}, options.headers);
+        if (!options.headers['X-CSRF-Token']) {
+          options.headers['X-CSRF-Token'] = getCsrfToken();
+        }
+      }
+    }
+
+    return _fetch.call(this, url, options);
+  };
+})();
+
+/**
  * Toggle the loading/disabled state of a form's submit button.
  * @param {HTMLFormElement} form      - The form element
  * @param {boolean}         isLoading - true to disable and show spinner, false to restore
