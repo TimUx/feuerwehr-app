@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = 'feuerwehr-app-static-' + CACHE_VERSION;
 const DYNAMIC_CACHE = 'feuerwehr-app-dynamic-' + CACHE_VERSION;
 const API_CACHE = 'feuerwehr-app-api-' + CACHE_VERSION;
@@ -159,7 +159,19 @@ self.addEventListener('fetch', event => {
   if (!event.request.url.startsWith('http')) {
     return;
   }
-  
+
+  // Navigation requests (page loads / redirects) carry redirect:'manual' in the SW
+  // context, which causes an opaque-redirect response when the server issues a 302
+  // (e.g. logout → /login.php).  Fetch by URL instead so redirects are followed
+  // normally, and fall back to cache when offline.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request.url)
+        .catch(() => caches.match(event.request) || caches.match('/login.php'))
+    );
+    return;
+  }
+
   const strategy = getCacheStrategy(url);
   
   if (strategy === 'cache-first') {
