@@ -2,6 +2,7 @@ const CACHE_VERSION = 'v4';
 const STATIC_CACHE = 'feuerwehr-app-static-' + CACHE_VERSION;
 const DYNAMIC_CACHE = 'feuerwehr-app-dynamic-' + CACHE_VERSION;
 const API_CACHE = 'feuerwehr-app-api-' + CACHE_VERSION;
+const OFFLINE_FALLBACK = '/login.php';
 
 // Static assets to cache on install.
 // NOTE: /index.php is intentionally excluded because it contains auth-checks
@@ -167,7 +168,10 @@ self.addEventListener('fetch', event => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request.url)
-        .catch(() => caches.match(event.request) || caches.match('/login.php'))
+        .catch(() => {
+          console.log('[SW] Navigate fetch failed, serving offline fallback for:', event.request.url);
+          return caches.match(event.request) || caches.match(OFFLINE_FALLBACK);
+        })
     );
     return;
   }
