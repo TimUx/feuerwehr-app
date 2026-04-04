@@ -430,6 +430,23 @@ function updateCrewSections() {
         }
     });
     
+    // Save current crew field values before clearing
+    const savedCrewData = {};
+    crewContainer.querySelectorAll('.vehicle-crew-section').forEach(section => {
+        const vehicleId = section.dataset.vehicleId;
+        savedCrewData[vehicleId] = [];
+        section.querySelectorAll('.crew-entry').forEach((entry, i) => {
+            const funktionSelect = entry.querySelector('select[name*="[funktion]"]');
+            const nameSelect = entry.querySelector('select[name*="[name]"]');
+            const verdienstausfallCheckbox = entry.querySelector('input[type="checkbox"][name*="[verdienstausfall]"]');
+            savedCrewData[vehicleId].push({
+                funktion: funktionSelect ? funktionSelect.value : '',
+                name: nameSelect ? nameSelect.value : '',
+                verdienstausfall: verdienstausfallCheckbox ? verdienstausfallCheckbox.checked : false
+            });
+        });
+    });
+
     // Clear existing
     crewContainer.innerHTML = '';
     
@@ -489,6 +506,20 @@ function updateCrewSections() {
         
         section.innerHTML = sectionHTML;
         crewContainer.appendChild(section);
+
+        // Restore previously filled crew data for this vehicle
+        if (savedCrewData[vehicle.id]) {
+            section.querySelectorAll('.crew-entry').forEach((entry, i) => {
+                const saved = savedCrewData[vehicle.id][i];
+                if (!saved) return;
+                const funktionSelect = entry.querySelector('select[name*="[funktion]"]');
+                const nameSelect = entry.querySelector('select[name*="[name]"]');
+                const verdienstausfallCheckbox = entry.querySelector('input[type="checkbox"][name*="[verdienstausfall]"]');
+                if (funktionSelect && saved.funktion) funktionSelect.value = saved.funktion;
+                if (nameSelect && saved.name) nameSelect.value = saved.name;
+                if (verdienstausfallCheckbox) verdienstausfallCheckbox.checked = saved.verdienstausfall;
+            });
+        }
     });
 }
 
