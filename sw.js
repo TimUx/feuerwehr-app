@@ -1,7 +1,8 @@
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = 'feuerwehr-app-static-' + CACHE_VERSION;
 const DYNAMIC_CACHE = 'feuerwehr-app-dynamic-' + CACHE_VERSION;
 const API_CACHE = 'feuerwehr-app-api-' + CACHE_VERSION;
+const OFFLINE_FALLBACK = '/login.php';
 
 // Static assets to cache on install.
 // NOTE: /index.php is intentionally excluded because it contains auth-checks
@@ -159,7 +160,22 @@ self.addEventListener('fetch', event => {
   if (!event.request.url.startsWith('http')) {
     return;
   }
-  
+
+  // Navigation requests (page loads / redirects) carry redirect:'manual' in the SW
+  // context, which causes an opaque-redirect response when the server issues a 302
+  // (e.g. logout → /login.php).  Fetch by URL instead so redirects are followed
+  // normally, and fall back to cache when offline.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request.url)
+        .catch(() => {
+          console.log('[SW] Navigate fetch failed, serving offline fallback for:', event.request.url);
+          return caches.match(event.request) || caches.match(OFFLINE_FALLBACK);
+        })
+    );
+    return;
+  }
+
   const strategy = getCacheStrategy(url);
   
   if (strategy === 'cache-first') {
