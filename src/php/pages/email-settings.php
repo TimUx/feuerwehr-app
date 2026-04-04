@@ -124,15 +124,26 @@ $emailConfig = DataStore::getEmailSettings();
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label" for="to_address">Empfänger-Adresse *</label>
+                    <label class="form-label" for="to_address">Standard-Empfänger für Berichte *</label>
                     <input type="email" 
                            id="to_address" 
                            name="to_address" 
                            class="form-input" 
                            value="<?php echo htmlspecialchars($emailConfig['to_address'] ?? ''); ?>" 
-                           placeholder="empfaenger@feuerwehr.de" 
+                           placeholder="berichte@feuerwehr.de" 
                            required>
-                    <small class="form-help">An diese Adresse werden Formulare und Test-E-Mails gesendet (wenn keine Standort-Adresse hinterlegt ist)</small>
+                    <small class="form-help">E-Mail-Adresse, an die Einsatz- und Anwesenheitsberichte automatisch gesendet werden (wenn keine Standort-Adresse hinterlegt ist)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="contact_email">Zentrale E-Mail-Adresse</label>
+                    <input type="email" 
+                           id="contact_email" 
+                           name="contact_email" 
+                           class="form-input" 
+                           value="<?php echo htmlspecialchars($emailConfig['contact_email'] ?? ''); ?>" 
+                           placeholder="info@feuerwehr.de">
+                    <small class="form-help">Allgemeine Kontaktadresse der Feuerwehr (z.&thinsp;B. für Impressum oder Kontaktformular)</small>
                 </div>
                 
                 <div class="form-group">

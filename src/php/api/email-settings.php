@@ -89,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'from_address'  => $input['from_address']  ?? 'noreply@feuerwehr.local',
             'from_name'     => $input['from_name']     ?? 'Feuerwehr Management System',
             'to_address'    => $input['to_address']    ?? '',
+            'contact_email' => $input['contact_email'] ?? '',
         ]);
 
         echo json_encode(['success' => true, 'message' => 'Settings saved successfully']);
