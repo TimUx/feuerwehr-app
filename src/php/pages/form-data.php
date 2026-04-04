@@ -118,7 +118,18 @@ function getLocationName($locationId, $allLocations) {
                             <?php foreach ($attendanceRecords as $record): 
                                 $attendeeNames = getPersonnelNames($record['attendees'] ?? [], $personnel);
                                 $locationName = getLocationName($record['location_id'] ?? '', $locations);
-                                $instructors = $record['uebungsleiter'] ?? [];
+                                // Resolve instructor IDs to names (same logic as generateAttendanceHTML)
+                                $instructorNames = [];
+                                foreach ($record['uebungsleiter'] ?? [] as $leader) {
+                                    if (strpos($leader, 'pers_') === 0) {
+                                        $person = DataStore::getPersonnelById($leader);
+                                        if ($person) {
+                                            $instructorNames[] = $person['name'];
+                                        }
+                                    } else {
+                                        $instructorNames[] = $leader;
+                                    }
+                                }
                                 
                                 // Prepare record data as JSON for details modal
                                 $recordJson = htmlspecialchars(json_encode([
@@ -129,7 +140,7 @@ function getLocationName($locationId, $allLocations) {
                                     'dauer' => (!empty($record['dauer']) ? intval($record['dauer']) : (!empty($record['duration_hours']) ? intval($record['duration_hours'] * 60) : 0)),
                                     'standort' => $locationName,
                                     'thema' => $record['thema'] ?? $record['description'] ?? '-',
-                                    'instructors' => $instructors,
+                                    'instructors' => $instructorNames,
                                     'attendees' => $attendeeNames,
                                     'anmerkungen' => $record['anmerkungen'] ?? ''
                                 ]), ENT_QUOTES, 'UTF-8');
@@ -261,7 +272,7 @@ function getLocationName($locationId, $allLocations) {
 </div>
 
 <!-- Details Modal -->
-<div id="detailsModal" class="modal" style="display: none;">
+<div id="detailsModal" class="modal">
     <div class="modal-content" style="max-width: 800px;">
         <div class="modal-header">
             <h2 id="modalTitle">Details</h2>
@@ -319,61 +330,23 @@ function getLocationName($locationId, $allLocations) {
     white-space: normal;
 }
 
-/* Modal styles */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background-color: white;
-    border-radius: 8px;
+/* Modal styles - scoped to detailsModal to avoid polluting global modal styles */
+#detailsModal .modal-content {
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 90%;
 }
 
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+#detailsModal .modal-header {
     padding: 1.5rem;
     border-bottom: 1px solid var(--border-color);
 }
 
-.modal-header h2 {
+#detailsModal .modal-header h2 {
     margin: 0;
     font-size: 1.5rem;
 }
 
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 2rem;
-    cursor: pointer;
-    color: var(--text-secondary);
-    padding: 0;
-    width: 2rem;
-    height: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-close:hover {
-    color: var(--text-primary);
-}
-
-.modal-body {
+#detailsModal .modal-body {
     padding: 1.5rem;
 }
 
@@ -511,11 +484,11 @@ function showAttendanceDetails(record) {
         </div>
     `;
     
-    modal.style.display = 'flex';
+    modal.classList.add('show');
 }
 
 function closeDetailsModal() {
-    document.getElementById('detailsModal').style.display = 'none';
+    document.getElementById('detailsModal').classList.remove('show');
 }
 
 function escapeHtml(text) {
@@ -528,7 +501,7 @@ function escapeHtml(text) {
 // Close modal when clicking outside
 document.addEventListener('click', function(event) {
     const modal = document.getElementById('detailsModal');
-    if (event.target === modal) {
+    if (modal && event.target === modal) {
         closeDetailsModal();
     }
 });
