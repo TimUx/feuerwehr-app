@@ -4,6 +4,7 @@
  */
 
 require_once __DIR__ . '/encryption.php';
+require_once __DIR__ . '/storage_init.php';
 
 class DataStore {
     private static $config;
@@ -13,53 +14,12 @@ class DataStore {
         if (!self::$config) {
             self::$config = require __DIR__ . '/../../config/config.php';
             self::$dataDir = self::$config['data_dir'];
-            
-            // Clear stat cache to ensure we get current filesystem state
-            clearstatcache(true, self::$dataDir);
-            
-            // Ensure data directory exists and is a directory
-            // Using is_dir() as primary check since it's more reliable for directories
-            if (!is_dir(self::$dataDir)) {
-                // Directory doesn't exist or is not a directory, try to create it
-                // Use 0755 permissions for better compatibility with shared hosting environments
-                if (!@mkdir(self::$dataDir, 0755, true)) {
-                    // mkdir failed, but check again if directory now exists
-                    // (could have been created by concurrent request, or might already exist)
-                    clearstatcache(true, self::$dataDir);
-                    
-                    if (!is_dir(self::$dataDir)) {
-                        // Directory truly doesn't exist and couldn't be created
-                        error_log("Failed to create data directory: " . self::$dataDir . ". Please ensure the web server has write permissions to the parent directory.");
-                        
-                        die("Configuration Error: Unable to create data directory. Please contact your system administrator or check file permissions.");
-                    }
-                    // else: Directory exists now, continue normally
-                }
-            }
-            
-            // Verify it's writable with an actual write test
-            // Note: is_writable() can return false negatives in some PHP-FPM configurations
-            // so we perform an actual write test instead
-            $testFile = self::$dataDir . '/.write_test_' . bin2hex(random_bytes(8));
-            
-            // Clear any previous errors
-            error_clear_last();
-            
-            $writeResult = @file_put_contents($testFile, 'test');
-            $writeTestSuccess = $writeResult !== false;
-            
-            if ($writeTestSuccess) {
-                // Clean up test file
-                @unlink($testFile);
-            } else {
-                // Write test failed - directory is not writable
-                $lastError = error_get_last();
-                $errorMsg = $lastError ? $lastError['message'] : 'Unknown error';
-                error_log("Data directory exists but is not writable: " . self::$dataDir . ". Write test error: " . $errorMsg);
-                
-                die("Configuration Error: Data directory is not writable. Please contact your system administrator or check file permissions.");
-            }
         }
+
+        // Delegate directory creation + write-test to the shared helper.
+        // The helper uses a static flag so the write-test runs at most
+        // once per PHP process regardless of how many classes call it.
+        initDataDirectory(self::$dataDir);
     }
 
     /**
@@ -79,15 +39,40 @@ class DataStore {
     }
 
     /**
-     * Save data to encrypted JSON file
+     * Save data to encrypted JSON file.
+     *
+     * NOTE: JSON files are always rewritten in full on every save.
+     *       LOCK_EX prevents data corruption from concurrent writes, but
+     *       high-frequency concurrent updates should be handled at the
+     *       application layer (e.g. request queuing) if needed.
      */
     private static function save($filename, $data) {
         self::init();
         $filepath = self::$dataDir . '/' . $filename;
         $json = json_encode($data, JSON_PRETTY_PRINT);
         $encrypted = Encryption::encrypt($json);
-        file_put_contents($filepath, $encrypted);
+        file_put_contents($filepath, $encrypted, LOCK_EX);
         chmod($filepath, 0600);
+    }
+
+    /**
+     * Load records from an encrypted JSON file and apply a filter callback.
+     * Only matching records are returned, avoiding loading all data into memory
+     * when only a subset is needed.
+     */
+    private static function loadFiltered(string $filename, callable $filter): array {
+        self::init();
+        $filepath = self::$dataDir . '/' . $filename;
+
+        if (!file_exists($filepath)) {
+            return [];
+        }
+
+        $encrypted = file_get_contents($filepath);
+        $decrypted = Encryption::decrypt($encrypted);
+        $all = json_decode($decrypted, true) ?: [];
+
+        return array_values(array_filter($all, $filter));
     }
 
     // ==================== Personnel Management ====================
@@ -132,7 +117,7 @@ class DataStore {
         $personnel = self::getPersonnel();
         
         $newPerson = [
-            'id' => uniqid('pers_'),
+            'id' => 'pers_' . bin2hex(random_bytes(8)),
             'name' => $data['name'],
             'qualifications' => $data['qualifications'] ?? [],
             'leadership_roles' => $data['leadership_roles'] ?? [],
@@ -235,7 +220,7 @@ class DataStore {
         $vehicles = self::getVehicles();
         
         $newVehicle = [
-            'id' => uniqid('veh_'),
+            'id' => 'veh_' . bin2hex(random_bytes(8)),
             'location' => $data['location'] ?? null, // Legacy field for backward compatibility
             'location_id' => $data['location_id'] ?? null, // New field - use this for filtering
             'type' => $data['type'],
@@ -341,7 +326,7 @@ class DataStore {
         $locations = self::getLocations();
         
         $newLocation = [
-            'id' => uniqid('loc_'),
+            'id' => 'loc_' . bin2hex(random_bytes(8)),
             'name' => $data['name'],
             'address' => $data['address'] ?? '',
             'email' => $data['email'] ?? '',
@@ -437,7 +422,7 @@ class DataStore {
         
         // Preserve all data fields from the input
         $newRecord = array_merge($data, [
-            'id' => $data['id'] ?? uniqid('att_'),
+            'id' => $data['id'] ?? 'att_' . bin2hex(random_bytes(8)),
             'date' => $data['date'] ?? $data['datum'] ?? '',
             'type' => $data['type'] ?? 'training',
             'description' => $data['description'] ?? $data['thema'] ?? '',
@@ -527,7 +512,7 @@ class DataStore {
         $reports = self::getMissionReports();
         
         $newReport = [
-            'id' => uniqid('mis_'),
+            'id' => 'mis_' . bin2hex(random_bytes(8)),
             'date' => $data['date'],
             'mission_type' => $data['mission_type'],
             'location' => $data['location'] ?? '',
@@ -588,17 +573,8 @@ class DataStore {
             $year = date('Y');
         }
 
-        $attendance = self::getAttendanceRecords();
-        $missions = self::getMissionReports();
-
-        // Filter by year
-        $attendance = array_filter($attendance, function($record) use ($year) {
-            return strpos($record['date'], $year) === 0;
-        });
-
-        $missions = array_filter($missions, function($report) use ($year) {
-            return strpos($report['date'], $year) === 0;
-        });
+        $attendance = self::loadFiltered('attendance.json', fn($r) => strpos($r['date'], $year) === 0);
+        $missions   = self::loadFiltered('missions.json',   fn($r) => strpos($r['date'], $year) === 0);
 
         // Calculate overall statistics
         $totalTrainingHours = array_sum(array_column($attendance, 'duration_hours'));
@@ -622,29 +598,15 @@ class DataStore {
             $year = date('Y');
         }
 
-        $attendance = self::getAttendanceRecords();
-        $missions = self::getMissionReports();
+        $personAttendance = self::loadFiltered('attendance.json', fn($r) =>
+            strpos($r['date'], $year) === 0 && in_array($personnelId, $r['attendees'] ?? [])
+        );
+        $personMissions = self::loadFiltered('missions.json', fn($r) =>
+            strpos($r['date'], $year) === 0 && in_array($personnelId, $r['participants'] ?? [])
+        );
 
-        // Filter by year and person
-        $personAttendance = array_filter($attendance, function($record) use ($year, $personnelId) {
-            return strpos($record['date'], $year) === 0 && 
-                   in_array($personnelId, $record['attendees']);
-        });
-
-        $personMissions = array_filter($missions, function($report) use ($year, $personnelId) {
-            return strpos($report['date'], $year) === 0 && 
-                   in_array($personnelId, $report['participants']);
-        });
-
-        $trainingHours = 0;
-        foreach ($personAttendance as $record) {
-            $trainingHours += $record['duration_hours'];
-        }
-
-        $missionHours = 0;
-        foreach ($personMissions as $report) {
-            $missionHours += $report['duration_hours'];
-        }
+        $trainingHours = array_sum(array_column($personAttendance, 'duration_hours'));
+        $missionHours  = array_sum(array_column($personMissions,   'duration_hours'));
 
         return [
             'personnel_id' => $personnelId,
@@ -665,22 +627,17 @@ class DataStore {
             $year = date('Y');
         }
 
-        $attendance = self::getAttendanceRecords();
-        $missions = self::getMissionReports();
-
-        // Filter by year and location
-        $locationAttendance = array_filter($attendance, function($record) use ($year, $locationId) {
-            return strpos($record['date'], $year) === 0 && 
-                   isset($record['location_id']) && $record['location_id'] === $locationId;
-        });
-
-        $locationMissions = array_filter($missions, function($report) use ($year, $locationId) {
-            return strpos($report['date'], $year) === 0 && 
-                   isset($report['location_id']) && $report['location_id'] === $locationId;
-        });
+        $locationAttendance = self::loadFiltered('attendance.json', fn($r) =>
+            strpos($r['date'], $year) === 0 &&
+            isset($r['location_id']) && $r['location_id'] === $locationId
+        );
+        $locationMissions = self::loadFiltered('missions.json', fn($r) =>
+            strpos($r['date'], $year) === 0 &&
+            isset($r['location_id']) && $r['location_id'] === $locationId
+        );
 
         $trainingHours = array_sum(array_column($locationAttendance, 'duration_hours'));
-        $missionHours = array_sum(array_column($locationMissions, 'duration_hours'));
+        $missionHours  = array_sum(array_column($locationMissions,   'duration_hours'));
 
         return [
             'location_id' => $locationId,
