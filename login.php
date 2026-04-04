@@ -190,11 +190,12 @@ $csrfToken = Auth::getCsrfToken();
         
         const formData = new FormData(e.target);
         const username = formData.get('username');
+        const csrfToken = document.querySelector('input[name="_csrf_token"]')?.value || '';
         
         try {
             const response = await fetch('/src/php/api/password-reset.php?action=request', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
                 body: JSON.stringify({ username: username })
             });
             

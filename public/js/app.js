@@ -6,6 +6,36 @@ const OFFLINE_SUPPORTED_FORMS = [
   '/src/php/forms/submit_mission_report.php'
 ];
 
+/**
+ * Returns the CSRF token from the <meta name="csrf-token"> tag injected by PHP.
+ * Returns an empty string when the tag is absent (e.g. on the login page).
+ */
+function getCsrfToken() {
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  return meta ? meta.getAttribute('content') : '';
+}
+
+/**
+ * Toggle the loading/disabled state of a form's submit button.
+ * @param {HTMLFormElement} form      - The form element
+ * @param {boolean}         isLoading - true to disable and show spinner, false to restore
+ */
+function setFormLoading(form, isLoading) {
+  const btn = form.querySelector('[type="submit"]');
+  if (!btn) return;
+
+  if (isLoading) {
+    btn.disabled = true;
+    btn._originalHTML = btn.innerHTML;
+    btn.innerHTML = '<span class="material-icons" style="animation:spin 1s linear infinite;vertical-align:middle;">refresh</span>';
+  } else {
+    btn.disabled = false;
+    if (btn._originalHTML !== undefined) {
+      btn.innerHTML = btn._originalHTML;
+    }
+  }
+}
+
 class FeuerwehrApp {
   constructor() {
     this.currentPage = 'home';
@@ -456,9 +486,12 @@ class FeuerwehrApp {
     // Check if this is a form that should support offline
     const isOfflineSupportedForm = OFFLINE_SUPPORTED_FORMS.some(url => action.includes(url));
 
+    setFormLoading(form, true);
+
     try {
       const response = await fetch(action, {
         method: 'POST',
+        headers: { 'X-CSRF-Token': getCsrfToken() },
         body: formData
       });
 
@@ -476,10 +509,12 @@ class FeuerwehrApp {
         // Reload current page
         this.loadPage(this.currentPage);
       } else {
+        setFormLoading(form, false);
         this.showAlert('error', result.message || 'Ein Fehler ist aufgetreten');
       }
     } catch (error) {
       console.error('Form submission error:', error);
+      setFormLoading(form, false);
       
       // Handle offline submission for supported forms
       if (isOfflineSupportedForm && !navigator.onLine && window.OfflineStorage && window.OfflineStorage.db) {
@@ -623,7 +658,8 @@ class FeuerwehrApp {
     const options = {
       method,
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': getCsrfToken()
       }
     };
 

@@ -1,12 +1,14 @@
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE = 'feuerwehr-app-static-' + CACHE_VERSION;
 const DYNAMIC_CACHE = 'feuerwehr-app-dynamic-' + CACHE_VERSION;
 const API_CACHE = 'feuerwehr-app-api-' + CACHE_VERSION;
 
-// Static assets to cache on install
+// Static assets to cache on install.
+// NOTE: /index.php is intentionally excluded because it contains auth-checks
+//       and redirects that must not be cached. /login.php is included instead.
 const STATIC_ASSETS = [
   '/',
-  '/index.php',
+  '/login.php',
   '/public/css/style.css',
   '/public/js/app.js',
   '/manifest.json',
@@ -193,18 +195,32 @@ async function syncPendingForms() {
     // Send each form
     for (const formData of forms) {
       try {
-        const response = await fetch(formData.url, {
+        const fetchOptions = {
           method: 'POST',
           body: formData.data
-        });
+        };
+
+        // Re-apply the content type stored at save time (default: application/json)
+        if (formData.contentType) {
+          fetchOptions.headers = { 'Content-Type': formData.contentType };
+        }
+
+        const response = await fetch(formData.url, fetchOptions);
         
         if (response.ok) {
-          // Remove from IndexedDB on success - use fresh transaction
+          // Remove from IndexedDB on success using a Promise-wrapped transaction
           const deleteDb = await openDB();
           const deleteTx = deleteDb.transaction('pending-forms', 'readwrite');
           const deleteStore = deleteTx.objectStore('pending-forms');
-          await deleteStore.delete(formData.id);
-          await deleteTx.complete;
+          deleteStore.delete(formData.id);
+
+          // Wait for the transaction to fully commit before continuing
+          await new Promise((resolve, reject) => {
+            deleteTx.oncomplete = resolve;
+            deleteTx.onerror   = () => reject(deleteTx.error);
+            deleteTx.onabort   = () => reject(new Error('Transaction aborted'));
+          });
+
           deleteDb.close();
           
           console.log('[SW] Successfully synced form:', formData.id);

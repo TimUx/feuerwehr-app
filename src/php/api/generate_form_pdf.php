@@ -9,6 +9,7 @@ require_once __DIR__ . '/../email_pdf.php';
 
 // Initialize authentication
 Auth::init();
+sendSecurityHeaders();
 
 // Check authentication
 if (!Auth::isAuthenticated()) {
@@ -18,6 +19,9 @@ if (!Auth::isAuthenticated()) {
 }
 
 try {
+    // Validate CSRF for this POST endpoint
+    Auth::requireCsrfToken();
+
     // Get JSON input
     $input = json_decode(file_get_contents('php://input'), true);
     
@@ -127,8 +131,9 @@ try {
 } catch (Exception $e) {
     http_response_code(500);
     header('Content-Type: application/json');
+    error_log($e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => 'Fehler beim Generieren des PDFs: ' . $e->getMessage()
+        'message' => 'Ein interner Fehler ist aufgetreten.'
     ]);
 }

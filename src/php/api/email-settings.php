@@ -9,6 +9,7 @@ header('Content-Type: application/json');
 
 // Initialize authentication
 Auth::init();
+sendSecurityHeaders();
 
 // Check authentication and global admin role
 if (!Auth::isAuthenticated() || !Auth::isGlobalAdmin()) {
@@ -21,6 +22,7 @@ $configFile = __DIR__ . '/../../../config/config.php';
 
 // Handle test email
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'test') {
+    Auth::requireCsrfToken();
     try {
         // Load email helper
         require_once __DIR__ . '/../email_pdf.php';
@@ -62,13 +64,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         }
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        error_log($e->getMessage());
+    echo json_encode(['success' => false, 'error' => 'Ein interner Fehler ist aufgetreten.']);
     }
     exit;
 }
 
 // Handle save settings
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    Auth::requireCsrfToken();
     try {
         $input = json_decode(file_get_contents('php://input'), true);
         
@@ -107,7 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['success' => true, 'message' => 'Settings saved successfully']);
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        error_log($e->getMessage());
+    echo json_encode(['success' => false, 'error' => 'Ein interner Fehler ist aufgetreten.']);
     }
     exit;
 }
