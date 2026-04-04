@@ -33,8 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             exit;
         }
 
-        // Prepare test email - send to the from_address as a test
-        $to = $emailConfig['from_address'];
+        // Prepare test email - send to to_address, fall back to from_address
+        $to = !empty($emailConfig['to_address']) ? $emailConfig['to_address'] : $emailConfig['from_address'];
         $subject = 'Test-E-Mail - Feuerwehr Management System';
         $htmlBody = '<html><body style="font-family: Arial, sans-serif;">';
         $htmlBody .= '<h2>Test-E-Mail</h2>';
@@ -88,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'smtp_secure'   => $input['smtp_secure']   ?? '',
             'from_address'  => $input['from_address']  ?? 'noreply@feuerwehr.local',
             'from_name'     => $input['from_name']     ?? 'Feuerwehr Management System',
+            'to_address'    => $input['to_address']    ?? '',
         ]);
 
         echo json_encode(['success' => true, 'message' => 'Settings saved successfully']);

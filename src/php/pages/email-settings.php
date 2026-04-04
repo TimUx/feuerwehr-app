@@ -124,6 +124,18 @@ $emailConfig = DataStore::getEmailSettings();
                 </div>
                 
                 <div class="form-group">
+                    <label class="form-label" for="to_address">Empfänger-Adresse *</label>
+                    <input type="email" 
+                           id="to_address" 
+                           name="to_address" 
+                           class="form-input" 
+                           value="<?php echo htmlspecialchars($emailConfig['to_address'] ?? ''); ?>" 
+                           placeholder="empfaenger@feuerwehr.de" 
+                           required>
+                    <small class="form-help">Wohin Formulare und Test-E-Mails gesendet werden (wenn keine Standort-Adresse hinterlegt)</small>
+                </div>
+                
+                <div class="form-group">
                     <label class="form-label" for="from_name">Absender-Name</label>
                     <input type="text" 
                            id="from_name" 

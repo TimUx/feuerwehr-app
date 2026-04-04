@@ -776,6 +776,7 @@ class DataStore {
             'smtp_secure'   => $legacy['smtp_secure']   ?? 'tls',
             'from_address'  => $legacy['from_address']  ?? '',
             'from_name'     => $legacy['from_name']     ?? 'Feuerwehr Management System',
+            'to_address'    => $legacy['to_address']    ?? '',
         ];
     }
 
@@ -792,6 +793,7 @@ class DataStore {
             'smtp_secure'   => $data['smtp_secure']   ?? 'tls',
             'from_address'  => $data['from_address']  ?? '',
             'from_name'     => $data['from_name']     ?? 'Feuerwehr Management System',
+            'to_address'    => $data['to_address']    ?? '',
             'updated_at'    => date('Y-m-d H:i:s'),
         ];
 

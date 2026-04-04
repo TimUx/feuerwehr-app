@@ -35,9 +35,9 @@ try {
     $type = $input['type'];
     $id = $input['id'];
     
-    // Get configuration for email recipient
-    $config = require __DIR__ . '/../../../config/config.php';
-    $generalEmail = $config['email']['from_address'] ?? null;
+    // Get email configuration for fallback recipient
+    $emailConfig = DataStore::getEmailSettings();
+    $generalEmail = !empty($emailConfig['to_address']) ? $emailConfig['to_address'] : ($emailConfig['from_address'] ?? null);
     
     if ($type === 'attendance') {
         // Get attendance record
