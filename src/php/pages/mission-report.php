@@ -34,9 +34,10 @@ if (isset($_GET['edit'])) {
 
 // Function options from JSON
 $functions = [
-    'Fahrzeugführer', 'Melder', 'Maschinist', 'Agrifftruppführer', 
+    'Feuerwehrmann/-frau',
+    'Fahrzeugführer', 'Melder', 'Maschinist', 'Angriffstruppführer',
     'Angriffstruppmann', 'Wassertruppführer', 'Wassertruppmann',
-    'Schlauchtruppführer', 'Schlautruppmann'
+    'Schlauchtruppführer', 'Schlauchtruppmann'
 ];
 
 $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
@@ -198,7 +199,7 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
             <h3>Fahrzeugbesatzung *</h3>
             <p style="color: var(--text-secondary); margin-bottom: 1rem;">
                 Für jedes ausgewählte Fahrzeug werden entsprechend der Besatzungsstärke Eingabefelder angezeigt.
-                Mindestens eine Zeile pro Fahrzeug muss ausgefüllt werden.
+                Mindestens eine Einsatzkraft pro Fahrzeug muss angegeben werden. Die übrigen Sitzplätze müssen nicht belegt werden.
             </p>
             
             <div id="crew-container">
@@ -646,7 +647,8 @@ document.getElementById('mission-report-form').addEventListener('submit', async 
         
         entries.forEach(entry => {
             const nameSelect = entry.querySelector('select[name*="[name]"]');
-            if (nameSelect && nameSelect.value) {
+            const funktionSelect = entry.querySelector('select[name*="[funktion]"]');
+            if ((nameSelect && nameSelect.value) || (funktionSelect && funktionSelect.value)) {
                 hasAtLeastOne = true;
             }
         });
@@ -668,7 +670,7 @@ document.getElementById('mission-report-form').addEventListener('submit', async 
         window.feuerwehrApp.showConfirmationModal(
             'error',
             'Fahrzeugbesatzung unvollständig',
-            'Bitte füllen Sie mindestens eine Einsatzkraft pro Fahrzeug aus.'
+            'Bitte geben Sie mindestens eine Einsatzkraft pro Fahrzeug an (Funktion oder Name auswählen).'
         );
         return;
     }
