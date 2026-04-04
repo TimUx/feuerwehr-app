@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const STATIC_CACHE = 'feuerwehr-app-static-' + CACHE_VERSION;
 const DYNAMIC_CACHE = 'feuerwehr-app-dynamic-' + CACHE_VERSION;
 const API_CACHE = 'feuerwehr-app-api-' + CACHE_VERSION;
@@ -161,16 +161,27 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Navigation requests (page loads / redirects) carry redirect:'manual' in the SW
-  // context, which causes an opaque-redirect response when the server issues a 302
-  // (e.g. logout → /login.php).  Fetch by URL instead so redirects are followed
-  // normally, and fall back to cache when offline.
+  // Logout: clear dynamic/API caches so no stale authenticated data remains,
+  // then let the browser handle the redirect to /login.php natively.
+  if (event.request.mode === 'navigate' && url.searchParams.get('action') === 'logout') {
+    event.waitUntil(
+      Promise.all([
+        caches.delete(DYNAMIC_CACHE),
+        caches.delete(API_CACHE)
+      ])
+    );
+    return;
+  }
+
+  // Other navigation requests: fetch with redirect:follow so server-issued
+  // 302s (e.g. session expired → /login.php) are followed correctly.
+  // Fall back to the cached login page when offline.
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request.url)
         .catch(() => {
           console.log('[SW] Navigate fetch failed, serving offline fallback for:', event.request.url);
-          return caches.match(event.request) || caches.match(OFFLINE_FALLBACK);
+          return caches.match(OFFLINE_FALLBACK);
         })
     );
     return;
