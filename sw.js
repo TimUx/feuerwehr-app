@@ -1,14 +1,15 @@
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const STATIC_CACHE = 'feuerwehr-app-static-' + CACHE_VERSION;
 const DYNAMIC_CACHE = 'feuerwehr-app-dynamic-' + CACHE_VERSION;
 const API_CACHE = 'feuerwehr-app-api-' + CACHE_VERSION;
 const OFFLINE_FALLBACK = '/login.php';
 
 // Static assets to cache on install.
-// NOTE: /index.php is intentionally excluded because it contains auth-checks
-//       and redirects that must not be cached. /login.php is included instead.
+// NOTE: / and /index.php are intentionally excluded because they contain
+//       auth-checks and redirects that must not be cached. /login.php is
+//       included instead. Navigation to / is always handled network-first
+//       by the navigate handler below.
 const STATIC_ASSETS = [
-  '/',
   '/login.php',
   '/public/css/style.css',
   '/public/js/app.js',
@@ -173,12 +174,19 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Other navigation requests: fetch with redirect:follow so server-issued
-  // 302s (e.g. session expired → /login.php) are followed correctly.
+  // Other navigation requests: pass the original Request object so its
+  // redirect:'manual' mode is preserved.  When the server issues a 302
+  // (e.g. session expired → /login.php) the SW receives an opaque-redirect
+  // response and returns it to the browser, which then follows the redirect
+  // natively.  Using fetch(event.request.url) (a plain string) would create
+  // a new Request with redirect:'follow', causing the SW to follow the
+  // redirect internally and return a response with response.redirected===true,
+  // which triggers "ERR_FAILED – a redirected response was used for a request
+  // whose redirect mode is not 'follow'".
   // Fall back to the cached login page when offline.
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request.url)
+      fetch(event.request)
         .catch(() => {
           console.log('[SW] Navigate fetch failed, serving offline fallback for:', event.request.url);
           return caches.match(OFFLINE_FALLBACK);
