@@ -830,10 +830,10 @@ updateCrewSections();
         });
     }
     
-    // Pre-fill vehicles
+        // Pre-fill vehicles
     if (record.eingesetzte_fahrzeuge && Array.isArray(record.eingesetzte_fahrzeuge)) {
-        record.eingesetzte_fahrzeuge.forEach(vehicleId => {
-            const checkbox = document.querySelector(`input[name="eingesetzte_fahrzeuge[]"][value="${vehicleId}"]`);
+        record.eingesetzte_fahrzeuge.forEach(vehicleType => {
+            const checkbox = document.querySelector(`input[name="eingesetzte_fahrzeuge[]"][value="${vehicleType}"]`);
             if (checkbox) {
                 checkbox.checked = true;
             }
@@ -848,12 +848,21 @@ updateCrewSections();
         if (record.fahrzeugbesatzung && Array.isArray(record.fahrzeugbesatzung)) {
             // Wait a bit for the crew sections to be created
             setTimeout(() => {
-                record.fahrzeugbesatzung.forEach((crewMember, index) => {
-                    const vehicle = crewMember.fahrzeug;
-                    const vehicleSection = document.querySelector(`.vehicle-crew-section[data-vehicle="${vehicle}"]`);
+                record.fahrzeugbesatzung.forEach((crewMember) => {
+                    const storedVehicleType = crewMember.fahrzeug;
+                    // Find the vehicle section whose data-vehicle-id matches the vehicle type
+                    let vehicleSection = null;
+                    document.querySelectorAll('.vehicle-crew-section').forEach(section => {
+                        const sectionVehicleId = section.dataset.vehicleId;
+                        // The section is keyed by vehicle ID; find the vehicle object matching the type
+                        const matchingVehicle = vehicles.find(v => (v.id === sectionVehicleId && v.type === storedVehicleType) || sectionVehicleId === 'custom');
+                        if (matchingVehicle && !vehicleSection) {
+                            vehicleSection = section;
+                        }
+                    });
                     
                     if (vehicleSection) {
-                        // Try to find an empty entry or add a new one
+                        // Find an empty name slot in this section
                         const entries = vehicleSection.querySelectorAll('.crew-entry');
                         let targetEntry = null;
                         
@@ -865,29 +874,19 @@ updateCrewSections();
                             }
                         }
                         
-                        // If no empty entry, add a new one
-                        if (!targetEntry && entries.length > 0) {
-                            const addButton = vehicleSection.querySelector('.add-crew-btn');
-                            if (addButton) {
-                                addButton.click();
-                                const newEntries = vehicleSection.querySelectorAll('.crew-entry');
-                                targetEntry = newEntries[newEntries.length - 1];
-                            }
-                        }
-                        
                         if (targetEntry) {
                             const nameSelect = targetEntry.querySelector('select[name*="[name]"]');
-                            const funktionInput = targetEntry.querySelector('input[name*="[funktion]"]');
-                            const verdienstausfallSelect = targetEntry.querySelector('select[name*="[verdienstausfall]"]');
+                            const funktionSelect = targetEntry.querySelector('select[name*="[funktion]"]');
+                            const verdienstausfallCheckbox = targetEntry.querySelector('input[type="checkbox"][name*="[verdienstausfall]"]');
                             
                             if (nameSelect && crewMember.name) {
                                 nameSelect.value = crewMember.name;
                             }
-                            if (funktionInput && crewMember.funktion) {
-                                funktionInput.value = crewMember.funktion;
+                            if (funktionSelect && crewMember.funktion) {
+                                funktionSelect.value = crewMember.funktion;
                             }
-                            if (verdienstausfallSelect && crewMember.verdienstausfall) {
-                                verdienstausfallSelect.value = crewMember.verdienstausfall;
+                            if (verdienstausfallCheckbox && crewMember.verdienstausfall === 'ja') {
+                                verdienstausfallCheckbox.checked = true;
                             }
                         }
                     }
@@ -898,47 +897,40 @@ updateCrewSections();
     
     // Pre-fill involved persons if available
     if (record.beteiligte_personen && Array.isArray(record.beteiligte_personen)) {
+        record.beteiligte_personen.forEach((person) => {
+            addPersonEntry();
+        });
+        
+        // Wait a bit for the entries to be added
         setTimeout(() => {
+            const entries = document.querySelectorAll('.person-entry');
             record.beteiligte_personen.forEach((person, index) => {
-                if (index > 0) {
-                    // Add new involved person entry
-                    const addButton = document.querySelector('#beteiligte-personen-container .add-person-btn');
-                    if (addButton) {
-                        addButton.click();
-                    }
-                }
+                if (!entries[index]) return;
+                const entry = entries[index];
                 
-                // Wait a bit for the entry to be added
-                setTimeout(() => {
-                    const entries = document.querySelectorAll('.involved-person-entry');
-                    if (entries[index]) {
-                        const entry = entries[index];
-                        
-                        const beteiligungsartInput = entry.querySelector('input[name*="[beteiligungsart]"]');
-                        const nameInput = entry.querySelector('input[name*="[name]"]');
-                        const telefonnummerInput = entry.querySelector('input[name*="[telefonnummer]"]');
-                        const adresseTextarea = entry.querySelector('textarea[name*="[adresse]"]');
-                        const kfzInput = entry.querySelector('input[name*="[kfz_kennzeichen]"]');
-                        
-                        if (beteiligungsartInput && person.beteiligungsart) {
-                            beteiligungsartInput.value = person.beteiligungsart;
-                        }
-                        if (nameInput && person.name) {
-                            nameInput.value = person.name;
-                        }
-                        if (telefonnummerInput && person.telefonnummer) {
-                            telefonnummerInput.value = person.telefonnummer;
-                        }
-                        if (adresseTextarea && person.adresse) {
-                            adresseTextarea.value = person.adresse;
-                        }
-                        if (kfzInput && person.kfz_kennzeichen) {
-                            kfzInput.value = person.kfz_kennzeichen;
-                        }
-                    }
-                }, 50 * (index + 1));
+                const beteiligungsartSelect = entry.querySelector('select[name*="[beteiligungsart]"]');
+                const nameInput = entry.querySelector('input[name*="[name]"]');
+                const telefonnummerInput = entry.querySelector('input[name*="[telefonnummer]"]');
+                const adresseTextarea = entry.querySelector('textarea[name*="[adresse]"]');
+                const kfzInput = entry.querySelector('input[name*="[kfz_kennzeichen]"]');
+                
+                if (beteiligungsartSelect && person.beteiligungsart) {
+                    beteiligungsartSelect.value = person.beteiligungsart;
+                }
+                if (nameInput && person.name) {
+                    nameInput.value = person.name;
+                }
+                if (telefonnummerInput && person.telefonnummer) {
+                    telefonnummerInput.value = person.telefonnummer;
+                }
+                if (adresseTextarea && person.adresse) {
+                    adresseTextarea.value = person.adresse;
+                }
+                if (kfzInput && person.kfz_kennzeichen) {
+                    kfzInput.value = person.kfz_kennzeichen;
+                }
             });
-        }, 200);
+        }, 100);
     }
 })();
 <?php endif; ?>

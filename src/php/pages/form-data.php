@@ -201,31 +201,85 @@ function getLocationName($locationId, $allLocations) {
                                 <th>Datum</th>
                                 <th>Einsatzart</th>
                                 <th>Ort</th>
-                                <th>Beschreibung</th>
+                                <th>Einsatzlage</th>
                                 <th>Dauer</th>
                                 <th>Fahrzeuge</th>
-                                <th>Teilnehmer</th>
+                                <th>Einsatzkräfte</th>
                                 <th>Aktionen</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($missionReports as $report): 
-                                $participantNames = getPersonnelNames($report['participants'] ?? [], $personnel);
-                                $vehicleNames = getVehicleNames($report['vehicles'] ?? [], $vehicles);
+                            <?php foreach ($missionReports as $report):
+                                // Vehicles are stored as type strings (not IDs)
+                                $reportVehicles = $report['eingesetzte_fahrzeuge'] ?? $report['vehicles'] ?? [];
+
+                                // Resolve crew member names from fahrzeugbesatzung
+                                $crewMembers = [];
+                                foreach ($report['fahrzeugbesatzung'] ?? [] as $crew) {
+                                    if (empty($crew['name']) && empty($crew['funktion'])) {
+                                        continue;
+                                    }
+                                    $memberName = '';
+                                    if (!empty($crew['name'])) {
+                                        $person = DataStore::getPersonnelById($crew['name']);
+                                        $memberName = $person ? $person['name'] : $crew['name'];
+                                    }
+                                    if (!empty($memberName) || !empty($crew['funktion'])) {
+                                        $crewMembers[] = [
+                                            'fahrzeug'        => $crew['fahrzeug'] ?? '',
+                                            'funktion'        => $crew['funktion'] ?? '',
+                                            'name'            => $memberName,
+                                            'verdienstausfall'=> $crew['verdienstausfall'] ?? 'nein'
+                                        ];
+                                    }
+                                }
+
+                                $locationName = getLocationName($report['location_id'] ?? '', $locations);
+
+                                // Prepare report data as JSON for details modal
+                                $reportJson = htmlspecialchars(json_encode([
+                                    'id'                       => $report['id'],
+                                    'einsatzdatum'             => $report['einsatzdatum'] ?? $report['date'] ?? '-',
+                                    'einsatzgrund'             => $report['einsatzgrund'] ?? $report['mission_type'] ?? '-',
+                                    'einsatzort'               => $report['einsatzort'] ?? $report['location'] ?? '-',
+                                    'einsatzleiter'            => $report['einsatzleiter'] ?? '-',
+                                    'beginn'                   => $report['beginn'] ?? '-',
+                                    'ende'                     => $report['ende'] ?? '-',
+                                    'dauer'                    => $report['dauer'] ?? round(($report['duration_hours'] ?? 0) * 60),
+                                    'standort'                 => $locationName,
+                                    'einsatzlage'              => $report['einsatzlage'] ?? $report['description'] ?? '-',
+                                    'tatigkeiten_der_feuerwehr'=> $report['tatigkeiten_der_feuerwehr'] ?? '-',
+                                    'verbrauchte_mittel'       => $report['verbrauchte_mittel'] ?? '-',
+                                    'besondere_vorkommnisse'   => $report['besondere_vorkommnisse'] ?? '-',
+                                    'einsatz_kostenpflichtig'  => $report['einsatz_kostenpflichtig'] ?? 'nein',
+                                    'fahrzeuge'                => $reportVehicles,
+                                    'crew'                     => $crewMembers,
+                                    'beteiligte_personen'      => $report['beteiligte_personen'] ?? []
+                                ]), ENT_QUOTES, 'UTF-8');
                             ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($report['date'] ?? '-'); ?></td>
-                                <td><?php echo htmlspecialchars($report['mission_type'] ?? '-'); ?></td>
-                                <td><?php echo htmlspecialchars($report['location'] ?? '-'); ?></td>
-                                <td><?php echo htmlspecialchars($report['description'] ?? '-'); ?></td>
-                                <td><?php echo htmlspecialchars($report['duration_hours'] ?? 0); ?> h</td>
+                                <td><?php echo htmlspecialchars($report['einsatzdatum'] ?? $report['date'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($report['einsatzgrund'] ?? $report['mission_type'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($report['einsatzort'] ?? $report['location'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($report['einsatzlage'] ?? $report['description'] ?? '-'); ?></td>
                                 <td>
-                                    <?php if (!empty($vehicleNames)): ?>
+                                    <?php
+                                    $durationMin = 0;
+                                    if (!empty($report['dauer'])) {
+                                        $durationMin = intval($report['dauer']);
+                                    } elseif (!empty($report['duration_hours'])) {
+                                        $durationMin = intval($report['duration_hours'] * 60);
+                                    }
+                                    echo htmlspecialchars($durationMin) . ' min';
+                                    ?>
+                                </td>
+                                <td>
+                                    <?php if (!empty($reportVehicles)): ?>
                                         <details>
-                                            <summary><?php echo count($vehicleNames); ?> Fahrzeuge</summary>
+                                            <summary><?php echo count($reportVehicles); ?> Fahrzeuge</summary>
                                             <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
-                                                <?php foreach ($vehicleNames as $name): ?>
-                                                    <li><?php echo htmlspecialchars($name); ?></li>
+                                                <?php foreach ($reportVehicles as $v): ?>
+                                                    <li><?php echo htmlspecialchars($v); ?></li>
                                                 <?php endforeach; ?>
                                             </ul>
                                         </details>
@@ -233,21 +287,11 @@ function getLocationName($locationId, $allLocations) {
                                         -
                                     <?php endif; ?>
                                 </td>
+                                <td><?php echo count($crewMembers); ?> Einsatzkräfte</td>
                                 <td>
-                                    <?php if (!empty($participantNames)): ?>
-                                        <details>
-                                            <summary><?php echo count($participantNames); ?> Teilnehmer</summary>
-                                            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
-                                                <?php foreach ($participantNames as $name): ?>
-                                                    <li><?php echo htmlspecialchars($name); ?></li>
-                                                <?php endforeach; ?>
-                                            </ul>
-                                        </details>
-                                    <?php else: ?>
-                                        -
-                                    <?php endif; ?>
-                                </td>
-                                <td>
+                                    <button class="btn btn-sm btn-info" onclick='showMissionDetails(<?php echo $reportJson; ?>)' title="Details anzeigen">
+                                        <span class="material-icons" style="font-size: 1rem;">info</span>
+                                    </button>
                                     <button class="btn btn-sm btn-primary" onclick="resendMissionEmail('<?php echo htmlspecialchars($report['id']); ?>')" title="E-Mail erneut versenden">
                                         <span class="material-icons" style="font-size: 1rem;">email</span>
                                     </button>
@@ -489,6 +533,138 @@ function showAttendanceDetails(record) {
 
 function closeDetailsModal() {
     document.getElementById('detailsModal').classList.remove('show');
+}
+
+function showMissionDetails(report) {
+    const modal = document.getElementById('detailsModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    modalTitle.textContent = 'Einsatzbericht Details';
+
+    // Fahrzeuge
+    let fahrzeugeHtml = '-';
+    if (report.fahrzeuge && report.fahrzeuge.length > 0) {
+        fahrzeugeHtml = '<ul class="detail-list">';
+        report.fahrzeuge.forEach(v => {
+            fahrzeugeHtml += `<li>${escapeHtml(v)}</li>`;
+        });
+        fahrzeugeHtml += '</ul>';
+    }
+
+    // Fahrzeugbesatzung grouped by vehicle
+    let crewHtml = '-';
+    if (report.crew && report.crew.length > 0) {
+        const byVehicle = {};
+        report.crew.forEach(member => {
+            const veh = member.fahrzeug || 'Unbekannt';
+            if (!byVehicle[veh]) byVehicle[veh] = [];
+            byVehicle[veh].push(member);
+        });
+        crewHtml = '';
+        Object.keys(byVehicle).forEach(veh => {
+            crewHtml += `<strong>${escapeHtml(veh)}</strong><ul class="detail-list">`;
+            byVehicle[veh].forEach(m => {
+                const parts = [];
+                if (m.name) parts.push(escapeHtml(m.name));
+                if (m.funktion) parts.push(escapeHtml(m.funktion));
+                if (m.verdienstausfall === 'ja') parts.push('(Verdienstausfall)');
+                crewHtml += `<li>${parts.join(' – ')}</li>`;
+            });
+            crewHtml += '</ul>';
+        });
+    }
+
+    // Beteiligte Personen
+    let beteiligteHtml = '-';
+    if (report.beteiligte_personen && report.beteiligte_personen.length > 0) {
+        beteiligteHtml = '<ul class="detail-list">';
+        report.beteiligte_personen.forEach(p => {
+            let entry = escapeHtml(p.name || '-');
+            if (p.beteiligungsart) entry += ` (${escapeHtml(p.beteiligungsart)})`;
+            beteiligteHtml += `<li>${entry}</li>`;
+        });
+        beteiligteHtml += '</ul>';
+    }
+
+    modalBody.innerHTML = `
+        <div class="detail-section">
+            <h3>Einsatzdaten</h3>
+            <div class="detail-row">
+                <div class="detail-label">Datum:</div>
+                <div class="detail-value">${escapeHtml(report.einsatzdatum)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Einsatzgrund:</div>
+                <div class="detail-value">${escapeHtml(report.einsatzgrund)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Einsatzort:</div>
+                <div class="detail-value">${escapeHtml(report.einsatzort)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Einsatzleiter:</div>
+                <div class="detail-value">${escapeHtml(report.einsatzleiter)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Standort:</div>
+                <div class="detail-value">${escapeHtml(report.standort)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Beginn:</div>
+                <div class="detail-value">${escapeHtml(report.beginn)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Ende:</div>
+                <div class="detail-value">${escapeHtml(report.ende)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Dauer:</div>
+                <div class="detail-value">${escapeHtml(String(report.dauer))} Minuten</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Kostenpflichtig:</div>
+                <div class="detail-value">${escapeHtml(report.einsatz_kostenpflichtig)}</div>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h3>Einsatzlage</h3>
+            <div style="white-space: pre-wrap;">${escapeHtml(report.einsatzlage || '-')}</div>
+        </div>
+
+        <div class="detail-section">
+            <h3>Tätigkeiten der Feuerwehr</h3>
+            <div style="white-space: pre-wrap;">${escapeHtml(report.tatigkeiten_der_feuerwehr || '-')}</div>
+        </div>
+
+        <div class="detail-section">
+            <h3>Verbrauchte Mittel</h3>
+            <div style="white-space: pre-wrap;">${escapeHtml(report.verbrauchte_mittel || '-')}</div>
+        </div>
+
+        <div class="detail-section">
+            <h3>Besondere Vorkommnisse</h3>
+            <div style="white-space: pre-wrap;">${escapeHtml(report.besondere_vorkommnisse || '-')}</div>
+        </div>
+
+        <div class="detail-section">
+            <h3>Eingesetzte Fahrzeuge (${report.fahrzeuge ? report.fahrzeuge.length : 0})</h3>
+            ${fahrzeugeHtml}
+        </div>
+
+        <div class="detail-section">
+            <h3>Fahrzeugbesatzung (${report.crew ? report.crew.length : 0})</h3>
+            ${crewHtml}
+        </div>
+
+        <div class="detail-section">
+            <h3>Beteiligte Personen (${report.beteiligte_personen ? report.beteiligte_personen.length : 0})</h3>
+            ${beteiligteHtml}
+        </div>
+    `;
+
+    modal.classList.add('show');
 }
 
 function escapeHtml(text) {
