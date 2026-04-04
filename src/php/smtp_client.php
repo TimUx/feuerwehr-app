@@ -72,7 +72,8 @@ class SMTPClient {
             $emailBody = $this->buildBody($body, $isHtml, $boundary, $attachments);
             
             // Send email content
-            $this->sendData($headers . "\r\n" . $emailBody . "\r\n.");
+            // RFC 5322 requires a blank line (empty line) between headers and body
+            $this->sendData($headers . "\r\n\r\n" . $emailBody . "\r\n.");
             
             // QUIT
             $this->sendCommand("QUIT", 221);
