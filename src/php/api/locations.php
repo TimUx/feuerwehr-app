@@ -38,7 +38,7 @@ try {
                         echo json_encode(['success' => false, 'message' => 'Zugriff verweigert']);
                         exit;
                     }
-                    echo json_encode(['success' => true, 'data' => $location]);
+                    echo json_encode(['success' => true, 'data' => DataStore::locationForApi($location)]);
                 } else {
                     http_response_code(404);
                     echo json_encode(['success' => false, 'message' => 'Standort nicht gefunden']);
@@ -52,6 +52,7 @@ try {
                 } else {
                     $locations = DataStore::getLocations();
                 }
+                $locations = array_map(['DataStore', 'locationForApi'], $locations);
                 echo json_encode(['success' => true, 'data' => $locations]);
             }
             break;
@@ -76,7 +77,7 @@ try {
             }
 
             $location = DataStore::createLocation($data);
-            echo json_encode(['success' => true, 'data' => $location, 'message' => 'Standort erstellt']);
+            echo json_encode(['success' => true, 'data' => DataStore::locationForApi($location), 'message' => 'Standort erstellt']);
             break;
 
         case 'PUT':
@@ -100,7 +101,7 @@ try {
 
             $location = DataStore::updateLocation($data['id'], $data);
             if ($location) {
-                echo json_encode(['success' => true, 'data' => $location, 'message' => 'Standort aktualisiert']);
+                echo json_encode(['success' => true, 'data' => DataStore::locationForApi($location), 'message' => 'Standort aktualisiert']);
             } else {
                 http_response_code(404);
                 echo json_encode(['success' => false, 'message' => 'Standort nicht gefunden']);
