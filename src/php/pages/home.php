@@ -67,6 +67,11 @@ $isGlobalAdmin = Auth::isGlobalAdmin();
             <span class="material-icons">folder</span>
             <span class="menu-button-text">Formulardaten</span>
         </button>
+
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('send-message')">
+            <span class="material-icons">send</span>
+            <span class="menu-button-text">Nachricht senden</span>
+        </button>
         
         <!-- PWA Install Button (only show if app can be installed) -->
         <button class="menu-button" id="home-install-btn" style="display: none;" onclick="window.feuerwehrApp.installPWA()">

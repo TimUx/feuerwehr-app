@@ -307,6 +307,14 @@ class DataStore {
     }
 
     /**
+     * Remove secrets before exposing a location via JSON API.
+     */
+    public static function locationForApi(array $location) {
+        unset($location['ntfy_token']);
+        return $location;
+    }
+
+    /**
      * Get single location by ID
      */
     public static function getLocationById($id) {
@@ -330,6 +338,10 @@ class DataStore {
             'name' => $data['name'],
             'address' => $data['address'] ?? '',
             'email' => $data['email'] ?? '',
+            'ntfy_url' => isset($data['ntfy_url']) ? trim((string)$data['ntfy_url']) : '',
+            'ntfy_token' => (isset($data['ntfy_token']) && $data['ntfy_token'] !== null)
+                ? trim((string)$data['ntfy_token'])
+                : '',
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
@@ -355,6 +367,16 @@ class DataStore {
                 }
                 if (isset($data['email'])) {
                     $location['email'] = $data['email'];
+                }
+                if (isset($data['ntfy_url'])) {
+                    $location['ntfy_url'] = trim((string)$data['ntfy_url']);
+                }
+                if (array_key_exists('ntfy_token', $data)) {
+                    if ($data['ntfy_token'] === null) {
+                        $location['ntfy_token'] = '';
+                    } elseif (is_string($data['ntfy_token']) && $data['ntfy_token'] !== '') {
+                        $location['ntfy_token'] = trim($data['ntfy_token']);
+                    }
                 }
                 $location['updated_at'] = date('Y-m-d H:i:s');
                 
