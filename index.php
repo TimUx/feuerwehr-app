@@ -203,6 +203,11 @@ $csrfToken = Auth::getCsrfToken();
                     <span class="material-icons">folder</span>
                     <span>Formulardaten</span>
                 </a>
+
+                <a href="#" class="nav-item" data-page="send-message">
+                    <span class="material-icons">send</span>
+                    <span>Nachricht senden</span>
+                </a>
                 
                 <?php if (Auth::isAdmin()): ?>
                 <div class="nav-section-title">Administration</div>
