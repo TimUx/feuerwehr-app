@@ -33,6 +33,7 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
   - [Einsatztools](#einsatztools)
   - [Statistiken](#statistiken)
   - [Formulardaten](#formulardaten)
+- [Push-Benachrichtigungen (ntfy)](#-push-benachrichtigungen-ntfy)
 - [Konfiguration](#️-konfiguration)
 - [Sicherheit](#-sicherheit)
 - [Technologie-Stack](#-technologie-stack)
@@ -99,6 +100,7 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
 - **Touch-optimiert**: Große Buttons für mobile Bedienung
 - **Material Design Icons**: Moderne, intuitive Benutzeroberfläche
 - **Offline-Funktionalität**: Service Worker für Offline-Nutzung
+- **Push-Benachrichtigungen (ntfy)**: Standortbezogene Nachrichten an Mobilgeräte versenden
 
 ---
 
@@ -701,6 +703,7 @@ Das Hauptmenü ist in zwei Bereiche unterteilt:
 - ☣️ Gefahrstoffkennzeichen
 - 📊 Statistiken
 - 📁 Formulardaten
+- 🔔 Nachricht senden (ntfy)
 
 **Administration** (nur für Admins sichtbar):
 - 📍 Standorte verwalten
@@ -751,6 +754,7 @@ Die Benutzerverwaltung ermöglicht das Erstellen und Verwalten von App-Benutzern
 - 📋 **Lesezugriff** und Formularnutzung
 - ✅ Kann Formulare ausfüllen (Anwesenheitsliste, Einsatzbericht)
 - ✅ Kann Einsatztools nutzen (Karte, Gefahrenmatrix, Gefahrstoffkennzeichen)
+- ✅ Kann standortbezogene Push-Nachrichten via ntfy versenden
 - ✅ Kann Statistiken einsehen
 - ✅ Kann Telefonnummern einsehen
 - ❌ **Keine Verwaltungsrechte**:
@@ -789,6 +793,8 @@ Zentrale Verwaltung aller Einsatzabteilungen und Standorte der Feuerwehr.
 - Name des Standorts
 - Adresse
 - E-Mail-Adresse (für standortspezifische E-Mails)
+- ntfy Publish-URL (pro Standort)
+- Optionaler ntfy Zugangsschlüssel (Bearer-Token)
 
 **Funktionen**:
 - ➕ Standort hinzufügen (nur Global-Admin)
@@ -798,6 +804,8 @@ Zentrale Verwaltung aller Einsatzabteilungen und Standorte der Feuerwehr.
 
 **Verwendung:**
 Standorte werden bei der Verwaltung von Fahrzeugen, Einsatzkräften und in Formularen als Dropdown zur Verfügung gestellt. Standort-Admins sehen nur ihren zugewiesenen Standort, Global-Admins können alle Standorte verwalten.
+
+**Hinweis zu ntfy:** Die Zugangsschlüssel werden absichtlich nie im Klartext zurück an das Frontend geliefert. In der Standortliste wird nur angezeigt, ob ein Schlüssel hinterlegt ist.
 
 ### Einsatzkräfte-Verwaltung
 
@@ -1039,6 +1047,20 @@ Schneller Zugriff auf wichtige Notfallkontakte mit One-Tap-Calling.
 - 📱 Direkter Anruf via tel:-Link (One-Tap-Calling)
 - 🔍 Anzeige von Name, Firma, Funktion und Telefonnummer
 
+#### 🔔 Nachricht senden (ntfy)
+
+Versendet standortbezogene Push-Benachrichtigungen über `ntfy`.
+
+**Funktionen**:
+- ✉️ Nachricht mit optionalem Titel senden
+- ⏱️ Optionales TTL-Feld (als `X-Ntfy-TTL` Header)
+- 📍 Versand an den eigenen Standort oder (bei globalen Rechten) an alle Standorte mit hinterlegter ntfy-URL
+- 🧾 Detaillierte Rückmeldung pro Standort (gesendet/übersprungen/fehlerhaft)
+
+**Berechtigungen**:
+- **Operator/Standort-Admin mit Standortbindung**: Versand nur an den eigenen Standort
+- **Benutzer ohne Standortbindung (z. B. Global-Admin/Operator global)**: Optionaler Versand an alle Standorte
+
 ### Statistiken
 
 Umfassende Auswertungen für Übungsdienste und Einsätze auf Abteilungs- und Personenebene.
@@ -1083,6 +1105,28 @@ Archiv aller eingereichten Formulare mit Übersicht, Detailansicht und Verwaltun
 - Standort-beschränkte Benutzer sehen nur Formulare ihres Standorts
 - Global-Admins haben Zugriff auf alle Formulare
 - Alle Daten sind verschlüsselt gespeichert
+
+---
+
+## 🔔 Push-Benachrichtigungen (ntfy)
+
+Die App unterstützt den Versand von Push-Benachrichtigungen über [ntfy](https://ntfy.sh/) mit standortbezogener Konfiguration.
+
+### Konfiguration pro Standort
+1. **Administration → Standorte verwalten** öffnen
+2. Standort anlegen oder bearbeiten
+3. **ntfy Publish-URL** hinterlegen (z. B. `https://ntfy.sh/geheimes-thema` oder eigener Server)
+4. Optional **ntfy Zugangsschlüssel** (Bearer-Token) speichern
+
+### Versand
+- Auf der Seite **Nachricht senden (ntfy)** Nachricht und optional Titel/TTL eingeben
+- Bei entsprechender Berechtigung kann der Versand auf **alle Standorte** erweitert werden
+- Nur Standorte mit hinterlegter ntfy-URL werden berücksichtigt
+
+### Technische Hinweise
+- Der Versand erfolgt serverseitig über die API `src/php/api/ntfy-send.php`
+- `ntfy_token` wird serverseitig gespeichert, aber in API-Antworten nicht im Klartext ausgegeben
+- Leere oder fehlende ntfy-URLs werden beim Sammelversand übersprungen und als Hinweis zurückgemeldet
 
 ---
 
