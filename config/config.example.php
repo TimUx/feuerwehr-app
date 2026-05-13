@@ -8,9 +8,10 @@ return [
     // Application settings
     'app_name' => 'Feuerwehr Management',
     'app_version' => '1.0.0',
+    'app_base_url' => 'https://feuerwehr.example.com', // Canonical URL for password reset links
     
     // Security settings
-    'encryption_key' => 'CHANGE_THIS_TO_A_RANDOM_32_CHARACTER_KEY',
+    'encryption_key' => 'CHANGE_THIS_TO_A_RANDOM_64_HEX_CHARACTER_KEY',
     'session_lifetime' => 3600, // 1 hour in seconds
     
     // Email settings for form submissions
