@@ -150,7 +150,7 @@ $csrfToken = Auth::getCsrfToken();
     <div id="forgot-password-modal" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h2 class="modal-title">Passwort vergessen</h2>
+                <h2 id="forgot-password-title" class="modal-title">Passwort vergessen</h2>
                 <button class="modal-close" onclick="closeForgotPassword()">&times;</button>
             </div>
             <form id="forgot-password-form">
@@ -174,43 +174,6 @@ $csrfToken = Auth::getCsrfToken();
         </div>
     </div>
 
-    <script>
-    function showForgotPassword() {
-        document.getElementById('forgot-password-modal').classList.add('show');
-    }
-
-    function closeForgotPassword() {
-        document.getElementById('forgot-password-modal').classList.remove('show');
-        document.getElementById('forgot-password-form').reset();
-    }
-
-    // Handle forgot password form submission
-    document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData(e.target);
-        const username = formData.get('username');
-        const csrfToken = document.querySelector('input[name="_csrf_token"]')?.value || '';
-        
-        try {
-            const response = await fetch('/src/php/api/password-reset.php?action=request', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-                body: JSON.stringify({ username: username })
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                alert('✅ ' + result.message);
-                closeForgotPassword();
-            } else {
-                alert('❌ ' + result.message);
-            }
-        } catch (error) {
-            alert('❌ Fehler beim Senden der Anfrage: ' + error.message);
-        }
-    });
-    </script>
+    <script src="/public/js/login.js"></script>
 </body>
 </html>

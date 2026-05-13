@@ -207,9 +207,9 @@ cp config/config.example.php config/config.php
 
 #### 3. Verschlüsselungsschlüssel generieren
 ```bash
-php -r "echo bin2hex(random_bytes(16));"
+php -r "echo bin2hex(random_bytes(32));"
 ```
-Kopieren Sie den generierten Schlüssel und fügen Sie ihn in `config/config.php` als `encryption_key` ein.
+Kopieren Sie den generierten Schlüssel und fügen Sie ihn in `config/config.php` als `encryption_key` ein (64 Hex-Zeichen für AES-256).
 
 #### 4. E-Mail-Konfiguration anpassen
 Öffnen Sie `config/config.php` und passen Sie die E-Mail-Einstellungen an:
@@ -219,7 +219,8 @@ Kopieren Sie den generierten Schlüssel und fügen Sie ihn in `config/config.php
     'from_name' => 'Feuerwehr Willingshausen',
     'smtp_host' => 'localhost',
     'smtp_port' => 25,
-]
+],
+'app_base_url' => 'https://ihre-domain.de', // Für Passwort-Reset-Links
 ```
 
 #### 5. Berechtigungen setzen
@@ -1142,7 +1143,7 @@ Alle Einstellungen werden in `config/config.php` vorgenommen:
 ```
 Generieren mit:
 ```bash
-php -r "echo bin2hex(random_bytes(16));"
+php -r "echo bin2hex(random_bytes(32));"
 ```
 
 #### E-Mail-Einstellungen
