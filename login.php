@@ -80,7 +80,7 @@ $csrfToken = Auth::getCsrfToken();
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Feuerwehr Management App - Login">
     <meta name="theme-color" content="#d32f2f">
     
@@ -95,12 +95,13 @@ $csrfToken = Auth::getCsrfToken();
     <link rel="icon" type="image/png" sizes="192x192" href="/public/icons/icon-192x192.png">
     <link rel="apple-touch-icon" href="/public/icons/icon-192x192.png">
     
+    <?php $assetV = '20260805b'; ?>
     <!-- Styles -->
-    <link rel="stylesheet" href="/public/css/style.css">
+    <link rel="stylesheet" href="/public/css/style.css?v=<?php echo $assetV; ?>">
     
     <!-- Material Icons & Fonts (local) -->
-    <link rel="stylesheet" href="/public/fonts/material-icons.css">
-    <link rel="stylesheet" href="/public/fonts/roboto.css">
+    <link rel="stylesheet" href="/public/fonts/material-icons.css?v=<?php echo $assetV; ?>">
+    <link rel="stylesheet" href="/public/fonts/roboto.css?v=<?php echo $assetV; ?>">
 </head>
 <body>
     <!-- Login Page -->

@@ -98,7 +98,7 @@ $settings = DataStore::getSettings();
 
 <script>
 async function removeLogo() {
-    if (!confirm('Möchten Sie das Logo wirklich entfernen?')) {
+    if (!(await window.feuerwehrApp.confirmAction('Logo entfernen', 'Möchten Sie das Logo wirklich entfernen?'))) {
         return;
     }
     

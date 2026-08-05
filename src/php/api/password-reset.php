@@ -21,12 +21,22 @@ try {
         if ($action === 'request') {
             // Request password reset
             $data = json_decode(file_get_contents('php://input'), true);
+            $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
+            if (!Auth::checkRateLimit('pwreset:' . $ip)) {
+                http_response_code(429);
+                echo json_encode(['success' => false, 'message' => 'Zu viele Anfragen. Bitte warten Sie 15 Minuten.']);
+                exit;
+            }
             
             if (empty($data['username'])) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Benutzername ist erforderlich']);
                 exit;
             }
+
+            // Count every request toward rate limit (prevents spam even for unknown users)
+            Auth::recordFailedAttempt('pwreset:' . $ip);
             
             $username = $data['username'];
             $result = Auth::generatePasswordResetToken($username);
@@ -130,11 +140,21 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Token und neues Passwort sind erforderlich']);
                 exit;
             }
+
+            $pwError = Auth::validatePassword($data['password']);
+            if ($pwError !== null) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => $pwError]);
+                exit;
+            }
             
             $success = Auth::resetPassword($data['token'], $data['password']);
             
-            if ($success) {
+            if ($success === true) {
                 echo json_encode(['success' => true, 'message' => 'Passwort erfolgreich zurückgesetzt']);
+            } elseif (is_array($success) && isset($success['error'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => $success['error']]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Ungültiger oder abgelaufener Token']);
             }

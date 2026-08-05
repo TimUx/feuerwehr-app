@@ -21,33 +21,56 @@ $defaultLat = 50.9787;
 $defaultLon = 9.7632;
 $defaultZoom = 7;
 
-// If address is configured, try to geocode it for fallback
+// If address is configured, try to geocode it for fallback (cached 7 days)
 if (!empty($address)) {
-    // Use Nominatim API to geocode the address
-    $geocodeUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' . urlencode($address) . '&limit=1';
-    $ch = curl_init($geocodeUrl);
-    if ($ch === false) {
-        error_log('Failed to initialize cURL for geocoding');
+    $cacheFile = __DIR__ . '/../../../data/geocode_cache.json';
+    $cacheKey = md5(mb_strtolower(trim($address)));
+    $cached = [];
+    if (file_exists($cacheFile)) {
+        $raw = @file_get_contents($cacheFile);
+        $cached = $raw ? (json_decode($raw, true) ?: []) : [];
+    }
+    $entry = $cached[$cacheKey] ?? null;
+    $cacheTtl = 7 * 24 * 3600;
+
+    if ($entry && isset($entry['lat'], $entry['lon'], $entry['ts']) && (time() - (int)$entry['ts']) < $cacheTtl) {
+        $defaultLat = floatval($entry['lat']);
+        $defaultLon = floatval($entry['lon']);
+        $defaultZoom = 15;
     } else {
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Feuerwehr-App/1.0');
-        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-        
-        if ($response === false) {
-            error_log('Geocoding failed: ' . $curlError);
-        } else if ($httpCode === 200 && $response) {
-            $data = json_decode($response, true);
-            if (!empty($data) && isset($data[0]['lat']) && isset($data[0]['lon'])) {
-                $defaultLat = floatval($data[0]['lat']);
-                $defaultLon = floatval($data[0]['lon']);
-                $defaultZoom = 15; // Closer zoom for specific address
-            }
+        $geocodeUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' . urlencode($address) . '&limit=1';
+        $ch = curl_init($geocodeUrl);
+        if ($ch === false) {
+            error_log('Failed to initialize cURL for geocoding');
         } else {
-            error_log('Geocoding returned HTTP ' . $httpCode);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Feuerwehr-App/1.0');
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+
+            if ($response === false) {
+                error_log('Geocoding failed: ' . $curlError);
+            } else if ($httpCode === 200 && $response) {
+                $data = json_decode($response, true);
+                if (!empty($data) && isset($data[0]['lat']) && isset($data[0]['lon'])) {
+                    $defaultLat = floatval($data[0]['lat']);
+                    $defaultLon = floatval($data[0]['lon']);
+                    $defaultZoom = 15;
+                    $cached[$cacheKey] = [
+                        'lat' => $defaultLat,
+                        'lon' => $defaultLon,
+                        'ts' => time(),
+                        'q' => $address,
+                    ];
+                    @file_put_contents($cacheFile, json_encode($cached), LOCK_EX);
+                    @chmod($cacheFile, 0600);
+                }
+            } else {
+                error_log('Geocoding returned HTTP ' . $httpCode);
+            }
         }
     }
 }
@@ -59,7 +82,9 @@ if (!empty($address)) {
       crossorigin=""/>
 
 <!-- Leaflet Routing Machine CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"
+      integrity="sha384-n6BdBD4Ahcb9IGZDgjgv0hV2a/y2WOCf1n0kEMZDpZySy/Hv1QMAtLIrC3y9oIZD"
+      crossorigin=""/>
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -67,7 +92,9 @@ if (!empty($address)) {
         crossorigin=""></script>
 
 <!-- Leaflet Routing Machine -->
-<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"
+        integrity="sha384-Le/Ab4WG5Ezkdf4RS5P5eZrpmvNgcZ4QcTozVDXGoOsTxGroBLM4e9OSqeh6V26n"
+        crossorigin=""></script>
 
 <!-- Map Container with Sidebar Layout -->
 <div class="map-page-container">
@@ -546,13 +573,13 @@ window.calculateRoute = async function() {
     const end = document.getElementById('routeEnd').value.trim();
     
     if (!start || !end) {
-        alert('Bitte geben Sie Start- und Zieladresse ein.');
+        window.feuerwehrApp.showAlert('warning', 'Bitte geben Sie Start- und Zieladresse ein.');
         return;
     }
     
     // Check if Leaflet Routing Machine is loaded
     if (typeof L === 'undefined' || typeof L.Routing === 'undefined') {
-        alert('Routing-Bibliothek lädt noch. Bitte versuchen Sie es in einem Moment erneut.');
+        window.feuerwehrApp.showAlert('warning', 'Routing-Bibliothek lädt noch. Bitte versuchen Sie es in einem Moment erneut.');
         console.error('Leaflet or Leaflet Routing Machine not loaded yet');
         return;
     }
@@ -636,11 +663,11 @@ window.calculateRoute = async function() {
         });
         
         routingControl.on('routingerror', function(e) {
-            alert('Fehler bei der Routenberechnung: ' + e.error.message);
+            window.feuerwehrApp.showAlert('error', 'Fehler bei der Routenberechnung: ' + e.error.message);
         });
         
     } catch (error) {
-        alert('Fehler bei der Routenberechnung: ' + error.message);
+        window.feuerwehrApp.showAlert('error', 'Fehler bei der Routenberechnung: ' + error.message);
         console.error('Route calculation error:', error);
     }
 };
@@ -662,7 +689,7 @@ window.openInGoogleMaps = function() {
     const end = document.getElementById('routeEnd').value.trim();
     
     if (!start || !end) {
-        alert('Bitte geben Sie Start- und Zieladresse ein.');
+        window.feuerwehrApp.showAlert('warning', 'Bitte geben Sie Start- und Zieladresse ein.');
         return;
     }
     
@@ -675,7 +702,7 @@ window.searchAddress = async function() {
     const address = document.getElementById('searchAddress').value.trim();
     
     if (!address) {
-        alert('Bitte geben Sie eine Adresse ein.');
+        window.feuerwehrApp.showAlert('warning', 'Bitte geben Sie eine Adresse ein.');
         return;
     }
     
@@ -712,7 +739,7 @@ window.searchAddress = async function() {
         document.getElementById('searchResults').style.display = 'block';
         
     } catch (error) {
-        alert('Fehler bei der Adresssuche: ' + error.message);
+        window.feuerwehrApp.showAlert('error', 'Fehler bei der Adresssuche: ' + error.message);
     }
 };
 

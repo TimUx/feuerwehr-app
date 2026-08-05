@@ -113,8 +113,10 @@ body {
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .icon-btn:hover {
@@ -1677,5 +1679,68 @@ body {
     right: 10px;
     left: 10px;
     max-width: none;
+  }
+}
+
+/* Toasts */
+.toast-host {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 4.5rem);
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  left: auto;
+  z-index: 12000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: min(420px, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  box-shadow: var(--shadow-medium);
+  animation: toast-in 0.25s ease;
+}
+
+.toast.toast-hide {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Touch targets & safe areas */
+.icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.app-header {
+  padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+  padding-left: calc(1rem + env(safe-area-inset-left, 0px));
+  padding-right: calc(1rem + env(safe-area-inset-right, 0px));
+}
+
+.main-content {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+.nav-drawer {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

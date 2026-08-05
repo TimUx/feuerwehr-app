@@ -65,7 +65,19 @@ function testDirectoryOrParentWritable($dir) {
 // Security: Prevent running if already installed
 $configFile = __DIR__ . '/config/config.php';
 if (file_exists($configFile)) {
-    die('Installation already completed. Delete config/config.php to run this wizard again.');
+    http_response_code(403);
+    header('Content-Type: text/html; charset=UTF-8');
+    echo '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<title>Bereits installiert</title>'
+        . '<style>body{font-family:system-ui,sans-serif;max-width:32rem;margin:3rem auto;padding:0 1rem;line-height:1.5;color:#212121}'
+        . 'a{color:#d32f2f}</style></head><body>'
+        . '<h1>Installation bereits abgeschlossen</h1>'
+        . '<p>Die Feuerwehr-App ist bereits eingerichtet. Der Installationsassistent ist deaktiviert.</p>'
+        . '<p>Zum erneuten Installieren müssten Sie <code>config/config.php</code> entfernen '
+        . '(dabei gehen der Verschlüsselungsschlüssel und der Zugriff auf bestehende Daten verloren).</p>'
+        . '<p><a href="/login.php">Zur Anmeldung</a></p>'
+        . '</body></html>';
+    exit;
 }
 
 // System Requirements Check Function
@@ -209,8 +221,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (empty($password)) {
             $errors[] = 'Passwort ist erforderlich';
-        } elseif (strlen($password) < 6) {
-            $errors[] = 'Passwort muss mindestens 6 Zeichen lang sein';
+        } elseif (strlen($password) < 10) {
+            $errors[] = 'Passwort muss mindestens 10 Zeichen lang sein';
         }
         
         if ($password !== $password_confirm) {
@@ -1391,13 +1403,14 @@ function runDiagnosticTests() {
                     
                     <div class="form-group">
                         <label class="form-label" for="admin_password">Passwort *</label>
-                        <input type="password" id="admin_password" name="admin_password" class="form-input" required>
+                        <input type="password" id="admin_password" name="admin_password" class="form-input" required minlength="10">
+                        <small class="form-help">Mindestens 10 Zeichen</small>
                         <div class="form-help">Mindestens 6 Zeichen</div>
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label" for="admin_password_confirm">Passwort bestätigen *</label>
-                        <input type="password" id="admin_password_confirm" name="admin_password_confirm" class="form-input" required>
+                        <input type="password" id="admin_password_confirm" name="admin_password_confirm" class="form-input" required minlength="10">
                     </div>
                     
                     <div class="button-group">

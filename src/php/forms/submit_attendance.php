@@ -8,34 +8,66 @@ require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/../datastore.php';
 require_once __DIR__ . '/../email_pdf.php';
 
-// Initialize authentication
 Auth::init();
-
-// Check authentication
-if (!Auth::isAuthenticated()) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Nicht authentifiziert']);
-    exit;
-}
+sendSecurityHeaders();
+Auth::requireOperator();
+Auth::requireCsrfToken();
 
 try {
-    // Handle file upload
+    // Handle file upload (validated MIME + size; random safe filename)
     $uploadedFile = null;
-    if (isset($_FILES['datei']) && $_FILES['datei']['error'] === UPLOAD_ERR_OK) {
+    if (isset($_FILES['datei']) && $_FILES['datei']['error'] !== UPLOAD_ERR_NO_FILE) {
+        if ($_FILES['datei']['error'] !== UPLOAD_ERR_OK) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Datei-Upload fehlgeschlagen']);
+            exit;
+        }
+
+        $maxBytes = 10 * 1024 * 1024; // 10 MB
+        if (($_FILES['datei']['size'] ?? 0) > $maxBytes) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Datei ist zu groß (max. 10 MB)']);
+            exit;
+        }
+
+        $allowedMimeToExt = [
+            'application/pdf' => 'pdf',
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+            'application/vnd.oasis.opendocument.text' => 'odt',
+            'text/plain' => 'txt',
+        ];
+
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($_FILES['datei']['tmp_name']);
+        if (!isset($allowedMimeToExt[$mimeType])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Ungültiger Dateityp. Erlaubt: PDF, Bilder, DOC/DOCX, ODT, TXT']);
+            exit;
+        }
+
         $uploadDir = __DIR__ . '/../../data/uploads/';
         if (!file_exists($uploadDir)) {
             if (!@mkdir($uploadDir, 0700, true)) {
                 error_log("Failed to create upload directory: " . $uploadDir);
-                throw new Exception("Fehler: Upload-Verzeichnis konnte nicht erstellt werden. Bitte kontaktieren Sie den Administrator.");
+                throw new Exception('upload_dir');
             }
         }
-        
-        $fileName = uniqid() . '_' . basename($_FILES['datei']['name']);
+
+        $fileName = 'att_' . bin2hex(random_bytes(16)) . '.' . $allowedMimeToExt[$mimeType];
         $uploadPath = $uploadDir . $fileName;
-        
-        if (move_uploaded_file($_FILES['datei']['tmp_name'], $uploadPath)) {
-            $uploadedFile = $fileName;
+
+        if (!move_uploaded_file($_FILES['datei']['tmp_name'], $uploadPath)) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Datei konnte nicht gespeichert werden']);
+            exit;
         }
+        chmod($uploadPath, 0600);
+        $uploadedFile = $fileName;
     }
     
     // Get form data
@@ -87,6 +119,15 @@ try {
     // Calculate duration
     $vonTime = strtotime($data['datum'] . ' ' . $data['von']);
     $bisTime = strtotime($data['datum'] . ' ' . $data['bis']);
+    if ($vonTime === false || $bisTime === false) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Ungültige Zeitangaben']);
+        exit;
+    }
+    // Overnight sessions (e.g. 22:00–02:00)
+    if ($bisTime < $vonTime) {
+        $bisTime += 24 * 3600;
+    }
     $durationHours = ($bisTime - $vonTime) / 3600;
     
     // Calculate total participant count
@@ -214,8 +255,9 @@ try {
     
 } catch (Exception $e) {
     http_response_code(500);
+    error_log('Attendance submit failed: ' . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => 'Fehler beim Verarbeiten der Liste: ' . $e->getMessage()
+        'message' => 'Fehler beim Verarbeiten der Liste. Bitte versuchen Sie es erneut.'
     ]);
 }

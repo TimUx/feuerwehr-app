@@ -16,6 +16,7 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
   - [Installation mit Web-Installer](#installation-mit-web-installer-empfohlen)
   - [Manuelle Installation](#manuelle-installation-alternativ)
   - [PWA-Installation](#pwa-installation-mobile)
+- [Update / Upgrade (Datenübernahme)](#-update--upgrade-datenübernahme)
 - [Offline-Funktionalität](#-offline-funktionalität)
 - [Erste Schritte](#-erste-schritte)
   - [Login](#login)
@@ -26,15 +27,22 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
   - [Einsatzkräfte-Verwaltung](#einsatzkräfte-verwaltung)
   - [Fahrzeug-Verwaltung](#fahrzeug-verwaltung)
   - [Telefonnummern-Verwaltung](#telefonnummern-verwaltung)
+  - [Backup & Export](#backup--export)
+  - [Audit-Log](#audit-log)
   - [Allgemeine Einstellungen](#allgemeine-einstellungen)
   - [E-Mail-Einstellungen](#e-mail-einstellungen)
 - [Operator-Bereich](#-operator-bereich)
   - [Formulare](#formulare)
+  - [Globale Suche](#globale-suche)
+  - [Kalender](#kalender)
+  - [Sitzungen](#sitzungen)
+  - [Nachricht senden](#nachricht-senden-ntfy)
   - [Einsatztools](#einsatztools)
   - [Statistiken](#statistiken)
   - [Formulardaten](#formulardaten)
 - [Konfiguration](#️-konfiguration)
 - [Sicherheit](#-sicherheit)
+- [Health-Check & Tests](#-health-check--tests)
 - [Technologie-Stack](#-technologie-stack)
 - [Support](#-support)
 - [Lizenz](#-lizenz)
@@ -50,7 +58,11 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
   - **Operator**: Formulare & Ansichten (keine Verwaltung)
 - **Multi-Standort-Unterstützung**: Mehrere Einsatzabteilungen/Standorte verwalten
 - **Verschlüsselte Datenspeicherung**: Alle Daten AES-256-CBC verschlüsselt
-- **Sichere Passwörter**: bcrypt-Hashing
+- **Sichere Passwörter**: bcrypt-Hashing; neue Passwörter min. **10** Zeichen (bestehende kürzere bleiben gültig)
+- **CSRF-Schutz**: Token-Validierung für state-changing Requests
+- **Rate-Limiting**: Login und Passwort-Reset (5 Fehlversuche / 15 Min.)
+- **Remember-Me / Sitzungsübersicht**: Geräte widerrufen („Angemeldet bleiben“)
+- **Audit-Log**: Nachvollziehbare Admin-/Sicherheitsaktionen
 - **Session-Management**: Automatischer Timeout
 - **XSS & Command Injection Schutz**: Output-Escaping und Whitelisting
 
@@ -78,14 +90,22 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
   - Beteiligte Personen (dynamisch 0-10)
   - Verdienstausfall-Tracking
   - Kostenpflichtigkeit
+  - **Entwurf speichern**: Autosave in localStorage (Wiederaufnahme vor Absenden)
 
 - **E-Mail & PDF**: Automatischer Versand als HTML-E-Mail mit PDF-Anhang
 
 ### 🛠️ Einsatz-Tools
-- **Online Karte**: OpenStreetMap mit Routenberechnung
+- **Online Karte**: OpenStreetMap mit Leaflet + leaflet-routing-machine
 - **Gefahrenmatrix**: AAAA-CCCC-EEEE Einsatzstellen-Gefahren
 - **Gefahrstoffkennzeichen**: UN-Nummern Datenbank mit GHS/ADR-Klassen
 - **Wichtige Telefonnummern**: Notfallkontakte mit Direktwahl (tel:-Links)
+
+### 🔍 Organisation & Kommunikation
+- **Globale Suche**: Personal, Fahrzeuge, Übungen und Einsätze
+- **Kalender**: Monatsübersicht für Übungen und Einsätze
+- **ntfy Nachrichten**: Push-Hinweise an standortbezogene ntfy-Kanäle senden
+- **Backup & Export**: Vollbackups (Rotation, letzte 15) sowie JSON/CSV-Export
+- **Health-Check**: `/health.php` für Runtime-Status ohne Login
 
 ### 📊 Statistiken
 - **Jahres-Übersicht**: Abteilungsweit
@@ -95,10 +115,12 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
 ### 🎨 Design & UX
 - **Progressive Web App**: Installierbar auf mobilen Geräten
 - **Responsive Design**: Optimiert für Mobile (iPhone 13 Pro) und Desktop
-- **Light/Dark Mode**: Automatische Themenwahl passend zu alarm-messenger
+- **Light/Dark Mode**: Manuell umschaltbar; Default aus `prefers-color-scheme`
+- **Haptik & Toasts**: Vibration/Feedback und Toasts statt `alert`/`confirm`
+- **Deep-Links / Browser-History**: Navigation mit `?page=` und Zurück-Button
 - **Touch-optimiert**: Große Buttons für mobile Bedienung
 - **Material Design Icons**: Moderne, intuitive Benutzeroberfläche
-- **Offline-Funktionalität**: Service Worker für Offline-Nutzung
+- **Offline-Funktionalität**: Service Worker + IndexedDB für Offline-Formulare
 
 ---
 
@@ -156,7 +178,7 @@ Sie können erst fortfahren, wenn alle **erforderlichen** Voraussetzungen erfül
 
 Erstellen Sie den ersten Admin-Benutzer:
 - **Benutzername** (min. 3 Zeichen)
-- **Passwort** (min. 6 Zeichen, mit Bestätigung)
+- **Passwort** (min. **10** Zeichen, mit Bestätigung)
 
 Das Passwort wird automatisch mit bcrypt gehashed und verschlüsselt gespeichert.
 
@@ -185,6 +207,8 @@ Platzieren Sie Ihr Feuerwehr-Logo als `public/assets/logo.png`. Dieses wird in E
 
 #### 5. Anmeldung
 Nach erfolgreicher Installation können Sie sich mit Ihrem erstellten Administrator-Benutzer anmelden und die App nutzen.
+
+**Hinweis:** Sobald `config/config.php` existiert, ist der Installations-Wizard (`install.php`) gesperrt (HTTP 403). Für Updates siehe [Update / Upgrade](#-update--upgrade-datenübernahme) – `install.php` nicht erneut ausführen.
 
 ---
 
@@ -239,6 +263,35 @@ Navigieren Sie zu Ihrer Domain im Browser und melden Sie sich an.
 1. Öffnen Sie die App im Browser auf Ihrem Smartphone
 2. Tippen Sie auf "Zum Startbildschirm hinzufügen" (iOS) oder "Installieren" (Android)
 3. Die App erscheint als eigenständige Anwendung auf Ihrem Gerät
+
+---
+
+## 🔄 Update / Upgrade (Datenübernahme)
+
+Bestehende Installationen können aktualisiert werden, **ohne** `install.php` erneut auszuführen. Der Verschlüsselungsschlüssel und die Daten bleiben erhalten.
+
+### Sicheres Update – Schritte
+
+1. **`config/config.php` und `data/` behalten**  
+   Diese Verzeichnisse/Dateien beim Deploy **nicht überschreiben**. Der `encryption_key` darf sich nicht ändern – sonst sind bestehende Daten unlesbar.
+
+2. **Neuen Code ausrollen**  
+   PHP-/Frontend-Dateien aktualisieren (z. B. per Git-Pull oder Upload), Konfiguration und Daten unverändert lassen.
+
+3. **App einmal öffnen**  
+   Beim nächsten Request führt `AppUpgrade` (`src/php/upgrade.php`) ausstehende Migrationen aus (aktuell Schema **v2**):
+   - legt unter `data/backups/pre_upgrade_v*_…/` eine Vor-Upgrade-Sicherung an
+   - schreibt/aktualisiert `data/app_meta.json` (Schema-Version, Zeitstempel)
+
+4. **Health-Check prüfen**  
+   `https://ihre-domain.de/health.php` – Config, Encryption-Key, `data/` und Backup-Verzeichnis sollten `ok` melden.
+
+5. **`install.php` nicht erneut ausführen**  
+   Der Installer ist nach der Erstinstallation gesperrt und würde bei erzwungenem Reset den Schlüssel und den Datenzugriff gefährden.
+
+### Hinweise
+- Migrationen sind idempotent und brechen ab, wenn Kern-Dateien nicht entschlüsselbar sind (kein Daten-Wipe bei falschem Key).
+- Manuelle Vollbackups und JSON/CSV-Exports sind zusätzlich unter **Backup & Export** (Admin) verfügbar.
 
 ---
 
@@ -701,6 +754,10 @@ Das Hauptmenü ist in zwei Bereiche unterteilt:
 - ☣️ Gefahrstoffkennzeichen
 - 📊 Statistiken
 - 📁 Formulardaten
+- 🔍 Suche
+- 📅 Kalender
+- 📱 Sitzungen
+- ✉️ Nachricht senden
 
 **Administration** (nur für Admins sichtbar):
 - 📍 Standorte verwalten
@@ -708,6 +765,8 @@ Das Hauptmenü ist in zwei Bereiche unterteilt:
 - 👥 Einsatzkräfte verwalten
 - 📞 Telefonnummern verwalten
 - 👤 Benutzerverwaltung
+- 💾 Backup & Export
+- 📜 Audit-Log
 - ⚙️ Allgemeine Einstellungen (nur Global-Admin)
 - ✉️ E-Mail-Einstellungen (nur Global-Admin)
 
@@ -731,6 +790,7 @@ Die Benutzerverwaltung ermöglicht das Erstellen und Verwalten von App-Benutzern
 - ✅ Kann alle Benutzer (Global und Standort) erstellen, bearbeiten und löschen
 - ✅ Zugriff auf alle Fahrzeuge, Einsatzkräfte und Daten aller Standorte
 - ✅ Kann globale Einstellungen (E-Mail, Allgemein) konfigurieren
+- ✅ Kann Backup & Export sowie Audit-Log nutzen
 - ✅ Kann neue Standorte anlegen und verwalten
 - 🔑 **Erkennung**: Kein Standort zugewiesen (wird als "Global" angezeigt)
 
@@ -741,6 +801,7 @@ Die Benutzerverwaltung ermöglicht das Erstellen und Verwalten von App-Benutzern
 - ✅ Kann nur Einsatzkräfte des eigenen Standorts verwalten
 - ✅ Kann Formulare für den eigenen Standort ausfüllen
 - ✅ Kann Statistiken des eigenen Standorts einsehen
+- ✅ Kann Backup & Export sowie Audit-Log nutzen (Admin-Rechte)
 - ❌ **Kein Zugriff** auf:
   - Globale Einstellungen (E-Mail, Allgemein)
   - Andere Standorte und deren Daten
@@ -749,15 +810,16 @@ Die Benutzerverwaltung ermöglicht das Erstellen und Verwalten von App-Benutzern
 
 ##### 3. **Operator** (Sachbearbeiter)
 - 📋 **Lesezugriff** und Formularnutzung
-- ✅ Kann Formulare ausfüllen (Anwesenheitsliste, Einsatzbericht)
+- ✅ Kann Formulare ausfüllen (Anwesenheitsliste, Einsatzbericht inkl. Entwurf)
 - ✅ Kann Einsatztools nutzen (Karte, Gefahrenmatrix, Gefahrstoffkennzeichen)
+- ✅ Kann Suche, Kalender, Sitzungen und ntfy-Nachrichten nutzen
 - ✅ Kann Statistiken einsehen
 - ✅ Kann Telefonnummern einsehen
 - ❌ **Keine Verwaltungsrechte**:
   - Keine Bearbeitung von Einsatzkräften
   - Keine Bearbeitung von Fahrzeugen
   - Keine Benutzerverwaltung
-  - Keine Systemeinstellungen
+  - Keine Systemeinstellungen / Backup / Audit-Log
 
 #### Anwendungsfälle
 
@@ -860,6 +922,35 @@ Verwaltung wichtiger Notfallkontakte und Telefonnummern für schnellen Zugriff i
 - 🗑️ Telefonnummer löschen
 
 Die Telefonnummern sind für alle Benutzer (auch Operators) im Hauptmenü sichtbar und können direkt per tel:-Link angerufen werden.
+
+### Backup & Export
+
+Admin-Bereich für Vollsicherungen und Audit-fähige Exporte.
+
+<img src="screenshots/28-backup-export.png" width="390" alt="Backup & Export">
+
+**Vollbackup:**
+- Momentaufnahme aller verschlüsselten Datendateien unter `data/backups/`
+- Automatische Rotation (die letzten **15** Vollbackups werden behalten)
+- Zusätzlich: Pre-Upgrade-Snapshots bei Schema-Migrationen
+
+**Export:**
+- Entschlüsselte Daten als **JSON** oder **CSV**
+- Datensätze wählbar (z. B. Personal, Fahrzeuge, Anwesenheit, Einsätze, Audit)
+- Ohne Passwort-Hashes und SMTP-Geheimnisse
+
+**Hinweis:** Nur für Admins. Für Updates siehe [Update / Upgrade](#-update--upgrade-datenübernahme).
+
+### Audit-Log
+
+Nachvollziehbare Protokollierung wichtiger Aktionen (Login-relevant, Admin-Änderungen u. a.).
+
+<img src="screenshots/29-audit-log.png" width="390" alt="Audit-Log">
+
+**Funktionen:**
+- Übersicht der letzten Einträge (Aktion, Benutzer, IP, Zeitpunkt)
+- Clientseitige Filterung nach Aktion/Benutzer/IP
+- Daten verschlüsselt in `data/audit.json`
 
 ### Allgemeine Einstellungen
 
@@ -971,12 +1062,56 @@ Umfangreiches Formular basierend auf JetForm-Spezifikation zur vollständigen Do
 - ✉️ HTML-E-Mail mit vollständigem Einsatzbericht
 - 📄 PDF-Anhang mit Fahrzeugbesatzungs- und Personentabellen
 - 💾 Lokale verschlüsselte Speicherung mit eindeutiger ID
+- 📝 **Entwurf**: Autosave in `localStorage` – Entwurf laden/verwerfen vor dem Absenden (bei neuen Berichten)
+
+### Globale Suche
+
+Durchsucht Personal, Fahrzeuge, Übungen und Einsätze standortbezogen.
+
+<img src="screenshots/25-search.png" width="390" alt="Globale Suche">
+
+**Funktionen:**
+- Live-Suche nach Name, Funkrufname, Thema, Ort u. a.
+- Gruppierte Trefferlisten mit Sprung in die jeweilige Ansicht
+
+### Kalender
+
+Monatsübersicht über Übungsdienste und Einsätze.
+
+<img src="screenshots/26-calendar.png" width="390" alt="Kalender">
+
+**Funktionen:**
+- Monat vor-/zurückblättern
+- Markierung von Übungen und Einsätzen
+- Tagesdetail mit Einträgen
+
+### Sitzungen
+
+Verwaltung von „Angemeldet bleiben“-Geräten (Remember-Me).
+
+<img src="screenshots/27-sessions.png" width="390" alt="Sitzungen">
+
+**Funktionen:**
+- Übersicht aktiver Geräte (Browser, IP, Gültigkeit)
+- Einzelne Sitzungen widerrufen
+- Alle eigenen Sitzungen beenden
+- Admins können optional Sitzungen aller Benutzer einsehen
+
+### Nachricht senden (ntfy)
+
+Versand kurzer Push-Hinweise über [ntfy](https://ntfy.sh/) an den konfigurierten Kanal des Standorts.
+
+**Voraussetzung:** In der Standortverwaltung Publish-URL (und optional Token) hinterlegen.
+
+**Funktionen:**
+- Nachricht an eigenen Standort oder (mit Berechtigung) an alle Standorte mit ntfy-URL
+- Optionaler Titel und TTL
 
 ### Einsatztools
 
 #### 🗺️ Online Karte
 
-OpenStreetMap-Integration mit MapLibre GL JS für Routenplanung und Navigation im Einsatz.
+OpenStreetMap-Integration mit **Leaflet** und **leaflet-routing-machine** für Routenplanung und Navigation im Einsatz.
 
 <img src="screenshots/12-map.png" width="390" alt="Online Karte">
 
@@ -985,7 +1120,7 @@ OpenStreetMap-Integration mit MapLibre GL JS für Routenplanung und Navigation i
 - 🛣️ Routenberechnung zwischen zwei Adressen (OSRM)
 - 📏 Entfernungs- und Zeitanzeige
 - 📱 Touch-optimierte Bedienung
-- 🗺️ Hardware-beschleunigte Kartendarstellung
+- 🗺️ Kartenlayer (OSM / Topo / Satellit)
 - 🎯 Interaktive Marker für Start- und Zielpunkte
 
 #### ⚠️ Gefahrenmatrix
@@ -1188,19 +1323,27 @@ session.gc_maxlifetime = 3600
 - **bcrypt-Hashing**: Mit Kostenfaktor 10
 - **Salted Hashes**: Automatisch durch bcrypt
 - **Keine Klartextspeicherung**
+- **Mindestlänge**: 10 Zeichen für neue Passwörter (Create/Update/Reset); bestehende kürzere Hashes bleiben gültig
+- **Rate-Limiting**: Login und Passwort-Reset – 5 Fehlversuche in 15 Minuten → 15 Min. Sperre
 
-#### Session-Sicherheit
+#### CSRF & Session-Sicherheit
+- **CSRF-Tokens**: Pflicht für state-changing API-/Formular-Requests
 - **Session-Timeout**: Automatisches Logout nach Inaktivität
 - **Secure Cookies**: httponly & secure Flags (bei HTTPS)
 - **Session-Regeneration**: Nach Login
+- **Remember-Me**: Widerrufbar über die Sitzungsübersicht
 
 #### Input-Validierung
 - **XSS-Schutz**: `htmlspecialchars()` für alle Ausgaben
 - **Command Injection Prevention**: Whitelisting + `escapeshellarg()`
+- **Upload MIME-Checks**: Dateityp-Prüfung per `finfo` (u. a. Anwesenheitsliste, Logo)
 - **SQL Injection**: Nicht relevant (keine SQL-Datenbank)
 
 #### Dateisystem-Sicherheit
 - **Verschlüsselte Speicherung**: Alle sensiblen Daten
+- **Sicheres Entschlüsseln**: Bei falschem Key werden Dateien **nicht** geleert/überschrieben
+- **Installer-Sperre**: `install.php` nach erfolgreicher Installation deaktiviert
+- **SMTP-Passwort**: Wird im Formular nicht im Klartext zurückgegeben (Platzhalter)
 - **Beschränkte Berechtigungen**: 
   - `data/` Verzeichnis: 700
   - `config/config.php`: 600
@@ -1231,10 +1374,10 @@ Für maximale Sicherheit sollte das `data/`-Verzeichnis **außerhalb des Web-Doc
 
 1. **Ändern Sie Standard-Passwörter sofort**
 2. **Verwenden Sie HTTPS** in Produktionsumgebungen
-3. **Regelmäßige Backups** der `data/` und `config/` Verzeichnisse
+3. **Regelmäßige Backups** der `data/` und `config/` Verzeichnisse (auch über Admin → Backup & Export)
 4. **Firewall-Regeln** für Admin-Bereich
-5. **Regelmäßige Updates** von PHP und Abhängigkeiten
-6. **Monitoring** der Log-Dateien
+5. **Regelmäßige Updates** von PHP und Abhängigkeiten – siehe [Update / Upgrade](#-update--upgrade-datenübernahme)
+6. **Monitoring** über `/health.php` und Log-Dateien
 
 ---
 
@@ -1268,6 +1411,30 @@ sudo systemctl restart php8.4-fpm
 
 ---
 
+## 🩺 Health-Check & Tests
+
+### Health-Check
+
+Öffentlicher Status-Endpunkt ohne Login:
+
+```
+GET /health.php
+```
+
+Liefert JSON mit Prüfungen u. a. zu Config, Encryption-Key, Schreibbarkeit von `data/` und Backup-Verzeichnis. Nützlich nach Updates und für Monitoring.
+
+### Tests
+
+Minimales Test-Suite ohne PHPUnit:
+
+```bash
+php tests/run.php
+```
+
+Prüft u. a. Verschlüsselung, Auth-Helfer und `AppUpgrade`-Migrationen in einer temporären Umgebung.
+
+---
+
 ## 🛠️ Technologie-Stack
 
 ### Backend
@@ -1275,6 +1442,9 @@ sudo systemctl restart php8.4-fpm
 - **OpenSSL**: Verschlüsselung (AES-256-CBC)
 - **JSON**: Datenspeicherung (verschlüsselt)
 - **Sessions**: Authentifizierung & Autorisierung
+- **upgrade.php**: Idempotente Schema-Migrationen (`AppUpgrade`, aktuell v2)
+- **health.php**: Runtime-Health-Check
+- **tests/run.php**: CLI-Testläufer
 
 ### Frontend
 - **HTML5**: Semantisches Markup
@@ -1286,10 +1456,10 @@ sudo systemctl restart php8.4-fpm
 - **Service Worker**: Offline-Funktionalität & Caching
 - **Web App Manifest**: Installierbarkeit
 - **Cache API**: Asset-Caching
-- **IndexedDB**: Lokaler Speicher (zukünftig)
+- **IndexedDB**: Offline-Formulare (implementiert)
 
 ### Externe Bibliotheken
-- **MapLibre GL JS**: Hardware-beschleunigte Karten-Darstellung
+- **Leaflet** + **leaflet-routing-machine**: Karten & Routen
 - **OpenStreetMap**: Kartenmaterial (Raster-Tiles)
 - **OSRM**: Routing-API (Open Source Routing Machine)
 
@@ -1297,7 +1467,7 @@ sudo systemctl restart php8.4-fpm
 ```
 feuerwehr-app/
 ├── config/             # Konfigurationsdateien
-│   ├── config.php      # Hauptkonfiguration
+│   ├── config.php      # Hauptkonfiguration (nicht überschreiben!)
 │   └── config.example.php
 ├── data/               # Verschlüsselte JSON-Dateien
 │   ├── users.json
@@ -1305,7 +1475,10 @@ feuerwehr-app/
 │   ├── vehicles.json
 │   ├── attendance.json
 │   ├── missions.json
-│   └── phone_numbers.json
+│   ├── phone_numbers.json
+│   ├── audit.json
+│   ├── app_meta.json   # Schema-Version nach Upgrade
+│   └── backups/        # Vollbackups & pre_upgrade_* Snapshots
 ├── public/             # Öffentliche Assets
 │   ├── css/
 │   ├── js/
@@ -1318,7 +1491,11 @@ feuerwehr-app/
 │   ├── auth.php        # Authentifizierung
 │   ├── datastore.php   # Datenverwaltung
 │   ├── email_pdf.php   # E-Mail & PDF
-│   └── encryption.php  # AES-Verschlüsselung
+│   ├── encryption.php  # AES-Verschlüsselung
+│   └── upgrade.php     # Auto-Migration
+├── tests/
+│   └── run.php         # Test Suite
+├── health.php          # Health-Check
 ├── index.php           # Haupteinstiegspunkt
 ├── manifest.json       # PWA Manifest
 └── sw.js               # Service Worker
@@ -1331,7 +1508,7 @@ feuerwehr-app/
 Das Design orientiert sich an der [alarm-messenger](https://github.com/TimUx/alarm-messenger) App:
 
 - **Farbschema**: Rot (Feuerwehr-Thema) mit Akzenten
-- **Light/Dark Mode**: Automatische Anpassung an Systemeinstellungen
+- **Light/Dark Mode**: Manuell umschaltbar; ohne gespeicherte Wahl Default aus `prefers-color-scheme`
 - **Mobile First**: Primär für Smartphone-Nutzung optimiert
 - **Touch-freundlich**: Große Buttons, ausreichend Abstand
 - **Material Design**: Moderne, intuitive UI-Komponenten
@@ -1343,7 +1520,7 @@ Das Design orientiert sich an der [alarm-messenger](https://github.com/TimUx/ala
 
 MIT License
 
-Copyright (c) 2025 Freiwillige Feuerwehr Willingshausen
+Copyright (c) 2025–2026 Freiwillige Feuerwehr Willingshausen
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1375,10 +1552,10 @@ SOFTWARE.
 
 ### Weiterentwicklung
 
-Geplante Features:
-- [ ] Export-Funktionen (CSV, Excel)
-- [ ] Kalender-Integration
-- [ ] Push-Benachrichtigungen
+Geplante / offene Features:
+- [x] Export-Funktionen (JSON/CSV) – umgesetzt unter Backup & Export
+- [x] Kalender-Integration – Monatsübersicht Übungen/Einsätze
+- [~] Push-Benachrichtigungen – teilweise: ntfy-Versand aus der App (kein In-App-Push-Empfang)
 - [ ] Multi-Mandanten-Fähigkeit
 
 ### Beitragen

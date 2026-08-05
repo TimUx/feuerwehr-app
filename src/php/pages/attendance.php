@@ -163,7 +163,8 @@ if (isset($_GET['edit'])) {
             
             <div class="form-group">
                 <label class="form-label" for="datei">Dateianhang (optional)</label>
-                <input type="file" id="datei" name="datei" class="form-input" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                <input type="file" id="datei" name="datei" class="form-input" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.odt,.txt">
+                <small class="form-help">Max. 10 MB · PDF, Bilder, DOC/DOCX, ODT, TXT</small>
                 <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
                     PDF, Bilder oder Dokumente (max. 10MB)
                 </small>

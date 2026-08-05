@@ -148,16 +148,16 @@ async function savePhoneNumber(event) {
             closePhoneNumberModal();
             window.feuerwehrApp.loadPage('admin-phone-numbers');
         } else {
-            alert('Fehler: ' + result.message);
+            window.feuerwehrApp.showAlert('error', 'Fehler: ' + result.message);
         }
     } catch (error) {
         console.error('Error saving phone number:', error);
-        alert('Fehler beim Speichern der Telefonnummer');
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Speichern der Telefonnummer');
     }
 }
 
 async function deletePhoneNumber(id) {
-    if (!confirm('Möchten Sie diese Telefonnummer wirklich löschen?')) {
+    if (!(await window.feuerwehrApp.confirmAction('Telefonnummer löschen', 'Möchten Sie diese Telefonnummer wirklich löschen?'))) {
         return;
     }
     
@@ -175,11 +175,11 @@ async function deletePhoneNumber(id) {
         if (result.success) {
             window.feuerwehrApp.loadPage('admin-phone-numbers');
         } else {
-            alert('Fehler: ' + result.message);
+            window.feuerwehrApp.showAlert('error', 'Fehler: ' + result.message);
         }
     } catch (error) {
         console.error('Error deleting phone number:', error);
-        alert('Fehler beim Löschen der Telefonnummer');
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Löschen der Telefonnummer');
     }
 }
 

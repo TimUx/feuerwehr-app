@@ -12,8 +12,20 @@ function sendSecurityHeaders(): void {
     header('X-Frame-Options: DENY');
     header('X-Content-Type-Options: nosniff');
     header('Referrer-Policy: strict-origin-when-cross-origin');
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'");
-    header("Permissions-Policy: geolocation=(), microphone=(), camera=()");
+    // Map page needs Leaflet CDN, OSM/Topo/Esri tiles, Nominatim, OSRM, and marker assets.
+    // Geolocation is allowed for same-origin only (map "locate me").
+    $csp = implode('; ', [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://unpkg.com",
+        "style-src 'self' 'unsafe-inline' https://unpkg.com",
+        "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.tile.opentopomap.org https://server.arcgisonline.com https://raw.githubusercontent.com https://cdnjs.cloudflare.com",
+        "font-src 'self' data:",
+        "connect-src 'self' https://nominatim.openstreetmap.org https://router.project-osrm.org",
+        "worker-src 'self' blob:",
+        "frame-ancestors 'none'",
+    ]);
+    header('Content-Security-Policy: ' . $csp);
+    header('Permissions-Policy: geolocation=(self), microphone=(), camera=()');
 }
 
 /**

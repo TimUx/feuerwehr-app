@@ -228,7 +228,7 @@ function editVehicle(vehicle) {
 }
 
 async function deleteVehicle(id, type) {
-    if (!confirm(`Möchten Sie das Fahrzeug "${type}" wirklich löschen?`)) {
+    if (!(await window.feuerwehrApp.confirmAction('Fahrzeug löschen', `Möchten Sie das Fahrzeug "${type}" wirklich löschen?`))) {
         return;
     }
     

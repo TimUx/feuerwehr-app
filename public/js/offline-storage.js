@@ -63,11 +63,18 @@ class OfflineStorage {
       const transaction = this.db.transaction(['pending-forms'], 'readwrite');
       const store = transaction.objectStore('pending-forms');
 
+      // Persist CSRF token so background sync (SW has no fetch interceptor) can authenticate.
+      const csrfMeta = typeof document !== 'undefined'
+        ? document.querySelector('meta[name="csrf-token"]')
+        : null;
+      const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
       const formEntry = {
         type: formType,
         url: url,
         data: formData,
         contentType: contentType, // stored so sw.js can re-apply it on sync
+        csrfToken: csrfToken,
         timestamp: new Date().toISOString(),
         status: 'pending',
         ...additionalInfo
