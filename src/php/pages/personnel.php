@@ -299,7 +299,7 @@ function editPersonnel(person) {
 }
 
 async function deletePersonnel(id, name) {
-    if (!confirm(`Möchten Sie "${name}" wirklich löschen?`)) {
+    if (!(await window.feuerwehrApp.confirmAction('Einsatzkraft löschen', `Möchten Sie "${name}" wirklich löschen?`))) {
         return;
     }
     

@@ -46,7 +46,7 @@ $csrfToken = Auth::getCsrfToken();
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Feuerwehr Management App">
     <meta name="theme-color" content="#d32f2f">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken); ?>">
@@ -68,12 +68,13 @@ $csrfToken = Auth::getCsrfToken();
     <link rel="apple-touch-icon" sizes="180x180" href="/public/icons/icon-192x192.png">
     <link rel="apple-touch-icon" sizes="167x167" href="/public/icons/icon-192x192.png">
     
+    <?php $assetV = '20260805b'; ?>
     <!-- Styles -->
-    <link rel="stylesheet" href="/public/css/style.css">
+    <link rel="stylesheet" href="/public/css/style.css?v=<?php echo $assetV; ?>">
     
     <!-- Material Icons & Fonts (local) -->
-    <link rel="stylesheet" href="/public/fonts/material-icons.css">
-    <link rel="stylesheet" href="/public/fonts/roboto.css">
+    <link rel="stylesheet" href="/public/fonts/material-icons.css?v=<?php echo $assetV; ?>">
+    <link rel="stylesheet" href="/public/fonts/roboto.css?v=<?php echo $assetV; ?>">
 </head>
 <body>
     <?php if ($page === 'reset-password'): ?>
@@ -96,15 +97,15 @@ $csrfToken = Auth::getCsrfToken();
                     
                     <div class="form-group">
                         <label class="form-label" for="new-password">Neues Passwort</label>
-                        <input type="password" id="new-password" name="password" class="form-input" required minlength="6">
+                        <input type="password" id="new-password" name="password" class="form-input" required minlength="10">
                         <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
-                            Mindestens 6 Zeichen
+                            Mindestens 10 Zeichen
                         </small>
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label" for="confirm-password">Passwort bestätigen</label>
-                        <input type="password" id="confirm-password" name="confirm_password" class="form-input" required minlength="6">
+                        <input type="password" id="confirm-password" name="confirm_password" class="form-input" required minlength="10">
                     </div>
                     
                     <button type="submit" class="btn btn-primary" style="width: 100%;">
@@ -121,15 +122,15 @@ $csrfToken = Auth::getCsrfToken();
             </div>
         </div>
 
-        <script src="/public/js/password-reset.js"></script>
+        <script src="/public/js/password-reset.js?v=<?php echo $assetV ?? '20260805b'; ?>"></script>
     <?php else: ?>
         <!-- Main App -->
         <div class="app-container">
             <!-- Header -->
             <header class="app-header">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <button id="menu-toggle" class="icon-btn">
-                        <span class="material-icons">menu</span>
+                    <button id="menu-toggle" class="icon-btn" aria-label="Menü öffnen" aria-controls="nav-drawer" aria-expanded="false">
+                        <span class="material-icons" aria-hidden="true">menu</span>
                     </button>
                     <div class="app-title">
                         <span class="material-icons">local_fire_department</span>
@@ -208,6 +209,21 @@ $csrfToken = Auth::getCsrfToken();
                     <span class="material-icons">send</span>
                     <span>Nachricht senden</span>
                 </a>
+
+                <a href="#" class="nav-item" data-page="search">
+                    <span class="material-icons">search</span>
+                    <span>Suche</span>
+                </a>
+
+                <a href="#" class="nav-item" data-page="calendar">
+                    <span class="material-icons">calendar_month</span>
+                    <span>Kalender</span>
+                </a>
+
+                <a href="#" class="nav-item" data-page="sessions">
+                    <span class="material-icons">devices</span>
+                    <span>Sitzungen</span>
+                </a>
                 
                 <?php if (Auth::isAdmin()): ?>
                 <div class="nav-section-title">Administration</div>
@@ -235,6 +251,16 @@ $csrfToken = Auth::getCsrfToken();
                 <a href="#" class="nav-item" data-page="users">
                     <span class="material-icons">admin_panel_settings</span>
                     <span>Benutzer</span>
+                </a>
+
+                <a href="#" class="nav-item" data-page="admin-backup">
+                    <span class="material-icons">backup</span>
+                    <span>Backup &amp; Export</span>
+                </a>
+
+                <a href="#" class="nav-item" data-page="admin-audit">
+                    <span class="material-icons">history</span>
+                    <span>Audit-Log</span>
                 </a>
                 
                 <?php if (Auth::isGlobalAdmin()): ?>
@@ -269,9 +295,10 @@ $csrfToken = Auth::getCsrfToken();
     <?php endif; ?>
 
     <!-- JavaScript -->
-    <script src="/public/js/offline-utils.js"></script>
-    <script src="/public/js/offline-storage.js"></script>
-    <script src="/public/js/offline-ui.js"></script>
-    <script src="/public/js/app.js"></script>
+    <?php $assetV = '20260805b'; ?>
+    <script src="/public/js/offline-utils.js?v=<?php echo $assetV; ?>"></script>
+    <script src="/public/js/offline-storage.js?v=<?php echo $assetV; ?>"></script>
+    <script src="/public/js/offline-ui.js?v=<?php echo $assetV; ?>"></script>
+    <script src="/public/js/app.js?v=<?php echo $assetV; ?>"></script>
 </body>
 </html>

@@ -683,7 +683,7 @@ document.addEventListener('click', function(event) {
 });
 
 async function resendAttendanceEmail(recordId) {
-    if (!confirm('Möchten Sie die E-Mail für diese Anwesenheitsliste erneut versenden?')) {
+    if (!(await window.feuerwehrApp.confirmAction('E-Mail erneut senden', 'Möchten Sie die E-Mail für diese Anwesenheitsliste erneut versenden?'))) {
         return;
     }
     
@@ -747,7 +747,7 @@ async function downloadAttendancePDF(recordId) {
 }
 
 async function resendMissionEmail(reportId) {
-    if (!confirm('Möchten Sie die E-Mail für diesen Einsatzbericht erneut versenden?')) {
+    if (!(await window.feuerwehrApp.confirmAction('E-Mail erneut senden', 'Möchten Sie die E-Mail für diesen Einsatzbericht erneut versenden?'))) {
         return;
     }
     
@@ -816,7 +816,7 @@ async function editAttendanceRecord(recordId) {
 }
 
 async function deleteAttendanceRecord(recordId) {
-    if (!confirm('Möchten Sie diese Anwesenheitsliste wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+    if (!(await window.feuerwehrApp.confirmAction('Anwesenheitsliste löschen', 'Möchten Sie diese Anwesenheitsliste wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.'))) {
         return;
     }
     
@@ -852,7 +852,7 @@ async function editMissionReport(reportId) {
 }
 
 async function deleteMissionReport(reportId) {
-    if (!confirm('Möchten Sie diesen Einsatzbericht wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+    if (!(await window.feuerwehrApp.confirmAction('Einsatzbericht löschen', 'Möchten Sie diesen Einsatzbericht wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.'))) {
         return;
     }
     

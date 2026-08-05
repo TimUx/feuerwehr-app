@@ -182,7 +182,7 @@ async function searchHazmat() {
     const unNumber = document.getElementById('unNumberSearch').value.trim();
     
     if (!unNumber) {
-        alert('Bitte geben Sie eine UN-Nummer ein.');
+        window.feuerwehrApp.showAlert('warning', 'Bitte geben Sie eine UN-Nummer ein.');
         return;
     }
     
@@ -204,7 +204,7 @@ async function searchHazmat() {
         }
     } catch (error) {
         console.error('Search error:', error);
-        alert('Fehler bei der Suche: ' + error.message);
+        window.feuerwehrApp.showAlert('error', 'Fehler bei der Suche: ' + error.message);
     }
 }
 

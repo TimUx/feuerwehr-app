@@ -73,11 +73,23 @@ class FeuerwehrApp {
   constructor() {
     this.currentPage = 'home';
     this.pageParams = new URLSearchParams();
-    this.theme = localStorage.getItem('theme') || 'light';
+    this.theme = this.resolveInitialTheme();
     this.deferredPrompt = null;
     this.pageScripts = []; // Track scripts added by pages for cleanup
     this.offlineUI = null;
+    this._navigatingFromPopstate = false;
     this.init();
+  }
+
+  resolveInitialTheme() {
+    const stored = localStorage.getItem('theme');
+    if (stored === 'light' || stored === 'dark') {
+      return stored;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
   }
 
   init() {
@@ -85,6 +97,7 @@ class FeuerwehrApp {
     this.setupOfflineSupport();
     this.setupTheme();
     this.setupNavigation();
+    this.setupHistory();
     this.setupEventListeners();
     this.setupPWAInstall();
     
@@ -98,8 +111,68 @@ class FeuerwehrApp {
       this.pageParams = urlParams;
     }
     
+    // Sync URL without adding a history entry
+    this.replaceHistory(this.currentPage, this.pageParams);
+    
     // Load the initial page
     this.loadPage(this.currentPage);
+  }
+
+  /**
+   * Light haptic feedback (no-op if unsupported or reduced motion).
+   * @param {'light'|'success'|'error'|'warning'} [kind]
+   */
+  haptic(kind = 'light') {
+    if (!('vibrate' in navigator)) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    const patterns = {
+      light: 10,
+      success: [12, 40, 12],
+      error: [40, 30, 40],
+      warning: [20, 20, 20],
+    };
+    try {
+      navigator.vibrate(patterns[kind] || patterns.light);
+    } catch (_) { /* ignore */ }
+  }
+
+  buildPageUrl(page, params = null) {
+    const search = new URLSearchParams(params || this.pageParams || '');
+    search.set('page', page);
+    const qs = search.toString();
+    return qs ? `${window.location.pathname}?${qs}` : `${window.location.pathname}?page=${encodeURIComponent(page)}`;
+  }
+
+  replaceHistory(page, params = null) {
+    const url = this.buildPageUrl(page, params);
+    history.replaceState({ page, params: Object.fromEntries(new URLSearchParams(params || '')) }, '', url);
+  }
+
+  pushHistory(page, params = null) {
+    const url = this.buildPageUrl(page, params);
+    history.pushState({ page, params: Object.fromEntries(new URLSearchParams(params || '')) }, '', url);
+  }
+
+  setupHistory() {
+    window.addEventListener('popstate', (e) => {
+      const state = e.state;
+      let page = 'home';
+      let params = new URLSearchParams();
+      if (state && state.page) {
+        page = state.page;
+        params = new URLSearchParams(state.params || {});
+      } else {
+        const urlParams = new URLSearchParams(window.location.search);
+        page = urlParams.get('page') || 'home';
+        urlParams.delete('page');
+        params = urlParams;
+      }
+      this._navigatingFromPopstate = true;
+      this.navigateTo(page, params);
+      this._navigatingFromPopstate = false;
+    });
   }
 
   // Setup offline support
@@ -116,15 +189,47 @@ class FeuerwehrApp {
 
   // Register Service Worker for PWA
   setupServiceWorker() {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
-          console.log('Service Worker registered:', registration);
-        })
-        .catch(error => {
-          console.error('Service Worker registration failed:', error);
+    if (!('serviceWorker' in navigator)) return;
+
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('Service Worker registered:', registration);
+
+        const promptUpdate = (worker) => {
+          if (!worker || this._swUpdatePrompted) return;
+          this._swUpdatePrompted = true;
+          this.confirmAction(
+            'Update verfügbar',
+            'Eine neue Version der App ist verfügbar. Jetzt aktualisieren?'
+          ).then((ok) => {
+            this._swUpdatePrompted = false;
+            if (ok) {
+              worker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        };
+
+        if (registration.waiting) {
+          promptUpdate(registration.waiting);
+        }
+
+        registration.addEventListener('updatefound', () => {
+          const worker = registration.installing;
+          if (!worker) return;
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+              promptUpdate(registration.waiting || worker);
+            }
+          });
         });
-    }
+
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          window.location.reload();
+        });
+      })
+      .catch(error => {
+        console.error('Service Worker registration failed:', error);
+      });
   }
 
   // PWA Install Prompt
@@ -291,18 +396,29 @@ class FeuerwehrApp {
     const navDrawer = document.getElementById('nav-drawer');
     const navOverlay = document.getElementById('nav-drawer-overlay');
 
+    const setDrawerOpen = (open) => {
+      if (!navDrawer) return;
+      navDrawer.classList.toggle('open', open);
+      if (navOverlay) navOverlay.classList.toggle('visible', open);
+      if (menuToggle) menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      navDrawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+      if (open) this.haptic('light');
+    };
+
     if (menuToggle) {
+      menuToggle.setAttribute('aria-controls', 'nav-drawer');
+      menuToggle.setAttribute('aria-expanded', 'false');
       menuToggle.addEventListener('click', () => {
-        navDrawer.classList.toggle('open');
-        navOverlay.classList.toggle('visible');
+        setDrawerOpen(!navDrawer.classList.contains('open'));
       });
     }
 
+    if (navDrawer) {
+      navDrawer.setAttribute('aria-hidden', 'true');
+    }
+
     if (navOverlay) {
-      navOverlay.addEventListener('click', () => {
-        navDrawer.classList.remove('open');
-        navOverlay.classList.remove('visible');
-      });
+      navOverlay.addEventListener('click', () => setDrawerOpen(false));
     }
 
     // Handle navigation item clicks
@@ -311,8 +427,7 @@ class FeuerwehrApp {
         e.preventDefault();
         const page = item.getAttribute('data-page');
         this.navigateTo(page);
-        navDrawer.classList.remove('open');
-        navOverlay.classList.remove('visible');
+        setDrawerOpen(false);
       });
     });
   }
@@ -322,7 +437,7 @@ class FeuerwehrApp {
     
     // Clear or set page parameters
     if (params) {
-      this.pageParams = new URLSearchParams(params);
+      this.pageParams = params instanceof URLSearchParams ? params : new URLSearchParams(params);
     } else {
       this.pageParams = new URLSearchParams();
     }
@@ -334,6 +449,12 @@ class FeuerwehrApp {
         item.classList.add('active');
       }
     });
+
+    if (!this._navigatingFromPopstate) {
+      this.pushHistory(page, this.pageParams);
+    }
+
+    this.haptic('light');
 
     // Load page content
     this.loadPage(page);
@@ -585,26 +706,85 @@ class FeuerwehrApp {
 
   // Alert/Toast Messages
   showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type}`;
-    alertDiv.textContent = message;
+    this.haptic(type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'light');
 
-    const mainContent = document.getElementById('main-content');
-    if (mainContent) {
-      mainContent.insertBefore(alertDiv, mainContent.firstChild);
-
-      // Scroll to top to make alert visible
-      mainContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-      // Auto-remove after 5 seconds
-      setTimeout(() => {
-        alertDiv.remove();
-      }, 5000);
+    let host = document.getElementById('toast-host');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'toast-host';
+      host.className = 'toast-host';
+      host.setAttribute('aria-live', 'polite');
+      host.setAttribute('aria-relevant', 'additions');
+      document.body.appendChild(host);
     }
+
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `toast alert alert-${type}`;
+    alertDiv.setAttribute('role', 'status');
+    alertDiv.textContent = message;
+    host.appendChild(alertDiv);
+
+    setTimeout(() => {
+      alertDiv.classList.add('toast-hide');
+      setTimeout(() => alertDiv.remove(), 300);
+    }, 4500);
+  }
+
+  /**
+   * Promise-based confirm dialog (replaces window.confirm).
+   * @returns {Promise<boolean>}
+   */
+  confirmAction(title, message) {
+    this.haptic('warning');
+    return new Promise((resolve) => {
+      const existing = document.getElementById('confirm-action-modal');
+      if (existing) existing.remove();
+
+      const modal = document.createElement('div');
+      modal.id = 'confirm-action-modal';
+      modal.className = 'modal show';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('aria-labelledby', 'confirm-action-title');
+      modal.style.zIndex = '10000';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 440px;">
+          <h2 id="confirm-action-title" class="modal-title" style="margin-bottom: 0.75rem;">${title}</h2>
+          <p style="color: var(--text-secondary); margin-bottom: 1.5rem; white-space: pre-line;">${message}</p>
+          <div class="modal-footer" style="display:flex; gap:0.75rem; justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary" id="confirm-action-cancel">Abbrechen</button>
+            <button type="button" class="btn btn-primary" id="confirm-action-ok">Bestätigen</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const finish = (result) => {
+        modal.classList.remove('show');
+        setTimeout(() => modal.remove(), 200);
+        document.removeEventListener('keydown', onKey);
+        resolve(result);
+      };
+      const onKey = (e) => {
+        if (e.key === 'Escape') finish(false);
+      };
+      document.addEventListener('keydown', onKey);
+      modal.querySelector('#confirm-action-cancel').addEventListener('click', () => finish(false));
+      modal.querySelector('#confirm-action-ok').addEventListener('click', () => {
+        this.haptic('light');
+        finish(true);
+      });
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) finish(false);
+      });
+      modal.querySelector('#confirm-action-ok').focus();
+    });
   }
 
   // Modal-based confirmation dialog for form submissions
   showConfirmationModal(type, title, message, onClose = null) {
+    this.haptic(type === 'error' ? 'error' : type === 'success' ? 'success' : 'light');
+
     // Remove any existing confirmation modal
     const existingModal = document.getElementById('confirmation-modal');
     if (existingModal) {
@@ -639,12 +819,14 @@ class FeuerwehrApp {
     const modal = document.createElement('div');
     modal.id = 'confirmation-modal';
     modal.className = 'modal show';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
     modal.style.zIndex = '10000';
     
     modal.innerHTML = `
       <div class="modal-content" style="max-width: 500px; text-align: center;">
         <div style="margin-bottom: 1.5rem;">
-          <span class="material-icons" style="font-size: 64px; color: ${iconColor};">${icon}</span>
+          <span class="material-icons" style="font-size: 64px; color: ${iconColor};" aria-hidden="true">${icon}</span>
         </div>
         <h2 style="margin-bottom: 1rem; color: var(--text-primary);">${title}</h2>
         <p style="color: var(--text-secondary); margin-bottom: 2rem; white-space: pre-line;">${message}</p>
@@ -684,6 +866,7 @@ class FeuerwehrApp {
       }
     };
     document.addEventListener('keydown', escapeHandler);
+    document.getElementById('confirmation-modal-close').focus();
   }
 
   // Utility: API calls

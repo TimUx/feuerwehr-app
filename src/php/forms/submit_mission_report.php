@@ -8,15 +8,10 @@ require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/../datastore.php';
 require_once __DIR__ . '/../email_pdf.php';
 
-// Initialize authentication
 Auth::init();
-
-// Check authentication
-if (!Auth::isAuthenticated()) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Nicht authentifiziert']);
-    exit;
-}
+sendSecurityHeaders();
+Auth::requireOperator();
+Auth::requireCsrfToken();
 
 try {
     // Get form data
@@ -68,6 +63,14 @@ try {
     // Calculate duration in hours
     $start = strtotime($data['beginn']);
     $end = strtotime($data['ende']);
+    if ($start === false || $end === false) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Ungültige Zeitangaben']);
+        exit;
+    }
+    if ($end < $start) {
+        $end += 24 * 3600;
+    }
     $durationHours = ($end - $start) / 3600;
     
     // Save to datastore
@@ -174,8 +177,9 @@ try {
     
 } catch (Exception $e) {
     http_response_code(500);
+    error_log('Mission report submit failed: ' . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => 'Fehler beim Verarbeiten des Berichts: ' . $e->getMessage()
+        'message' => 'Fehler beim Verarbeiten des Berichts. Bitte versuchen Sie es erneut.'
     ]);
 }

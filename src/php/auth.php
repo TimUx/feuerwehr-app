@@ -2,6 +2,7 @@
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/storage_init.php';
+require_once __DIR__ . '/upgrade.php';
 
 /**
  * Simplified Authentication System
@@ -12,6 +13,19 @@ class Auth {
     private static $config;
     private static $dataDir;
     private static $initialized = false;
+
+    /** Minimum password length for create / update / reset */
+    public const MIN_PASSWORD_LENGTH = 10;
+
+    /**
+     * Validate password strength. Returns null if OK, or an error message string.
+     */
+    public static function validatePassword($password) {
+        if (!is_string($password) || strlen($password) < self::MIN_PASSWORD_LENGTH) {
+            return 'Passwort muss mindestens ' . self::MIN_PASSWORD_LENGTH . ' Zeichen lang sein';
+        }
+        return null;
+    }
 
     public static function init() {
         // Initialize only once per request
@@ -33,6 +47,9 @@ class Auth {
         initDataDirectory(self::$dataDir);
 
         self::$initialized = true;
+
+        // Bring legacy data forward without wiping anything (idempotent)
+        AppUpgrade::runIfNeeded();
     }
 
     /**
@@ -497,9 +514,13 @@ class Auth {
             return [$defaultAdmin];
         }
 
-        $encrypted = file_get_contents($usersFile);
-        $decrypted = Encryption::decrypt($encrypted);
-        return json_decode($decrypted, true) ?: [];
+        require_once __DIR__ . '/datastore.php';
+        $result = DataStore::readEncryptedJsonFile($usersFile);
+        if (!$result['ok']) {
+            error_log('Auth::loadUsers decrypt failed: ' . $result['error']);
+            throw new Exception('Benutzerdaten konnten nicht gelesen werden. Der Verschlüsselungsschlüssel ist möglicherweise falsch – bestehende Dateien wurden nicht verändert.');
+        }
+        return $result['data'];
     }
 
     /**
@@ -507,17 +528,22 @@ class Auth {
      */
     private static function saveUsers($users) {
         self::init();
-        $usersFile = self::$dataDir . '/users.json';
-        $json = json_encode($users, JSON_PRETTY_PRINT);
-        $encrypted = Encryption::encrypt($json);
-        file_put_contents($usersFile, $encrypted, LOCK_EX);
-        chmod($usersFile, 0600);
+        require_once __DIR__ . '/datastore.php';
+        // Use locked mutate so concurrent updates and failed decrypts cannot wipe users
+        DataStore::mutatePublic('users.json', function () use ($users) {
+            return $users;
+        });
     }
 
     /**
      * Create new user
      */
     public static function createUser($username, $password, $role = 'operator', $locationId = null, $email = null) {
+        $pwError = self::validatePassword($password);
+        if ($pwError !== null) {
+            return ['error' => $pwError];
+        }
+
         $users = self::loadUsers();
         
         // Check if username already exists
@@ -546,6 +572,13 @@ class Auth {
      * Update user
      */
     public static function updateUser($userId, $data) {
+        if (isset($data['password']) && $data['password'] !== '') {
+            $pwError = self::validatePassword($data['password']);
+            if ($pwError !== null) {
+                return ['error' => $pwError];
+            }
+        }
+
         $users = self::loadUsers();
         
         foreach ($users as &$user) {
@@ -628,14 +661,17 @@ class Auth {
         
         // Add new token
         $tokens[] = [
+            'id' => 'rem_' . bin2hex(random_bytes(8)),
             'token' => password_hash($token, PASSWORD_DEFAULT),
             'user_id' => $userId,
             'expiry' => $expiry,
-            'created' => time()
+            'created' => time(),
+            'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? 'unbekannt', 0, 200),
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
         ];
         
         // Save tokens
-        $json = json_encode($tokens, JSON_PRETTY_PRINT);
+        $json = json_encode(array_values($tokens));
         $encrypted = Encryption::encrypt($json);
         file_put_contents($rememberTokensFile, $encrypted, LOCK_EX);
         chmod($rememberTokensFile, 0600);
@@ -891,6 +927,11 @@ class Auth {
      */
     public static function resetPassword($token, $newPassword) {
         self::init();
+
+        $pwError = self::validatePassword($newPassword);
+        if ($pwError !== null) {
+            return ['error' => $pwError];
+        }
         
         // Verify token
         $tokenData = self::verifyPasswordResetToken($token);
@@ -903,9 +944,10 @@ class Auth {
             'password' => $newPassword
         ]);
         
-        if ($success) {
+        if ($success === true) {
             // Remove used token
             self::removePasswordResetToken($token);
+            return true;
         }
         
         return $success;
@@ -935,6 +977,121 @@ class Auth {
         $json = json_encode(array_values($tokens), JSON_PRETTY_PRINT);
         $encrypted = Encryption::encrypt($json);
         file_put_contents($resetTokensFile, $encrypted, LOCK_EX);
+    }
+
+    /**
+     * List remember-me sessions (without token hashes).
+     * Admins see all; other users only their own.
+     */
+    public static function listRememberSessions(?string $forUserId = null): array {
+        self::init();
+        $rememberTokensFile = self::$dataDir . '/remember_tokens.json';
+        if (!file_exists($rememberTokensFile)) {
+            return [];
+        }
+
+        $encrypted = file_get_contents($rememberTokensFile);
+        $decrypted = Encryption::decrypt($encrypted);
+        $tokens = json_decode($decrypted, true) ?: [];
+        $now = time();
+        $currentCookie = $_COOKIE['remember_me'] ?? null;
+
+        $sessions = [];
+        foreach ($tokens as $item) {
+            if (($item['expiry'] ?? 0) <= $now) {
+                continue;
+            }
+            if ($forUserId !== null && ($item['user_id'] ?? null) !== $forUserId) {
+                continue;
+            }
+            $isCurrent = false;
+            if ($currentCookie && !empty($item['token'])) {
+                $isCurrent = password_verify($currentCookie, $item['token']);
+            }
+            $sessions[] = [
+                'id' => $item['id'] ?? ('legacy_' . substr(hash('sha256', $item['token'] ?? ''), 0, 12)),
+                'user_id' => $item['user_id'] ?? null,
+                'created' => $item['created'] ?? null,
+                'expiry' => $item['expiry'] ?? null,
+                'user_agent' => $item['user_agent'] ?? 'unbekannt',
+                'ip' => $item['ip'] ?? null,
+                'current' => $isCurrent,
+            ];
+        }
+
+        usort($sessions, fn($a, $b) => ($b['created'] ?? 0) <=> ($a['created'] ?? 0));
+        return $sessions;
+    }
+
+    /**
+     * Revoke a remember-me session by id. Returns true if removed.
+     */
+    public static function revokeRememberSession(string $sessionId, ?string $restrictUserId = null): bool {
+        self::init();
+        $rememberTokensFile = self::$dataDir . '/remember_tokens.json';
+        if (!file_exists($rememberTokensFile)) {
+            return false;
+        }
+
+        $encrypted = file_get_contents($rememberTokensFile);
+        $decrypted = Encryption::decrypt($encrypted);
+        $tokens = json_decode($decrypted, true) ?: [];
+        $removed = false;
+        $currentCookie = $_COOKIE['remember_me'] ?? null;
+
+        $tokens = array_values(array_filter($tokens, function ($item) use ($sessionId, $restrictUserId, &$removed, $currentCookie) {
+            $id = $item['id'] ?? ('legacy_' . substr(hash('sha256', $item['token'] ?? ''), 0, 12));
+            if ($id !== $sessionId) {
+                return true;
+            }
+            if ($restrictUserId !== null && ($item['user_id'] ?? null) !== $restrictUserId) {
+                return true;
+            }
+            $removed = true;
+            // If revoking the current device cookie, clear it
+            if ($currentCookie && !empty($item['token']) && password_verify($currentCookie, $item['token'])) {
+                $isSecure = self::isHttps();
+                setcookie('remember_me', '', time() - 3600, '/', '', $isSecure, true);
+            }
+            return false;
+        }));
+
+        if ($removed) {
+            $json = json_encode($tokens);
+            $encrypted = Encryption::encrypt($json);
+            file_put_contents($rememberTokensFile, $encrypted, LOCK_EX);
+            chmod($rememberTokensFile, 0600);
+        }
+        return $removed;
+    }
+
+    /**
+     * Revoke all remember-me sessions for a user.
+     */
+    public static function revokeAllRememberSessions(string $userId): int {
+        self::init();
+        $rememberTokensFile = self::$dataDir . '/remember_tokens.json';
+        if (!file_exists($rememberTokensFile)) {
+            return 0;
+        }
+
+        $encrypted = file_get_contents($rememberTokensFile);
+        $decrypted = Encryption::decrypt($encrypted);
+        $tokens = json_decode($decrypted, true) ?: [];
+        $before = count($tokens);
+        $tokens = array_values(array_filter($tokens, fn($item) => ($item['user_id'] ?? null) !== $userId));
+        $removed = $before - count($tokens);
+
+        $json = json_encode($tokens);
+        $encryptedOut = Encryption::encrypt($json);
+        file_put_contents($rememberTokensFile, $encryptedOut, LOCK_EX);
+        chmod($rememberTokensFile, 0600);
+
+        if (isset($_COOKIE['remember_me'])) {
+            $isSecure = self::isHttps();
+            setcookie('remember_me', '', time() - 3600, '/', '', $isSecure, true);
+        }
+        return $removed;
     }
 
     /**

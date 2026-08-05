@@ -63,6 +63,14 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
             <strong>Bearbeitungsmodus:</strong> Sie bearbeiten einen vorhandenen Einsatzbericht.
         </div>
         <?php endif; ?>
+
+        <div id="draft-banner" style="display:none; margin-bottom:1rem; padding:0.75rem; background:rgba(255,152,0,0.12); border-left:4px solid var(--warning-color); border-radius:4px;">
+            <strong>Gespeicherter Entwurf gefunden.</strong>
+            <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.5rem;">
+                <button type="button" class="btn btn-secondary" id="draft-restore-btn">Entwurf laden</button>
+                <button type="button" class="btn btn-danger" id="draft-discard-btn">Entwurf verwerfen</button>
+            </div>
+        </div>
         
         <form id="mission-report-form" method="POST" action="/src/php/forms/submit_mission_report.php" novalidate>
             <?php if ($editMode): ?>
@@ -227,6 +235,12 @@ $involvement_types = ['Verursacher', 'Geschädigter', 'Zeuge', 'Sonstiges'];
                     <span class="material-icons">send</span>
                     Absenden
                 </button>
+                <?php if (!$editMode): ?>
+                <button type="button" class="btn btn-secondary" id="save-draft-btn">
+                    <span class="material-icons">save</span>
+                    Entwurf speichern
+                </button>
+                <?php endif; ?>
                 <button type="reset" class="btn btn-secondary">
                     <span class="material-icons">refresh</span>
                     Zurücksetzen
@@ -723,6 +737,7 @@ document.getElementById('mission-report-form').addEventListener('submit', async 
         const result = await response.json();
         
         if (result.success) {
+            try { localStorage.removeItem(window.DRAFT_KEY || 'fw_mission_draft_v1'); } catch (_) {}
             // Show success modal
             window.feuerwehrApp.showConfirmationModal(
                 'success',
@@ -943,4 +958,134 @@ updateCrewSections();
 if (typeof initOfflineBanner === 'function') {
   initOfflineBanner('offline-banner');
 }
+
+// Local draft for new mission reports (not edit mode)
+(function () {
+  const form = document.getElementById('mission-report-form');
+  if (!form || form.querySelector('[name="record_id"]')) return;
+
+  const DRAFT_KEY = 'fw_mission_draft_v1';
+  const banner = document.getElementById('draft-banner');
+  const saveBtn = document.getElementById('save-draft-btn');
+  let saveTimer = null;
+
+  function serializeForm() {
+    const data = {};
+    const fd = new FormData(form);
+    for (const [key, value] of fd.entries()) {
+      if (key.endsWith('[]') || key.includes('[')) {
+        if (!Object.prototype.hasOwnProperty.call(data, key)) data[key] = [];
+        if (Array.isArray(data[key])) data[key].push(value);
+        else data[key] = [data[key], value];
+      } else if (Object.prototype.hasOwnProperty.call(data, key)) {
+        if (!Array.isArray(data[key])) data[key] = [data[key]];
+        data[key].push(value);
+      } else {
+        data[key] = value;
+      }
+    }
+    // Also capture unchecked multi-check state via checked vehicle boxes
+    const vehicles = Array.from(form.querySelectorAll('input[name="eingesetzte_fahrzeuge[]"]:checked')).map(el => el.value);
+    data['eingesetzte_fahrzeuge[]'] = vehicles;
+    return { savedAt: new Date().toISOString(), data };
+  }
+
+  function saveDraft(silent) {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(serializeForm()));
+      if (!silent && window.feuerwehrApp) {
+        window.feuerwehrApp.showAlert('success', 'Entwurf gespeichert');
+      }
+    } catch (err) {
+      console.error(err);
+      if (window.feuerwehrApp) window.feuerwehrApp.showAlert('error', 'Entwurf konnte nicht gespeichert werden');
+    }
+  }
+
+  function applyDraft(payload) {
+    const data = payload.data || {};
+    Object.keys(data).forEach((key) => {
+      const values = Array.isArray(data[key]) ? data[key] : [data[key]];
+      if (key === 'eingesetzte_fahrzeuge[]') {
+        form.querySelectorAll('input[name="eingesetzte_fahrzeuge[]"]').forEach(cb => {
+          cb.checked = values.includes(cb.value);
+        });
+        if (typeof updateCrewSections === 'function') updateCrewSections();
+        return;
+      }
+      const fields = form.querySelectorAll(`[name="${CSS.escape(key)}"]`);
+      if (!fields.length) return;
+      if (fields[0].type === 'checkbox' || fields[0].type === 'radio') {
+        fields.forEach(f => { f.checked = values.includes(f.value); });
+      } else if (fields.length === 1) {
+        fields[0].value = values[0] ?? '';
+      }
+    });
+    // Restore dynamic person entries roughly by count
+    const personKeys = Object.keys(data).filter(k => k.includes('beteiligte_personen'));
+    if (personKeys.length && typeof addPersonEntry === 'function') {
+      const indices = new Set();
+      personKeys.forEach(k => {
+        const m = k.match(/beteiligte_personen\[(\d+)\]/);
+        if (m) indices.add(Number(m[1]));
+      });
+      [...indices].sort((a,b)=>a-b).forEach(() => addPersonEntry());
+      setTimeout(() => {
+        Object.keys(data).forEach((key) => {
+          if (!key.includes('beteiligte_personen')) return;
+          const el = form.querySelector(`[name="${CSS.escape(key)}"]`);
+          if (el) el.value = Array.isArray(data[key]) ? data[key][0] : data[key];
+        });
+      }, 50);
+    }
+    if (typeof calculateDuration === 'function') calculateDuration();
+  }
+
+  function loadDraftMeta() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  const existing = loadDraftMeta();
+  if (existing && banner) {
+    banner.style.display = 'block';
+  }
+
+  document.getElementById('draft-restore-btn')?.addEventListener('click', () => {
+    const draft = loadDraftMeta();
+    if (!draft) return;
+    applyDraft(draft);
+    banner.style.display = 'none';
+    if (window.feuerwehrApp) window.feuerwehrApp.showAlert('info', 'Entwurf geladen');
+  });
+
+  document.getElementById('draft-discard-btn')?.addEventListener('click', async () => {
+    const ok = window.feuerwehrApp
+      ? await window.feuerwehrApp.confirmAction('Entwurf verwerfen', 'Gespeicherten Entwurf wirklich löschen?')
+      : true;
+    if (!ok) return;
+    localStorage.removeItem(DRAFT_KEY);
+    banner.style.display = 'none';
+    if (window.feuerwehrApp) window.feuerwehrApp.showAlert('success', 'Entwurf verworfen');
+  });
+
+  saveBtn?.addEventListener('click', () => saveDraft(false));
+
+  form.addEventListener('input', () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveDraft(true), 2000);
+  });
+  form.addEventListener('change', () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveDraft(true), 2000);
+  });
+
+  // Expose key for submit handler cleanup
+  window.DRAFT_KEY = DRAFT_KEY;
+})();
 </script>

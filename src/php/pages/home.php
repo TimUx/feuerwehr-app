@@ -72,6 +72,21 @@ $isGlobalAdmin = Auth::isGlobalAdmin();
             <span class="material-icons">send</span>
             <span class="menu-button-text">Nachricht senden</span>
         </button>
+
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('search')">
+            <span class="material-icons">search</span>
+            <span class="menu-button-text">Suche</span>
+        </button>
+
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('calendar')">
+            <span class="material-icons">calendar_month</span>
+            <span class="menu-button-text">Kalender</span>
+        </button>
+
+        <button class="menu-button" onclick="window.feuerwehrApp.navigateTo('sessions')">
+            <span class="material-icons">devices</span>
+            <span class="menu-button-text">Sitzungen</span>
+        </button>
         
         <!-- PWA Install Button (only show if app can be installed) -->
         <button class="menu-button" id="home-install-btn" style="display: none;" onclick="window.feuerwehrApp.installPWA()">
@@ -113,6 +128,16 @@ $isGlobalAdmin = Auth::isGlobalAdmin();
             <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('users')">
                 <span class="material-icons">admin_panel_settings</span>
                 <span class="menu-button-text">Benutzer</span>
+            </button>
+
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-backup')">
+                <span class="material-icons">backup</span>
+                <span class="menu-button-text">Backup &amp; Export</span>
+            </button>
+
+            <button class="menu-button menu-button-admin" onclick="window.feuerwehrApp.navigateTo('admin-audit')">
+                <span class="material-icons">history</span>
+                <span class="menu-button-text">Audit-Log</span>
             </button>
             
             <?php if ($isGlobalAdmin): ?>

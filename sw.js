@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v9';
 const STATIC_CACHE = 'feuerwehr-app-static-' + CACHE_VERSION;
 const DYNAMIC_CACHE = 'feuerwehr-app-dynamic-' + CACHE_VERSION;
 const API_CACHE = 'feuerwehr-app-api-' + CACHE_VERSION;
@@ -12,11 +12,23 @@ const OFFLINE_FALLBACK = '/login.php';
 const STATIC_ASSETS = [
   '/login.php',
   '/public/css/style.css',
+  '/public/fonts/material-icons.css',
+  '/public/fonts/roboto.css',
   '/public/js/app.js',
+  '/public/js/offline-utils.js',
+  '/public/js/offline-storage.js',
+  '/public/js/offline-ui.js',
+  '/public/js/password-reset.js',
   '/manifest.json',
   '/public/icons/icon-192x192.png',
   '/public/icons/icon-512x512.png'
 ];
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 // API endpoints to cache
 const API_ROUTES = [
@@ -232,12 +244,18 @@ async function syncPendingForms() {
       try {
         const fetchOptions = {
           method: 'POST',
-          body: formData.data
+          body: formData.data,
+          headers: {}
         };
 
-        // Re-apply the content type stored at save time (default: application/json)
+        // Re-apply the content type stored at save time (omit for FormData – browser sets boundary)
         if (formData.contentType) {
-          fetchOptions.headers = { 'Content-Type': formData.contentType };
+          fetchOptions.headers['Content-Type'] = formData.contentType;
+        }
+
+        // CSRF token saved with the offline entry (SW has no app.js interceptor)
+        if (formData.csrfToken) {
+          fetchOptions.headers['X-CSRF-Token'] = formData.csrfToken;
         }
 
         const response = await fetch(formData.url, fetchOptions);

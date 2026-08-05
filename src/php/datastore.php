@@ -23,36 +23,382 @@ class DataStore {
     }
 
     /**
-     * Load data from encrypted JSON file
+     * Decrypt and JSON-decode an encrypted data file.
+     * Distinguishes "missing/empty file" from "corrupt / wrong key".
+     *
+     * @return array{ok:bool,data:array,empty:bool,error:?string}
+     */
+    public static function readEncryptedJsonFile(string $filepath): array {
+        if (!file_exists($filepath)) {
+            return ['ok' => true, 'data' => [], 'empty' => true, 'error' => null];
+        }
+        $encrypted = file_get_contents($filepath);
+        if ($encrypted === false) {
+            return ['ok' => false, 'data' => [], 'empty' => false, 'error' => 'unreadable'];
+        }
+        if (trim($encrypted) === '') {
+            return ['ok' => true, 'data' => [], 'empty' => true, 'error' => null];
+        }
+        $decrypted = Encryption::decrypt($encrypted);
+        if ($decrypted === false || $decrypted === null || $decrypted === '') {
+            return ['ok' => false, 'data' => [], 'empty' => false, 'error' => 'decrypt_failed'];
+        }
+        $data = json_decode($decrypted, true);
+        if (!is_array($data)) {
+            return ['ok' => false, 'data' => [], 'empty' => false, 'error' => 'invalid_json'];
+        }
+        return ['ok' => true, 'data' => $data, 'empty' => false, 'error' => null];
+    }
+
+    /**
+     * Load data from encrypted JSON file (unlocked – use mutate() for RMW).
      */
     private static function load($filename) {
         self::init();
         $filepath = self::$dataDir . '/' . $filename;
-        
-        if (!file_exists($filepath)) {
-            return [];
+        $result = self::readEncryptedJsonFile($filepath);
+        if (!$result['ok']) {
+            error_log('DataStore::load failed for ' . $filename . ': ' . $result['error']);
+            throw new Exception('Datenbestand "' . $filename . '" konnte nicht gelesen werden (' . $result['error'] . '). Schreibvorgänge wurden abgebrochen, um Datenverlust zu verhindern.');
         }
-
-        $encrypted = file_get_contents($filepath);
-        $decrypted = Encryption::decrypt($encrypted);
-        return json_decode($decrypted, true) ?: [];
+        return $result['data'];
     }
 
     /**
-     * Save data to encrypted JSON file.
-     *
-     * NOTE: JSON files are always rewritten in full on every save.
-     *       LOCK_EX prevents data corruption from concurrent writes, but
-     *       high-frequency concurrent updates should be handled at the
-     *       application layer (e.g. request queuing) if needed.
+     * Write encrypted JSON to disk (caller must hold the file lock when used from mutate).
      */
-    private static function save($filename, $data) {
+    private static function writeEncrypted(string $filepath, $data): void {
+        $json = json_encode($data);
+        if ($json === false) {
+            throw new Exception('JSON encode failed for ' . basename($filepath));
+        }
+        $encrypted = Encryption::encrypt($json);
+        // Atomic replace: write temp then rename to avoid truncated files on crash
+        $tmp = $filepath . '.tmp.' . bin2hex(random_bytes(4));
+        if (file_put_contents($tmp, $encrypted, LOCK_EX) === false) {
+            @unlink($tmp);
+            throw new Exception('Failed to write ' . basename($filepath));
+        }
+        chmod($tmp, 0600);
+        if (!@rename($tmp, $filepath)) {
+            // Cross-filesystem fallback
+            if (!@copy($tmp, $filepath)) {
+                @unlink($tmp);
+                throw new Exception('Failed to replace ' . basename($filepath));
+            }
+            @unlink($tmp);
+            chmod($filepath, 0600);
+        }
+    }
+
+    /**
+     * Atomically load → modify → save under an exclusive lock.
+     * $callback receives the current data array and must return the new array,
+     * or false to abort without writing.
+     *
+     * SAFETY: If an existing file cannot be decrypted, this throws and does NOT write.
+     */
+    private static function mutate(string $filename, callable $callback) {
         self::init();
         $filepath = self::$dataDir . '/' . $filename;
-        $json = json_encode($data, JSON_PRETTY_PRINT);
-        $encrypted = Encryption::encrypt($json);
-        file_put_contents($filepath, $encrypted, LOCK_EX);
-        chmod($filepath, 0600);
+        $lockPath = $filepath . '.lock';
+        $lockFp = fopen($lockPath, 'c+');
+        if ($lockFp === false) {
+            throw new Exception('Cannot open lock file for ' . $filename);
+        }
+        if (!flock($lockFp, LOCK_EX)) {
+            fclose($lockFp);
+            throw new Exception('Cannot lock ' . $filename);
+        }
+        try {
+            $result = self::readEncryptedJsonFile($filepath);
+            if (!$result['ok']) {
+                throw new Exception('Refuse to mutate ' . $filename . ': ' . $result['error'] . ' (existing data preserved)');
+            }
+            $data = $result['data'];
+            $newData = $callback($data);
+            if ($newData === false) {
+                return false;
+            }
+            self::writeEncrypted($filepath, $newData);
+            self::rotateBackup($filename);
+            return $newData;
+        } finally {
+            flock($lockFp, LOCK_UN);
+            fclose($lockFp);
+        }
+    }
+
+    /**
+     * Public wrapper for locked read-modify-write (used by AppUpgrade migrations).
+     */
+    public static function mutatePublic(string $filename, callable $callback) {
+        return self::mutate($filename, $callback);
+    }
+
+    /**
+     * Save data to encrypted JSON file (locked).
+     */
+    private static function save($filename, $data) {
+        self::mutate($filename, function () use ($data) {
+            return $data;
+        });
+    }
+
+    /**
+     * Keep a rotating copy of critical data files under backup_dir.
+     */
+    private static function rotateBackup(string $filename): void {
+        self::init();
+        $source = self::$dataDir . '/' . $filename;
+        if (!file_exists($source)) {
+            return;
+        }
+        $backupDir = self::$config['backup_dir'] ?? (self::$dataDir . '/backups');
+        if (!is_dir($backupDir)) {
+            @mkdir($backupDir, 0700, true);
+        }
+        if (!is_dir($backupDir) || !is_writable($backupDir)) {
+            return;
+        }
+        $stamp = date('Ymd_His');
+        $dest = $backupDir . '/' . pathinfo($filename, PATHINFO_FILENAME) . '_' . $stamp . '.json';
+        @copy($source, $dest);
+        @chmod($dest, 0600);
+
+        // Keep last 10 backups per file prefix
+        $prefix = pathinfo($filename, PATHINFO_FILENAME) . '_';
+        $files = glob($backupDir . '/' . $prefix . '*.json') ?: [];
+        rsort($files);
+        foreach (array_slice($files, 10) as $old) {
+            @unlink($old);
+        }
+    }
+
+    /**
+     * Append an audit log entry (best-effort; never throws to callers).
+     */
+    public static function audit(string $action, array $details = []): void {
+        try {
+            $user = class_exists('Auth') ? Auth::getUser() : null;
+            self::mutate('audit.json', function ($log) use ($action, $details, $user) {
+                if (!is_array($log)) {
+                    $log = [];
+                }
+                $log[] = [
+                    'id' => 'aud_' . bin2hex(random_bytes(6)),
+                    'ts' => date('c'),
+                    'action' => $action,
+                    'user_id' => $user['id'] ?? null,
+                    'username' => $user['username'] ?? null,
+                    'details' => $details,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+                ];
+                if (count($log) > 1000) {
+                    $log = array_slice($log, -1000);
+                }
+                return $log;
+            });
+        } catch (Exception $e) {
+            error_log('Audit log failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Return audit log entries (newest first), optionally limited.
+     */
+    public static function getAuditLog(int $limit = 200): array {
+        $log = self::load('audit.json');
+        if (!is_array($log)) {
+            return [];
+        }
+        usort($log, function ($a, $b) {
+            return strcmp($b['ts'] ?? '', $a['ts'] ?? '');
+        });
+        return array_slice($log, 0, max(1, $limit));
+    }
+
+    /**
+     * Create a full snapshot of all encrypted data files into backup_dir.
+     * Returns path to the snapshot directory or null on failure.
+     */
+    public static function createFullBackup(): ?string {
+        self::init();
+        $backupDir = self::$config['backup_dir'] ?? (self::$dataDir . '/backups');
+        if (!is_dir($backupDir)) {
+            @mkdir($backupDir, 0700, true);
+        }
+        if (!is_dir($backupDir) || !is_writable($backupDir)) {
+            return null;
+        }
+
+        $stamp = date('Ymd_His');
+        $snapDir = $backupDir . '/full_' . $stamp;
+        if (!@mkdir($snapDir, 0700, true)) {
+            return null;
+        }
+
+        $files = glob(self::$dataDir . '/*.json') ?: [];
+        foreach ($files as $file) {
+            $base = basename($file);
+            if (substr($base, -5) === '.lock') {
+                continue;
+            }
+            @copy($file, $snapDir . '/' . $base);
+        }
+
+        // Prune old full snapshots (keep 15)
+        $snaps = glob($backupDir . '/full_*') ?: [];
+        rsort($snaps);
+        foreach (array_slice($snaps, 15) as $old) {
+            if (is_dir($old)) {
+                foreach (glob($old . '/*') ?: [] as $f) {
+                    @unlink($f);
+                }
+                @rmdir($old);
+            }
+        }
+
+        self::audit('backup.full', ['path' => basename($snapDir)]);
+        return $snapDir;
+    }
+
+    /**
+     * List available full backups (newest first).
+     */
+    public static function listFullBackups(): array {
+        self::init();
+        $backupDir = self::$config['backup_dir'] ?? (self::$dataDir . '/backups');
+        if (!is_dir($backupDir)) {
+            return [];
+        }
+        $snaps = glob($backupDir . '/full_*') ?: [];
+        rsort($snaps);
+        $out = [];
+        foreach ($snaps as $dir) {
+            $out[] = [
+                'id' => basename($dir),
+                'path' => $dir,
+                'created' => filemtime($dir) ?: null,
+                'files' => count(glob($dir . '/*.json') ?: []),
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Export selected datasets as plain (decrypted) arrays for download.
+     * Never includes password hashes or SMTP passwords.
+     */
+    public static function exportDatasets(array $keys): array {
+        $map = [
+            'personnel' => fn() => self::getPersonnel(),
+            'vehicles' => fn() => self::getVehicles(),
+            'locations' => fn() => array_map(function ($loc) {
+                unset($loc['ntfy_token']);
+                return $loc;
+            }, self::getLocations()),
+            'attendance' => fn() => self::getAttendanceRecords(),
+            'missions' => fn() => self::getMissionReports(),
+            'phone_numbers' => fn() => self::getPhoneNumbers(),
+            'settings' => fn() => self::getSettings(),
+            'audit' => fn() => self::getAuditLog(1000),
+        ];
+
+        $export = [];
+        foreach ($keys as $key) {
+            if (isset($map[$key])) {
+                $export[$key] = $map[$key]();
+            }
+        }
+        return $export;
+    }
+
+    /**
+     * Global search across personnel, vehicles, attendance and missions.
+     */
+    public static function globalSearch(string $query, ?string $locationId = null): array {
+        $q = mb_strtolower(trim($query));
+        if ($q === '') {
+            return ['personnel' => [], 'vehicles' => [], 'attendance' => [], 'missions' => []];
+        }
+
+        $match = function ($haystack) use ($q) {
+            return $haystack !== null && mb_strpos(mb_strtolower((string)$haystack), $q) !== false;
+        };
+
+        $personnel = array_values(array_filter(
+            self::getPersonnelByLocation($locationId),
+            fn($p) => $match($p['name'] ?? '')
+        ));
+
+        $vehicles = array_values(array_filter(
+            self::getVehiclesByLocation($locationId),
+            fn($v) => $match($v['type'] ?? '') || $match($v['radio_call_sign'] ?? '')
+        ));
+
+        $attendance = array_values(array_filter(
+            self::getAttendanceRecordsByLocation($locationId),
+            fn($r) => $match($r['thema'] ?? $r['description'] ?? '') || $match($r['datum'] ?? $r['date'] ?? '')
+        ));
+
+        $missions = array_values(array_filter(
+            self::getMissionReportsByLocation($locationId),
+            fn($r) => $match($r['einsatzgrund'] ?? $r['mission_type'] ?? '')
+                || $match($r['einsatzort'] ?? $r['location'] ?? '')
+                || $match($r['einsatzdatum'] ?? $r['date'] ?? '')
+                || $match($r['einsatzleiter'] ?? '')
+        ));
+
+        return [
+            'personnel' => array_slice($personnel, 0, 50),
+            'vehicles' => array_slice($vehicles, 0, 50),
+            'attendance' => array_slice($attendance, 0, 50),
+            'missions' => array_slice($missions, 0, 50),
+        ];
+    }
+
+    /**
+     * Calendar events for a given month (Y-m).
+     */
+    public static function getCalendarEvents(string $yearMonth, ?string $locationId = null): array {
+        if (!preg_match('/^\d{4}-\d{2}$/', $yearMonth)) {
+            $yearMonth = date('Y-m');
+        }
+
+        $events = [];
+        foreach (self::getAttendanceRecordsByLocation($locationId) as $r) {
+            $date = $r['datum'] ?? $r['date'] ?? '';
+            if (strpos($date, $yearMonth) === 0) {
+                $events[] = [
+                    'id' => $r['id'] ?? null,
+                    'type' => 'attendance',
+                    'date' => $date,
+                    'title' => $r['thema'] ?? $r['description'] ?? 'Übung',
+                    'meta' => [
+                        'von' => $r['von'] ?? null,
+                        'bis' => $r['bis'] ?? null,
+                    ],
+                ];
+            }
+        }
+        foreach (self::getMissionReportsByLocation($locationId) as $r) {
+            $date = $r['einsatzdatum'] ?? $r['date'] ?? '';
+            if (strpos($date, $yearMonth) === 0) {
+                $events[] = [
+                    'id' => $r['id'] ?? null,
+                    'type' => 'mission',
+                    'date' => $date,
+                    'title' => $r['einsatzgrund'] ?? $r['mission_type'] ?? 'Einsatz',
+                    'meta' => [
+                        'ort' => $r['einsatzort'] ?? $r['location'] ?? null,
+                    ],
+                ];
+            }
+        }
+
+        usort($events, fn($a, $b) => strcmp($a['date'], $b['date']));
+        return $events;
     }
 
     /**
@@ -61,17 +407,7 @@ class DataStore {
      * when only a subset is needed.
      */
     private static function loadFiltered(string $filename, callable $filter): array {
-        self::init();
-        $filepath = self::$dataDir . '/' . $filename;
-
-        if (!file_exists($filepath)) {
-            return [];
-        }
-
-        $encrypted = file_get_contents($filepath);
-        $decrypted = Encryption::decrypt($encrypted);
-        $all = json_decode($decrypted, true) ?: [];
-
+        $all = self::load($filename);
         return array_values(array_filter($all, $filter));
     }
 
@@ -114,21 +450,22 @@ class DataStore {
      * Create new personnel
      */
     public static function createPersonnel($data) {
-        $personnel = self::getPersonnel();
-        
-        $newPerson = [
-            'id' => 'pers_' . bin2hex(random_bytes(8)),
-            'name' => $data['name'],
-            'qualifications' => $data['qualifications'] ?? [],
-            'leadership_roles' => $data['leadership_roles'] ?? [],
-            'is_instructor' => $data['is_instructor'] ?? false,
-            'location_id' => $data['location_id'] ?? null,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        ];
-
-        $personnel[] = $newPerson;
-        self::save('personnel.json', $personnel);
+        $newPerson = null;
+        self::mutate('personnel.json', function ($personnel) use ($data, &$newPerson) {
+            $newPerson = [
+                'id' => 'pers_' . bin2hex(random_bytes(8)),
+                'name' => $data['name'],
+                'qualifications' => $data['qualifications'] ?? [],
+                'leadership_roles' => $data['leadership_roles'] ?? [],
+                'is_instructor' => $data['is_instructor'] ?? false,
+                'location_id' => $data['location_id'] ?? null,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            $personnel[] = $newPerson;
+            return $personnel;
+        });
+        self::audit('personnel.create', ['id' => $newPerson['id'] ?? null]);
         return $newPerson;
     }
 
@@ -136,45 +473,49 @@ class DataStore {
      * Update personnel
      */
     public static function updatePersonnel($id, $data) {
-        $personnel = self::getPersonnel();
-        
-        foreach ($personnel as &$person) {
-            if ($person['id'] === $id) {
-                if (isset($data['name'])) {
-                    $person['name'] = $data['name'];
+        $updated = null;
+        self::mutate('personnel.json', function ($personnel) use ($id, $data, &$updated) {
+            foreach ($personnel as &$person) {
+                if ($person['id'] === $id) {
+                    if (isset($data['name'])) {
+                        $person['name'] = $data['name'];
+                    }
+                    if (isset($data['qualifications'])) {
+                        $person['qualifications'] = $data['qualifications'];
+                    }
+                    if (isset($data['leadership_roles'])) {
+                        $person['leadership_roles'] = $data['leadership_roles'];
+                    }
+                    if (isset($data['is_instructor'])) {
+                        $person['is_instructor'] = $data['is_instructor'];
+                    }
+                    if (isset($data['location_id'])) {
+                        $person['location_id'] = $data['location_id'];
+                    }
+                    $person['updated_at'] = date('Y-m-d H:i:s');
+                    $updated = $person;
+                    break;
                 }
-                if (isset($data['qualifications'])) {
-                    $person['qualifications'] = $data['qualifications'];
-                }
-                if (isset($data['leadership_roles'])) {
-                    $person['leadership_roles'] = $data['leadership_roles'];
-                }
-                if (isset($data['is_instructor'])) {
-                    $person['is_instructor'] = $data['is_instructor'];
-                }
-                if (isset($data['location_id'])) {
-                    $person['location_id'] = $data['location_id'];
-                }
-                $person['updated_at'] = date('Y-m-d H:i:s');
-                
-                self::save('personnel.json', $personnel);
-                return $person;
             }
+            unset($person);
+            return $updated === null ? false : $personnel;
+        });
+        if ($updated) {
+            self::audit('personnel.update', ['id' => $id]);
         }
-        
-        return null;
+        return $updated;
     }
 
     /**
      * Delete personnel
      */
     public static function deletePersonnel($id) {
-        $personnel = self::getPersonnel();
-        $personnel = array_filter($personnel, function($person) use ($id) {
-            return $person['id'] !== $id;
+        self::mutate('personnel.json', function ($personnel) use ($id) {
+            return array_values(array_filter($personnel, function ($person) use ($id) {
+                return $person['id'] !== $id;
+            }));
         });
-        
-        self::save('personnel.json', array_values($personnel));
+        self::audit('personnel.delete', ['id' => $id]);
         return true;
     }
 
@@ -217,21 +558,22 @@ class DataStore {
      * Create new vehicle
      */
     public static function createVehicle($data) {
-        $vehicles = self::getVehicles();
-        
-        $newVehicle = [
-            'id' => 'veh_' . bin2hex(random_bytes(8)),
-            'location' => $data['location'] ?? null, // Legacy field for backward compatibility
-            'location_id' => $data['location_id'] ?? null, // New field - use this for filtering
-            'type' => $data['type'],
-            'radio_call_sign' => $data['radio_call_sign'],
-            'crew_size' => $data['crew_size'] ?? null,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        ];
-
-        $vehicles[] = $newVehicle;
-        self::save('vehicles.json', $vehicles);
+        $newVehicle = null;
+        self::mutate('vehicles.json', function ($vehicles) use ($data, &$newVehicle) {
+            $newVehicle = [
+                'id' => 'veh_' . bin2hex(random_bytes(8)),
+                'location' => $data['location'] ?? null, // Legacy field for backward compatibility
+                'location_id' => $data['location_id'] ?? null, // New field - use this for filtering
+                'type' => $data['type'],
+                'radio_call_sign' => $data['radio_call_sign'],
+                'crew_size' => $data['crew_size'] ?? null,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            $vehicles[] = $newVehicle;
+            return $vehicles;
+        });
+        self::audit('vehicle.create', ['id' => $newVehicle['id'] ?? null]);
         return $newVehicle;
     }
 
@@ -239,45 +581,49 @@ class DataStore {
      * Update vehicle
      */
     public static function updateVehicle($id, $data) {
-        $vehicles = self::getVehicles();
-        
-        foreach ($vehicles as &$vehicle) {
-            if ($vehicle['id'] === $id) {
-                if (isset($data['location'])) {
-                    $vehicle['location'] = $data['location'];
+        $updated = null;
+        self::mutate('vehicles.json', function ($vehicles) use ($id, $data, &$updated) {
+            foreach ($vehicles as &$vehicle) {
+                if ($vehicle['id'] === $id) {
+                    if (isset($data['location'])) {
+                        $vehicle['location'] = $data['location'];
+                    }
+                    if (isset($data['location_id'])) {
+                        $vehicle['location_id'] = $data['location_id'];
+                    }
+                    if (isset($data['type'])) {
+                        $vehicle['type'] = $data['type'];
+                    }
+                    if (isset($data['radio_call_sign'])) {
+                        $vehicle['radio_call_sign'] = $data['radio_call_sign'];
+                    }
+                    if (isset($data['crew_size'])) {
+                        $vehicle['crew_size'] = $data['crew_size'];
+                    }
+                    $vehicle['updated_at'] = date('Y-m-d H:i:s');
+                    $updated = $vehicle;
+                    break;
                 }
-                if (isset($data['location_id'])) {
-                    $vehicle['location_id'] = $data['location_id'];
-                }
-                if (isset($data['type'])) {
-                    $vehicle['type'] = $data['type'];
-                }
-                if (isset($data['radio_call_sign'])) {
-                    $vehicle['radio_call_sign'] = $data['radio_call_sign'];
-                }
-                if (isset($data['crew_size'])) {
-                    $vehicle['crew_size'] = $data['crew_size'];
-                }
-                $vehicle['updated_at'] = date('Y-m-d H:i:s');
-                
-                self::save('vehicles.json', $vehicles);
-                return $vehicle;
             }
+            unset($vehicle);
+            return $updated === null ? false : $vehicles;
+        });
+        if ($updated) {
+            self::audit('vehicle.update', ['id' => $id]);
         }
-        
-        return null;
+        return $updated;
     }
 
     /**
      * Delete vehicle
      */
     public static function deleteVehicle($id) {
-        $vehicles = self::getVehicles();
-        $vehicles = array_filter($vehicles, function($vehicle) use ($id) {
-            return $vehicle['id'] !== $id;
+        self::mutate('vehicles.json', function ($vehicles) use ($id) {
+            return array_values(array_filter($vehicles, function ($vehicle) use ($id) {
+                return $vehicle['id'] !== $id;
+            }));
         });
-        
-        self::save('vehicles.json', array_values($vehicles));
+        self::audit('vehicle.delete', ['id' => $id]);
         return true;
     }
 
@@ -331,23 +677,24 @@ class DataStore {
      * Create new location
      */
     public static function createLocation($data) {
-        $locations = self::getLocations();
-        
-        $newLocation = [
-            'id' => 'loc_' . bin2hex(random_bytes(8)),
-            'name' => $data['name'],
-            'address' => $data['address'] ?? '',
-            'email' => $data['email'] ?? '',
-            'ntfy_url' => isset($data['ntfy_url']) ? trim((string)$data['ntfy_url']) : '',
-            'ntfy_token' => (isset($data['ntfy_token']) && $data['ntfy_token'] !== null)
-                ? trim((string)$data['ntfy_token'])
-                : '',
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        ];
-
-        $locations[] = $newLocation;
-        self::save('locations.json', $locations);
+        $newLocation = null;
+        self::mutate('locations.json', function ($locations) use ($data, &$newLocation) {
+            $newLocation = [
+                'id' => 'loc_' . bin2hex(random_bytes(8)),
+                'name' => $data['name'],
+                'address' => $data['address'] ?? '',
+                'email' => $data['email'] ?? '',
+                'ntfy_url' => isset($data['ntfy_url']) ? trim((string)$data['ntfy_url']) : '',
+                'ntfy_token' => (isset($data['ntfy_token']) && $data['ntfy_token'] !== null)
+                    ? trim((string)$data['ntfy_token'])
+                    : '',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            $locations[] = $newLocation;
+            return $locations;
+        });
+        self::audit('location.create', ['id' => $newLocation['id'] ?? null]);
         return $newLocation;
     }
 
@@ -355,49 +702,53 @@ class DataStore {
      * Update location
      */
     public static function updateLocation($id, $data) {
-        $locations = self::getLocations();
-        
-        foreach ($locations as &$location) {
-            if ($location['id'] === $id) {
-                if (isset($data['name'])) {
-                    $location['name'] = $data['name'];
-                }
-                if (isset($data['address'])) {
-                    $location['address'] = $data['address'];
-                }
-                if (isset($data['email'])) {
-                    $location['email'] = $data['email'];
-                }
-                if (isset($data['ntfy_url'])) {
-                    $location['ntfy_url'] = trim((string)$data['ntfy_url']);
-                }
-                if (array_key_exists('ntfy_token', $data)) {
-                    if ($data['ntfy_token'] === null) {
-                        $location['ntfy_token'] = '';
-                    } elseif (is_string($data['ntfy_token']) && $data['ntfy_token'] !== '') {
-                        $location['ntfy_token'] = trim($data['ntfy_token']);
+        $updated = null;
+        self::mutate('locations.json', function ($locations) use ($id, $data, &$updated) {
+            foreach ($locations as &$location) {
+                if ($location['id'] === $id) {
+                    if (isset($data['name'])) {
+                        $location['name'] = $data['name'];
                     }
+                    if (isset($data['address'])) {
+                        $location['address'] = $data['address'];
+                    }
+                    if (isset($data['email'])) {
+                        $location['email'] = $data['email'];
+                    }
+                    if (isset($data['ntfy_url'])) {
+                        $location['ntfy_url'] = trim((string)$data['ntfy_url']);
+                    }
+                    if (array_key_exists('ntfy_token', $data)) {
+                        if ($data['ntfy_token'] === null) {
+                            $location['ntfy_token'] = '';
+                        } elseif (is_string($data['ntfy_token']) && $data['ntfy_token'] !== '') {
+                            $location['ntfy_token'] = trim($data['ntfy_token']);
+                        }
+                    }
+                    $location['updated_at'] = date('Y-m-d H:i:s');
+                    $updated = $location;
+                    break;
                 }
-                $location['updated_at'] = date('Y-m-d H:i:s');
-                
-                self::save('locations.json', $locations);
-                return $location;
             }
+            unset($location);
+            return $updated === null ? false : $locations;
+        });
+        if ($updated) {
+            self::audit('location.update', ['id' => $id]);
         }
-        
-        return null;
+        return $updated;
     }
 
     /**
      * Delete location
      */
     public static function deleteLocation($id) {
-        $locations = self::getLocations();
-        $locations = array_filter($locations, function($location) use ($id) {
-            return $location['id'] !== $id;
+        self::mutate('locations.json', function ($locations) use ($id) {
+            return array_values(array_filter($locations, function ($location) use ($id) {
+                return $location['id'] !== $id;
+            }));
         });
-        
-        self::save('locations.json', array_values($locations));
+        self::audit('location.delete', ['id' => $id]);
         return true;
     }
 
@@ -440,22 +791,23 @@ class DataStore {
      * Create attendance record
      */
     public static function createAttendanceRecord($data) {
-        $records = self::getAttendanceRecords();
-        
-        // Preserve all data fields from the input
-        $newRecord = array_merge($data, [
-            'id' => $data['id'] ?? 'att_' . bin2hex(random_bytes(8)),
-            'date' => $data['date'] ?? $data['datum'] ?? '',
-            'type' => $data['type'] ?? 'training',
-            'description' => $data['description'] ?? $data['thema'] ?? '',
-            'duration_hours' => $data['duration_hours'] ?? 0,
-            'attendees' => $data['attendees'] ?? [],
-            'created_at' => $data['created_at'] ?? date('Y-m-d H:i:s'),
-            'created_by' => $data['created_by'] ?? null
-        ]);
-
-        $records[] = $newRecord;
-        self::save('attendance.json', $records);
+        $newRecord = null;
+        self::mutate('attendance.json', function ($records) use ($data, &$newRecord) {
+            // Preserve all data fields from the input
+            $newRecord = array_merge($data, [
+                'id' => $data['id'] ?? 'att_' . bin2hex(random_bytes(8)),
+                'date' => $data['date'] ?? $data['datum'] ?? '',
+                'type' => $data['type'] ?? 'training',
+                'description' => $data['description'] ?? $data['thema'] ?? '',
+                'duration_hours' => $data['duration_hours'] ?? 0,
+                'attendees' => $data['attendees'] ?? [],
+                'created_at' => $data['created_at'] ?? date('Y-m-d H:i:s'),
+                'created_by' => $data['created_by'] ?? null
+            ]);
+            $records[] = $newRecord;
+            return $records;
+        });
+        self::audit('attendance.create', ['id' => $newRecord['id'] ?? null]);
         return $newRecord;
     }
 
@@ -463,32 +815,36 @@ class DataStore {
      * Update attendance record
      */
     public static function updateAttendanceRecord($id, $data) {
-        $records = self::getAttendanceRecords();
-        
-        foreach ($records as &$record) {
-            if ($record['id'] === $id) {
-                // Merge new data with existing record
-                $record = array_merge($record, $data);
-                $record['updated_at'] = date('Y-m-d H:i:s');
-                
-                self::save('attendance.json', $records);
-                return $record;
+        $updated = null;
+        self::mutate('attendance.json', function ($records) use ($id, $data, &$updated) {
+            foreach ($records as &$record) {
+                if ($record['id'] === $id) {
+                    // Merge new data with existing record
+                    $record = array_merge($record, $data);
+                    $record['updated_at'] = date('Y-m-d H:i:s');
+                    $updated = $record;
+                    break;
+                }
             }
+            unset($record);
+            return $updated === null ? false : $records;
+        });
+        if ($updated) {
+            self::audit('attendance.update', ['id' => $id]);
         }
-        
-        return null;
+        return $updated;
     }
 
     /**
      * Delete attendance record
      */
     public static function deleteAttendanceRecord($id) {
-        $records = self::getAttendanceRecords();
-        $records = array_filter($records, function($record) use ($id) {
-            return $record['id'] !== $id;
+        self::mutate('attendance.json', function ($records) use ($id) {
+            return array_values(array_filter($records, function ($record) use ($id) {
+                return $record['id'] !== $id;
+            }));
         });
-        
-        self::save('attendance.json', array_values($records));
+        self::audit('attendance.delete', ['id' => $id]);
         return true;
     }
 
@@ -531,27 +887,28 @@ class DataStore {
      * Create mission report
      */
     public static function createMissionReport($data) {
-        $reports = self::getMissionReports();
-
-        // Preserve all data fields from the input (like createAttendanceRecord does).
-        // The second array overrides any overlapping keys from $data, ensuring
-        // canonical fields like 'id' and 'created_at' are always set correctly.
-        $newReport = array_merge($data, [
-            'id' => $data['id'] ?? 'mis_' . bin2hex(random_bytes(8)),
-            'date' => $data['date'] ?? $data['einsatzdatum'] ?? '',
-            'mission_type' => $data['mission_type'] ?? $data['einsatzgrund'] ?? '',
-            'location' => $data['location'] ?? $data['einsatzort'] ?? '',
-            'description' => $data['description'] ?? $data['einsatzlage'] ?? '',
-            'participants' => $data['participants'] ?? [],
-            'vehicles' => $data['vehicles'] ?? $data['eingesetzte_fahrzeuge'] ?? [],
-            'duration_hours' => $data['duration_hours'] ?? 0,
-            'location_id' => $data['location_id'] ?? null,
-            'created_at' => date('Y-m-d H:i:s'),
-            'created_by' => $data['created_by'] ?? null
-        ]);
-
-        $reports[] = $newReport;
-        self::save('missions.json', $reports);
+        $newReport = null;
+        self::mutate('missions.json', function ($reports) use ($data, &$newReport) {
+            // Preserve all data fields from the input (like createAttendanceRecord does).
+            // The second array overrides any overlapping keys from $data, ensuring
+            // canonical fields like 'id' and 'created_at' are always set correctly.
+            $newReport = array_merge($data, [
+                'id' => $data['id'] ?? 'mis_' . bin2hex(random_bytes(8)),
+                'date' => $data['date'] ?? $data['einsatzdatum'] ?? '',
+                'mission_type' => $data['mission_type'] ?? $data['einsatzgrund'] ?? '',
+                'location' => $data['location'] ?? $data['einsatzort'] ?? '',
+                'description' => $data['description'] ?? $data['einsatzlage'] ?? '',
+                'participants' => $data['participants'] ?? [],
+                'vehicles' => $data['vehicles'] ?? $data['eingesetzte_fahrzeuge'] ?? [],
+                'duration_hours' => $data['duration_hours'] ?? 0,
+                'location_id' => $data['location_id'] ?? null,
+                'created_at' => date('Y-m-d H:i:s'),
+                'created_by' => $data['created_by'] ?? null
+            ]);
+            $reports[] = $newReport;
+            return $reports;
+        });
+        self::audit('mission.create', ['id' => $newReport['id'] ?? null]);
         return $newReport;
     }
 
@@ -559,32 +916,36 @@ class DataStore {
      * Update mission report
      */
     public static function updateMissionReport($id, $data) {
-        $reports = self::getMissionReports();
-        
-        foreach ($reports as &$report) {
-            if ($report['id'] === $id) {
-                // Merge new data with existing report
-                $report = array_merge($report, $data);
-                $report['updated_at'] = date('Y-m-d H:i:s');
-                
-                self::save('missions.json', $reports);
-                return $report;
+        $updated = null;
+        self::mutate('missions.json', function ($reports) use ($id, $data, &$updated) {
+            foreach ($reports as &$report) {
+                if ($report['id'] === $id) {
+                    // Merge new data with existing report
+                    $report = array_merge($report, $data);
+                    $report['updated_at'] = date('Y-m-d H:i:s');
+                    $updated = $report;
+                    break;
+                }
             }
+            unset($report);
+            return $updated === null ? false : $reports;
+        });
+        if ($updated) {
+            self::audit('mission.update', ['id' => $id]);
         }
-        
-        return null;
+        return $updated;
     }
 
     /**
      * Delete mission report
      */
     public static function deleteMissionReport($id) {
-        $reports = self::getMissionReports();
-        $reports = array_filter($reports, function($report) use ($id) {
-            return $report['id'] !== $id;
+        self::mutate('missions.json', function ($reports) use ($id) {
+            return array_values(array_filter($reports, function ($report) use ($id) {
+                return $report['id'] !== $id;
+            }));
         });
-        
-        self::save('missions.json', array_values($reports));
+        self::audit('mission.delete', ['id' => $id]);
         return true;
     }
 
@@ -694,9 +1055,11 @@ class DataStore {
      * Add phone number
      */
     public static function addPhoneNumber($data) {
-        $numbers = self::getPhoneNumbers();
-        $numbers[] = $data;
-        self::save('phone-numbers.json', $numbers);
+        self::mutate('phone-numbers.json', function ($numbers) use ($data) {
+            $numbers[] = $data;
+            return $numbers;
+        });
+        self::audit('phone_number.create', ['id' => $data['id'] ?? null]);
         return $data;
     }
 
@@ -704,20 +1067,21 @@ class DataStore {
      * Update phone number
      */
     public static function updatePhoneNumber($id, $data) {
-        $numbers = self::getPhoneNumbers();
-        
-        foreach ($numbers as &$number) {
-            if ($number['id'] === $id) {
-                $number['name'] = $data['name'];
-                $number['organization'] = $data['organization'];
-                $number['role'] = $data['role'];
-                $number['phone'] = $data['phone'];
-                $number['updated'] = date('Y-m-d H:i:s');
-                break;
+        self::mutate('phone-numbers.json', function ($numbers) use ($id, $data) {
+            foreach ($numbers as &$number) {
+                if ($number['id'] === $id) {
+                    $number['name'] = $data['name'];
+                    $number['organization'] = $data['organization'];
+                    $number['role'] = $data['role'];
+                    $number['phone'] = $data['phone'];
+                    $number['updated'] = date('Y-m-d H:i:s');
+                    break;
+                }
             }
-        }
-        
-        self::save('phone-numbers.json', $numbers);
+            unset($number);
+            return $numbers;
+        });
+        self::audit('phone_number.update', ['id' => $id]);
         return true;
     }
 
@@ -725,12 +1089,12 @@ class DataStore {
      * Delete phone number
      */
     public static function deletePhoneNumber($id) {
-        $numbers = self::getPhoneNumbers();
-        $numbers = array_filter($numbers, function($number) use ($id) {
-            return $number['id'] !== $id;
+        self::mutate('phone-numbers.json', function ($numbers) use ($id) {
+            return array_values(array_filter($numbers, function ($number) use ($id) {
+                return $number['id'] !== $id;
+            }));
         });
-        
-        self::save('phone-numbers.json', array_values($numbers));
+        self::audit('phone_number.delete', ['id' => $id]);
         return true;
     }
 
@@ -758,16 +1122,25 @@ class DataStore {
      * Update settings
      */
     public static function updateSettings($data) {
-        $settings = self::getSettings();
-        
-        // Update fields
-        foreach ($data as $key => $value) {
-            $settings[$key] = $value;
-        }
-        
-        $settings['updated_at'] = date('Y-m-d H:i:s');
-        
-        self::save('settings.json', $settings);
+        $settings = null;
+        self::mutate('settings.json', function ($stored) use ($data, &$settings) {
+            if (empty($stored)) {
+                $stored = [
+                    'fire_department_name' => 'Freiwillige Feuerwehr',
+                    'fire_department_city' => '',
+                    'logo_filename' => '',
+                    'contact_phone' => '',
+                    'address' => ''
+                ];
+            }
+            foreach ($data as $key => $value) {
+                $stored[$key] = $value;
+            }
+            $stored['updated_at'] = date('Y-m-d H:i:s');
+            $settings = $stored;
+            return $stored;
+        });
+        self::audit('settings.update', []);
         return $settings;
     }
 
@@ -826,7 +1199,10 @@ class DataStore {
             'updated_at'    => date('Y-m-d H:i:s'),
         ];
 
-        self::save('email_settings.json', $settings);
+        self::mutate('email_settings.json', function () use ($settings) {
+            return $settings;
+        });
+        self::audit('email_settings.update', []);
         return $settings;
     }
 
@@ -847,7 +1223,7 @@ class DataStore {
      */
     public static function removeLogo() {
         $settings = self::getSettings();
-        
+
         // Delete logo file if exists
         if (!empty($settings['logo_filename'])) {
             self::init();
@@ -856,12 +1232,22 @@ class DataStore {
                 unlink($logoPath);
             }
         }
-        
-        // Update settings
-        $settings['logo_filename'] = '';
-        $settings['updated_at'] = date('Y-m-d H:i:s');
-        
-        self::save('settings.json', $settings);
+
+        self::mutate('settings.json', function ($stored) {
+            if (empty($stored)) {
+                $stored = [
+                    'fire_department_name' => 'Freiwillige Feuerwehr',
+                    'fire_department_city' => '',
+                    'logo_filename' => '',
+                    'contact_phone' => '',
+                    'address' => ''
+                ];
+            }
+            $stored['logo_filename'] = '';
+            $stored['updated_at'] = date('Y-m-d H:i:s');
+            return $stored;
+        });
+        self::audit('settings.remove_logo', []);
         return true;
     }
 }

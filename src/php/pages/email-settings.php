@@ -100,10 +100,12 @@ $emailConfig = DataStore::getEmailSettings();
                                id="smtp_password" 
                                name="smtp_password" 
                                class="form-input" 
-                               value="<?php echo htmlspecialchars($emailConfig['smtp_password'] ?? ''); ?>" 
-                               placeholder="••••••••"
+                               value="" 
+                               placeholder="<?php echo !empty($emailConfig['smtp_password']) ? '••••••••' : ''; ?>"
                                autocomplete="new-password">
-                        <small class="form-help">Passwort wird verschlüsselt gespeichert</small>
+                        <small class="form-help"><?php echo !empty($emailConfig['smtp_password'])
+                            ? 'Ein Passwort ist gespeichert. Feld leer lassen, um es beizubehalten.'
+                            : 'Passwort wird verschlüsselt gespeichert'; ?></small>
                     </div>
                 </div>
             </div>
@@ -215,18 +217,18 @@ document.getElementById('emailSettingsForm').addEventListener('submit', async fu
         const result = await response.json();
         
         if (result.success) {
-            alert('✅ E-Mail-Einstellungen erfolgreich gespeichert!');
+            window.feuerwehrApp.showAlert('success', 'E-Mail-Einstellungen erfolgreich gespeichert!');
         } else {
-            alert('❌ Fehler beim Speichern: ' + (result.error || 'Unbekannter Fehler'));
+            window.feuerwehrApp.showAlert('error', 'Fehler beim Speichern: ' + (result.error || 'Unbekannter Fehler'));
         }
     } catch (error) {
-        alert('❌ Fehler beim Speichern: ' + error.message);
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Speichern: ' + error.message);
     }
 });
 
 // Test email function
 async function testEmailSettings() {
-    if (!confirm('Eine Test-E-Mail an die konfigurierte Empfänger-Adresse senden?')) {
+    if (!(await window.feuerwehrApp.confirmAction('Test-E-Mail senden', 'Eine Test-E-Mail an die konfigurierte Empfänger-Adresse senden?'))) {
         return;
     }
     
@@ -241,12 +243,12 @@ async function testEmailSettings() {
         const result = await response.json();
         
         if (result.success) {
-            alert('✅ Test-E-Mail erfolgreich versendet!\nBitte prüfen Sie Ihr Postfach.');
+            window.feuerwehrApp.showAlert('success', 'Test-E-Mail erfolgreich versendet! Bitte prüfen Sie Ihr Postfach.');
         } else {
-            alert('❌ Test-E-Mail konnte nicht versendet werden:\n' + (result.error || 'Unbekannter Fehler'));
+            window.feuerwehrApp.showAlert('error', 'Test-E-Mail konnte nicht versendet werden: ' + (result.error || 'Unbekannter Fehler'));
         }
     } catch (error) {
-        alert('❌ Fehler beim Senden der Test-E-Mail: ' + error.message);
+        window.feuerwehrApp.showAlert('error', 'Fehler beim Senden der Test-E-Mail: ' + error.message);
     }
 }
 </script>

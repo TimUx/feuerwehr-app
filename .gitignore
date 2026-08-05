@@ -3,6 +3,14 @@ data/*.json
 data/*.dat
 data/backups/
 data/settings/
+data/*.lock
+data/uploads/
+data/geocode_cache.json
+data/audit.json
+data/email_settings.json
+data/rate_limits.json
+data/remember_tokens.json
+data/password_reset_tokens.json
 
 # Configuration files with sensitive data
 config/config.php

@@ -119,7 +119,8 @@ $userLocationId = Auth::getUserLocationId();
             
             <div class="form-group">
                 <label class="form-label" for="password">Passwort *</label>
-                <input type="password" id="password" name="password" class="form-input" required>
+                <input type="password" id="password" name="password" class="form-input" required minlength="10">
+                <small style="color: var(--text-secondary); display: none; margin-top: 0.25rem;" id="password-min-hint">Mindestens 10 Zeichen</small>
                 <small class="form-error" id="password-hint">Bei Bearbeitung leer lassen, um Passwort nicht zu ändern</small>
             </div>
             
@@ -169,6 +170,7 @@ function openUserModal() {
     document.getElementById('user-form').reset();
     document.getElementById('user-id').value = '';
     document.getElementById('password').required = true;
+    document.getElementById('password-min-hint').style.display = 'block';
     document.getElementById('password-hint').style.display = 'none';
 }
 
@@ -184,13 +186,14 @@ function editUser(user) {
     document.getElementById('email').value = user.email || '';
     document.getElementById('password').value = '';
     document.getElementById('password').required = false;
+    document.getElementById('password-min-hint').style.display = 'none';
     document.getElementById('password-hint').style.display = 'block';
     document.getElementById('role').value = user.role;
     document.getElementById('location_id').value = user.location_id || '';
 }
 
 async function deleteUser(id, username) {
-    if (!confirm(`Möchten Sie den Benutzer "${username}" wirklich löschen?`)) {
+    if (!(await window.feuerwehrApp.confirmAction('Benutzer löschen', `Möchten Sie den Benutzer "${username}" wirklich löschen?`))) {
         return;
     }
     

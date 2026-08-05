@@ -6,6 +6,11 @@
 (function () {
   'use strict';
 
+  function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+  }
+
   const form = document.getElementById('reset-password-form');
   if (!form) return;
 
@@ -23,7 +28,10 @@
     try {
       const response = await fetch('/src/php/api/password-reset.php?action=verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': getCsrfToken()
+        },
         body: JSON.stringify({ token: token })
       });
 
@@ -55,6 +63,11 @@
       return;
     }
 
+    if (password.length < 10) {
+      showResetMessage('error', 'Passwort muss mindestens 10 Zeichen lang sein');
+      return;
+    }
+
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.dataset.originalText = submitBtn.innerHTML;
@@ -64,7 +77,10 @@
     try {
       const response = await fetch('/src/php/api/password-reset.php?action=reset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': getCsrfToken()
+        },
         body: JSON.stringify({ token: token, password: password })
       });
 

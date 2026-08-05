@@ -79,12 +79,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Invalid JSON input');
         }
 
+        $existing = DataStore::getEmailSettings();
+        // Empty password field means "keep existing password"
+        $smtpPassword = $input['smtp_password'] ?? '';
+        if ($smtpPassword === '') {
+            $smtpPassword = $existing['smtp_password'] ?? '';
+        }
+
         DataStore::updateEmailSettings([
             'smtp_host'     => $input['smtp_host']     ?? '',
             'smtp_port'     => (int) ($input['smtp_port'] ?? 587),
             'smtp_auth'     => !empty($input['smtp_auth']),
             'smtp_username' => $input['smtp_username'] ?? '',
-            'smtp_password' => $input['smtp_password'] ?? '',
+            'smtp_password' => $smtpPassword,
             'smtp_secure'   => $input['smtp_secure']   ?? '',
             'from_address'  => $input['from_address']  ?? 'noreply@feuerwehr.local',
             'from_name'     => $input['from_name']     ?? 'Feuerwehr Management System',

@@ -60,7 +60,10 @@ try {
             
             $success = Auth::createUser($data['username'], $data['password'], $role, $locationId, $email);
             
-            if ($success) {
+            if (is_array($success) && isset($success['error'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => $success['error']]);
+            } elseif ($success === true) {
                 echo json_encode(['success' => true, 'message' => 'Benutzer erstellt']);
             } else {
                 http_response_code(400);
@@ -129,7 +132,10 @@ try {
 
             $success = Auth::updateUser($data['id'], $updateData);
             
-            if ($success) {
+            if (is_array($success) && isset($success['error'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => $success['error']]);
+            } elseif ($success === true) {
                 echo json_encode(['success' => true, 'message' => 'Benutzer aktualisiert']);
             } else {
                 http_response_code(404);

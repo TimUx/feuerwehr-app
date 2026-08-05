@@ -178,7 +178,7 @@ function editLocation(location) {
 }
 
 async function deleteLocation(id, name) {
-    if (!confirm(`Möchten Sie den Standort "${name}" wirklich löschen?\n\nHinweis: Fahrzeuge und Einsatzkräfte, die diesem Standort zugeordnet sind, werden nicht gelöscht.`)) {
+    if (!(await window.feuerwehrApp.confirmAction('Standort löschen', `Möchten Sie den Standort "${name}" wirklich löschen?\n\nHinweis: Fahrzeuge und Einsatzkräfte, die diesem Standort zugeordnet sind, werden nicht gelöscht.`))) {
         return;
     }
     
