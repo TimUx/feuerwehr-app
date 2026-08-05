@@ -40,6 +40,7 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
   - [Einsatztools](#einsatztools)
   - [Statistiken](#statistiken)
   - [Formulardaten](#formulardaten)
+- [Push-Benachrichtigungen (ntfy)](#-push-benachrichtigungen-ntfy)
 - [Konfiguration](#️-konfiguration)
 - [Sicherheit](#-sicherheit)
 - [Health-Check & Tests](#-health-check--tests)
@@ -121,6 +122,7 @@ Progressive Web App (PWA) für das interne Koordinationsmanagement von Feuerwehr
 - **Touch-optimiert**: Große Buttons für mobile Bedienung
 - **Material Design Icons**: Moderne, intuitive Benutzeroberfläche
 - **Offline-Funktionalität**: Service Worker + IndexedDB für Offline-Formulare
+- **Push-Benachrichtigungen (ntfy)**: Standortbezogene Nachrichten an Mobilgeräte versenden
 
 ---
 
@@ -229,9 +231,9 @@ cp config/config.example.php config/config.php
 
 #### 3. Verschlüsselungsschlüssel generieren
 ```bash
-php -r "echo bin2hex(random_bytes(16));"
+php -r "echo bin2hex(random_bytes(32));"
 ```
-Kopieren Sie den generierten Schlüssel und fügen Sie ihn in `config/config.php` als `encryption_key` ein.
+Kopieren Sie den generierten Schlüssel und fügen Sie ihn in `config/config.php` als `encryption_key` ein (64 Hex-Zeichen für AES-256).
 
 #### 4. E-Mail-Konfiguration anpassen
 Öffnen Sie `config/config.php` und passen Sie die E-Mail-Einstellungen an:
@@ -241,7 +243,8 @@ Kopieren Sie den generierten Schlüssel und fügen Sie ihn in `config/config.php
     'from_name' => 'Feuerwehr Willingshausen',
     'smtp_host' => 'localhost',
     'smtp_port' => 25,
-]
+],
+'app_base_url' => 'https://ihre-domain.de', // Für Passwort-Reset-Links
 ```
 
 #### 5. Berechtigungen setzen
@@ -757,7 +760,7 @@ Das Hauptmenü ist in zwei Bereiche unterteilt:
 - 🔍 Suche
 - 📅 Kalender
 - 📱 Sitzungen
-- ✉️ Nachricht senden
+- 🔔 Nachricht senden (ntfy)
 
 **Administration** (nur für Admins sichtbar):
 - 📍 Standorte verwalten
@@ -812,7 +815,7 @@ Die Benutzerverwaltung ermöglicht das Erstellen und Verwalten von App-Benutzern
 - 📋 **Lesezugriff** und Formularnutzung
 - ✅ Kann Formulare ausfüllen (Anwesenheitsliste, Einsatzbericht inkl. Entwurf)
 - ✅ Kann Einsatztools nutzen (Karte, Gefahrenmatrix, Gefahrstoffkennzeichen)
-- ✅ Kann Suche, Kalender, Sitzungen und ntfy-Nachrichten nutzen
+- ✅ Kann Suche, Kalender, Sitzungen und standortbezogene ntfy-Nachrichten nutzen
 - ✅ Kann Statistiken einsehen
 - ✅ Kann Telefonnummern einsehen
 - ❌ **Keine Verwaltungsrechte**:
@@ -851,6 +854,8 @@ Zentrale Verwaltung aller Einsatzabteilungen und Standorte der Feuerwehr.
 - Name des Standorts
 - Adresse
 - E-Mail-Adresse (für standortspezifische E-Mails)
+- ntfy Publish-URL (pro Standort)
+- Optionaler ntfy Zugangsschlüssel (Bearer-Token)
 
 **Funktionen**:
 - ➕ Standort hinzufügen (nur Global-Admin)
@@ -860,6 +865,8 @@ Zentrale Verwaltung aller Einsatzabteilungen und Standorte der Feuerwehr.
 
 **Verwendung:**
 Standorte werden bei der Verwaltung von Fahrzeugen, Einsatzkräften und in Formularen als Dropdown zur Verfügung gestellt. Standort-Admins sehen nur ihren zugewiesenen Standort, Global-Admins können alle Standorte verwalten.
+
+**Hinweis zu ntfy:** Die Zugangsschlüssel werden absichtlich nie im Klartext zurück an das Frontend geliefert. In der Standortliste wird nur angezeigt, ob ein Schlüssel hinterlegt ist.
 
 ### Einsatzkräfte-Verwaltung
 
@@ -1174,6 +1181,20 @@ Schneller Zugriff auf wichtige Notfallkontakte mit One-Tap-Calling.
 - 📱 Direkter Anruf via tel:-Link (One-Tap-Calling)
 - 🔍 Anzeige von Name, Firma, Funktion und Telefonnummer
 
+#### 🔔 Nachricht senden (ntfy)
+
+Versendet standortbezogene Push-Benachrichtigungen über `ntfy`.
+
+**Funktionen**:
+- ✉️ Nachricht mit optionalem Titel senden
+- ⏱️ Optionales TTL-Feld (als `X-Ntfy-TTL` Header)
+- 📍 Versand an den eigenen Standort oder (bei globalen Rechten) an alle Standorte mit hinterlegter ntfy-URL
+- 🧾 Detaillierte Rückmeldung pro Standort (gesendet/übersprungen/fehlerhaft)
+
+**Berechtigungen**:
+- **Operator/Standort-Admin mit Standortbindung**: Versand nur an den eigenen Standort
+- **Benutzer ohne Standortbindung (z. B. Global-Admin/Operator global)**: Optionaler Versand an alle Standorte
+
 ### Statistiken
 
 Umfassende Auswertungen für Übungsdienste und Einsätze auf Abteilungs- und Personenebene.
@@ -1221,6 +1242,28 @@ Archiv aller eingereichten Formulare mit Übersicht, Detailansicht und Verwaltun
 
 ---
 
+## 🔔 Push-Benachrichtigungen (ntfy)
+
+Die App unterstützt den Versand von Push-Benachrichtigungen über [ntfy](https://ntfy.sh/) mit standortbezogener Konfiguration.
+
+### Konfiguration pro Standort
+1. **Administration → Standorte verwalten** öffnen
+2. Standort anlegen oder bearbeiten
+3. **ntfy Publish-URL** hinterlegen (z. B. `https://ntfy.sh/geheimes-thema` oder eigener Server)
+4. Optional **ntfy Zugangsschlüssel** (Bearer-Token) speichern
+
+### Versand
+- Auf der Seite **Nachricht senden (ntfy)** Nachricht und optional Titel/TTL eingeben
+- Bei entsprechender Berechtigung kann der Versand auf **alle Standorte** erweitert werden
+- Nur Standorte mit hinterlegter ntfy-URL werden berücksichtigt
+
+### Technische Hinweise
+- Der Versand erfolgt serverseitig über die API `src/php/api/ntfy-send.php`
+- `ntfy_token` wird serverseitig gespeichert, aber in API-Antworten nicht im Klartext ausgegeben
+- Leere oder fehlende ntfy-URLs werden beim Sammelversand übersprungen und als Hinweis zurückgemeldet
+
+---
+
 ## ⚙️ Konfiguration
 
 ### Grundeinstellungen
@@ -1233,7 +1276,7 @@ Alle Einstellungen werden in `config/config.php` vorgenommen:
 ```
 Generieren mit:
 ```bash
-php -r "echo bin2hex(random_bytes(16));"
+php -r "echo bin2hex(random_bytes(32));"
 ```
 
 #### E-Mail-Einstellungen

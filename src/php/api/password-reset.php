@@ -58,10 +58,15 @@ try {
             $email = $result['email'];
             $username = $result['username'];
             
-            // Construct reset link
-            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-            $resetLink = "{$protocol}://{$host}/index.php?action=reset-password&token=" . urlencode($token);
+            // Construct reset link using canonical configured base URL
+            $config = require __DIR__ . '/../../../config/config.php';
+            $baseUrl = rtrim($config['app_base_url'] ?? '', '/');
+            if ($baseUrl === '') {
+                $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                $baseUrl = "{$protocol}://{$host}";
+            }
+            $resetLink = $baseUrl . '/index.php?action=reset-password&token=' . urlencode($token);
             
             // Email content
             $subject = 'Passwort-Wiederherstellung - Feuerwehr Management';

@@ -1,0 +1,23 @@
+name: PHP CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: PHP syntax check
+        run: |
+          find . -path ./vendor -prune -o -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Composer audit
+        run: composer audit --no-interaction
